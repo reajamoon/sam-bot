@@ -282,25 +282,22 @@ async function generateServerStats(discordUser, dbUser, client, interaction = nu
     // Message count (third field in Row 2)
         if (dbUser.messageCount > 0) {
             let messageValue = `${dbUser.messageCount.toLocaleString()}`;
-            
-            // Add context based on how the count was set (admin or auto)
-            if (dbUser.messageCountSetBy) {
-                // Admin-set count - no extra text
-                // messageValue stays as just the number
-            } else if (dbUser.messageCountStartDate) {
-                // Auto-tracked count - show since when tracking started (for the curious)
-                const startDate = new Date(dbUser.messageCountStartDate);
-                const formattedDate = startDate.toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric'
-                });
-                messageValue += `\n*Since ${formattedDate}*`;
-            } else {
-                // Fallback for users without start date (legacy stuff)
-                messageValue += '\n*Since Nov 1, 2025*';
+            // If admin has set the count, do not show 'since' date
+            if (!dbUser.messageCountSetBy) {
+                if (dbUser.messageCountStartDate) {
+                    // Auto-tracked count - show since when tracking started
+                    const startDate = new Date(dbUser.messageCountStartDate);
+                    const formattedDate = startDate.toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                    });
+                    messageValue += `\n*Since ${formattedDate}*`;
+                } else {
+                    // Fallback for users without start date (legacy stuff)
+                    messageValue += '\n*Since Nov 1, 2025*';
+                }
             }
-            
             row2Fields.push({
                 name: 'Messages Sent',
                 value: messageValue,
@@ -362,7 +359,7 @@ async function generateServerStats(discordUser, dbUser, client, interaction = nu
             const formattedTimezone = formatTimezoneForProfile(dbUser.timezone, dbUser.timezoneDisplay);
             console.log(`Timezone Debug: formatTimezoneForProfile returned: ${formattedTimezone ? `"${formattedTimezone}"` : 'null'}`);
             if (formattedTimezone) {
-                // Simple timezone display - just time and timezone, plus user's custom region if set (if they bothered)
+                // Simple timezone display - just time and timezone, plus user's custom region if set
                 let timezoneInfo = formattedTimezone;
                 // Add user's custom region if they've set one and regionDisplay is enabled (fancy)
                 if (dbUser.region && dbUser.regionDisplay !== false) {
@@ -441,7 +438,7 @@ async function generateServerStats(discordUser, dbUser, client, interaction = nu
         if (dbUser.lastSeen) {
             const lastSeen = new Date(dbUser.lastSeen);
             const timeSinceLastSeen = Date.now() - lastSeen.getTime();
-            
+
             let lastSeenText;
             if (timeSinceLastSeen < 60000) { // Less than 1 minute
                 lastSeenText = 'Just now';
@@ -472,7 +469,7 @@ async function generateServerStats(discordUser, dbUser, client, interaction = nu
     // Status (Online/Idle/DND/Offline)
         let statusText = 'Offline';
         let statusEmoji = '⚫';
-        
+
         if (member.presence) {
             switch (member.presence.status) {
                 case 'online':
@@ -507,7 +504,7 @@ async function generateServerStats(discordUser, dbUser, client, interaction = nu
                 inline: true
             });
         }
-        
+
     // Pad row6Fields with empty fields if needed (Discord embed rules)
         while (row6Fields.length < 3) {
             row6Fields.push({ name: '\u200B', value: '\u200B', inline: true });

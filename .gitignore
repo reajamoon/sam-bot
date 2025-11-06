@@ -106,9 +106,10 @@ ehthumbs.db
 Thumbs.db
 .vscode/
 
-# Ignore local database files
+# Ignore local database files etc.
 *.db
 *.sqlite
 /database/*.db
 /database/*.sqlite
 database/bot.sqlite
+sqlite3.exe

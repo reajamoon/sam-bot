@@ -31,22 +31,24 @@ module.exports = {
                     username: message.author.username,
                     discriminator: message.author.discriminator || '0',
                     avatar: message.author.avatar,
-                    messageCount: user.messageCount + 1,
                     lastSeen: new Date()
                 };
-                
                 // If this user doesn't have a messageCountStartDate yet, set it now (backward compatibility)
                 if (!user.messageCountStartDate) {
                     updateData.messageCountStartDate = new Date();
                 }
-                
+                // If admin has set the message count before
+                if (user.messageCountSetAt) {
+                    updateData.messageCount = user.messageCount + 1;
+                    updateData.messagesSinceAdminSet = (user.messagesSinceAdminSet || 0) + 1;
+                } else {
+                    updateData.messageCount = user.messageCount + 1;
+                }
                 await user.update(updateData);
-                
                 // Add experience points (optional - for future leveling system)
                 // You can enable this later when you implement leveling
                 // const leveledUp = user.addExperience(Math.floor(Math.random() * 15) + 10);
                 // await user.save();
-                
                 // if (leveledUp) {
                 //     // Could send a level up message here
                 //     console.log(`${message.author.username} leveled up to ${user.level}!`);
@@ -56,5 +58,5 @@ module.exports = {
         } catch (error) {
             console.error('Error tracking message:', error);
         }
-    },
+    }
 };

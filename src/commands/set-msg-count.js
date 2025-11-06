@@ -45,19 +45,21 @@ module.exports = {
                     messageCountSetBy: interaction.user.id,
                     messageCountSetAt: new Date(),
                     lastSeen: new Date()
+                        ,messagesSinceAdminSet: 0
                 }
             });
 
             if (!created) {
                 // Already exists—just bump their count and update their info
-                await user.update({
-                    messageCount: messageCount,
-                    messageCountSetBy: interaction.user.id,
-                    messageCountSetAt: new Date(),
-                    username: targetUser.username,
-                    discriminator: targetUser.discriminator || '0',
-                    avatar: targetUser.avatar
-                });
+                    await user.update({
+                        messageCount: messageCount,
+                        messageCountSetBy: interaction.user.id,
+                        messageCountSetAt: new Date(),
+                        messagesSinceAdminSet: 0,
+                        username: targetUser.username,
+                        discriminator: targetUser.discriminator || '0',
+                        avatar: targetUser.avatar
+                    });
             }
 
                 await interaction.reply({
