@@ -9,7 +9,7 @@ Heya! If you’re reading this, you probably already know the deal. Destiel, Sup
 - **Birthday hype:** He’ll ping you on your birthday (unless you’re hiding from the calendar).
 - **Help menus:** Lost? Type `/profile help` or `/rec help` and Sam will walk you through. He’s kind of a know-it-all.
 - **Privacy controls:** You can control what shows on your profile, disable others using the command to pull your profile, or delete your profile entirely. Sam is pretty good with secrets.
-- **Live updates:** Change something? It updates instantly. If it doesn't for some reason (server issues or whatever) just pull a new profile with `/profile view` and it'll show the changes.
+- **Live updates:** Change something? It updates instantly. If it doesn't for some reason (server issues or whatever) just pull a new profile with `/profile` and it'll show the changes.
 
 ## Project Overview
 - **Modular Architecture:** All features are split into dedicated command, handler, event, model, and utility modules. See `docs/bot-architecture-overview.md` for details.
