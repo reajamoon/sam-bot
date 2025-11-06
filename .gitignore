@@ -104,6 +104,7 @@ test-*.js
 .Trashes
 ehthumbs.db
 Thumbs.db
+.vscode/
 
 # Ignore local database files
 *.db
