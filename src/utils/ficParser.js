@@ -34,21 +34,66 @@ async function quickLinkCheck(url) {
             const client = url.startsWith('https:') ? https : http;
             const options = {
                 method: 'HEAD',
-                timeout: 3000, // Quick 3-second timeout
+                timeout: 3000,
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
                 }
             };
 
             const req = client.request(url, options, (res) => {
-                // Consider 200-399 as accessible
-                resolve(res.statusCode < 400);
+                if (res.statusCode < 400) {
+                    resolve(true);
+                } else if ((url.includes('tumblr.com') || url.includes('.tumblr.com'))) {
+                    // Fallback to GET for Tumblr
+                    const getOptions = { ...options, method: 'GET' };
+                    const getReq = client.request(url, getOptions, (getRes) => {
+                        resolve(getRes.statusCode < 400);
+                    });
+                    getReq.on('error', () => resolve(false));
+                    getReq.on('timeout', () => {
+                        getReq.destroy();
+                        resolve(false);
+                    });
+                    getReq.end();
+                } else {
+                    resolve(false);
+                }
             });
 
-            req.on('error', () => resolve(false));
+            req.on('error', () => {
+                if ((url.includes('tumblr.com') || url.includes('.tumblr.com'))) {
+                    // Fallback to GET for Tumblr
+                    const getOptions = { ...options, method: 'GET' };
+                    const getReq = client.request(url, getOptions, (getRes) => {
+                        resolve(getRes.statusCode < 400);
+                    });
+                    getReq.on('error', () => resolve(false));
+                    getReq.on('timeout', () => {
+                        getReq.destroy();
+                        resolve(false);
+                    });
+                    getReq.end();
+                } else {
+                    resolve(false);
+                }
+            });
             req.on('timeout', () => {
                 req.destroy();
-                resolve(false);
+                if ((url.includes('tumblr.com') || url.includes('.tumblr.com'))) {
+                    // Fallback to GET for Tumblr
+                    const getOptions = { ...options, method: 'GET' };
+                    const getReq = client.request(url, getOptions, (getRes) => {
+                        resolve(getRes.statusCode < 400);
+                    });
+                    getReq.on('error', () => resolve(false));
+                    getReq.on('timeout', () => {
+                        getReq.destroy();
+                        resolve(false);
+                    });
+                    getReq.end();
+                } else {
+                    resolve(false);
+                }
             });
 
             req.end();
@@ -884,8 +929,20 @@ async function fetchTumblrMetadata(url, includeRawHtml = false) {
         }
 
         // Check for Tumblr's various protection measures
-        if (html.includes('Enable JavaScript') || html.includes('cf-browser-verification') || html.length < 1000) {
-            return createFallbackMetadata(url, 'tumblr', 'Tumblr requires JavaScript or has protection enabled');
+        if (html.includes('Enable JavaScript') || html.includes('cf-browser-verification')) {
+            // Try Puppeteer fallback for JS-required/protected pages
+            try {
+                const { fetchHTMLWithBrowser } = require('./ficParser');
+                const browserHtml = await fetchHTMLWithBrowser(url);
+                if (browserHtml && browserHtml.length > 1000 && !browserHtml.includes('Enable JavaScript') && !browserHtml.includes('cf-browser-verification')) {
+                    // Use browserHtml for parsing
+                    html = browserHtml;
+                } else {
+                    return createFallbackMetadata(url, 'tumblr', 'Tumblr requires JavaScript or has protection enabled');
+                }
+            } catch (e) {
+                return createFallbackMetadata(url, 'tumblr', 'Tumblr requires JavaScript or has protection enabled');
+            }
         }
 
         const metadata = { url: url };
