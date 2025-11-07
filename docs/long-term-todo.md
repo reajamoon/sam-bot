@@ -7,12 +7,16 @@
 - [x] Implement data migration scripts for schema changes
 - [ ] Optimize database queries for large library
 - [ ] Preempt case where library grows outsized
+- [ ] Color rec embed by rating/warnings
+    - Update the recommendation embed logic to set the embed color based on fic rating (e.g., Teen, Mature, Explicit) and/or content warnings. This should be handled in src/utils/recUtils/createRecommendationEmbed.js and coordinated with rating/warning parsing from fic metadata.
 
 ## User Experience
 - [ ] Enhance help and onboarding (interactive guides)
 - [ ] Add user profile pages (show contributions, stats)
 - [ ] Allow users to favorite fics
 - [ ] Add notification system for fic updates based on completion status or chapter count
+- [ ] Birthday wishes with timezone fallback
+    - Add logic to send birthday wishes to users based on their set timezone, with a fallback to the server time if user timezone is not set. Integrate with birthday notification and profile logic.
 
 ## Attachments & Permissions
 - [ ] Enforce stricter author permission checks for uploads
