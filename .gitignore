@@ -113,3 +113,4 @@ Thumbs.db
 /database/*.sqlite
 database/bot.sqlite
 sqlite3.exe
+ecosystem.config.js
