@@ -114,3 +114,4 @@ Thumbs.db
 database/bot.sqlite
 sqlite3.exe
 ecosystem.config.js
+*.csv
