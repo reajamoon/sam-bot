@@ -17,6 +17,7 @@ for (const file of commandFiles) {
 const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
 
 // Deploy commands to GUILD_ID
+<<<<<<< Updated upstream
 (async () => {
     try {
         const guildId = process.env.GUILD_ID;
@@ -28,6 +29,21 @@ const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
         );
 
         console.log(`✅ Successfully deployed ${data.length} commands to guild ${guildId}`);
+=======
+
+(async () => {
+    try {
+	const guildId = process.env.GUILD_ID;
+		console.log(`Start refreshing ${commands.length} application (/) commands for ${guildId}`);
+        	console.log(`Deploying to guild: ${guildId}`);
+        const data = await rest.put(
+                Routes.applicationGuildCommands(process.env.CLIENT_ID, guildId),
+                { body: commands },
+            );
+
+        	console.log(`✅ Successfully deployed ${data.length} commands to guild ${guildId}`);
+        	console.log(`🎉 All commands deployed successfully to all servers!`);
+>>>>>>> Stashed changes
     } catch (error) {
         console.error('❌ Error deploying commands:', error);
     }
