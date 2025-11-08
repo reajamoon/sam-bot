@@ -20,6 +20,13 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
     try {
         ({ browser, page } = await getLoggedInAO3Page());
         await page.goto(ao3Url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+        // Check for login redirect
+        const currentUrl = page.url();
+        if (currentUrl.includes('/users/login?restricted=true&return_to=')) {
+            // Perform login (should already be logged in, but just in case)
+            // After login, go back to the original work URL
+            await page.goto(ao3Url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+        }
         html = await page.content();
         await browser.close();
         loggedIn = isAO3LoggedInPage(html);
@@ -40,6 +47,19 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
                 'X-Sam-Bot-Info': 'Hi AO3 devs! This is Sam, a hand-coded Discord bot for a single small server. I only fetch header metadata for user recs and do not retrieve fic content. Contact: https://github.com/reajamoon/sam-bot'
             });
             await page.goto(ao3Url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+            // Check for login redirect again
+            const currentUrl = page.url();
+            if (currentUrl.includes('/users/login?restricted=true&return_to=')) {
+                // Can't access, return error
+                await browser.close();
+                return {
+                    title: 'Unknown Title',
+                    author: 'Unknown Author',
+                    url: ao3Url,
+                    error: 'AO3 session required',
+                    summary: 'AO3 is requiring a login or new session. Please log in to AO3 and try again.'
+                };
+            }
             html = await page.content();
             await browser.close();
         } catch (e) {

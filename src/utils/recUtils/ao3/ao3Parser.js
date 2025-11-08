@@ -3,6 +3,16 @@
 
 function parseAO3Metadata(html, url, includeRawHtml = false) {
     if (!html) return null;
+    // Check for AO3 'New Session' interstitial
+    if (html.includes('<title>New Session') || html.includes('Please log in to continue') || html.includes('name="user_session"')) {
+        return {
+            title: 'Unknown Title',
+            author: 'Unknown Author',
+            url: url,
+            error: 'AO3 session required',
+            summary: 'AO3 is requiring a login or new session. Please log in to AO3 and try again.'
+        };
+    }
     // Check for Cloudflare or other protection
     if (html.includes('challenge') || html.includes('cloudflare') || html.includes('Enable JavaScript')) {
         return {
