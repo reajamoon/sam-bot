@@ -2,7 +2,7 @@
  * Tumblr metadata fetcher and parser
  * @module tumblrMeta
  */
-const { fetchHTML } = require('./ficParser');
+const { fetchHTML } = require('./fetchHtmlUtil');
 
 /**
  * Fetches metadata from Tumblr

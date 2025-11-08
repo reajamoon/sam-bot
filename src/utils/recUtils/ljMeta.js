@@ -2,7 +2,7 @@
  * LiveJournal metadata fetcher and parser
  * @module ljMeta
  */
-const { fetchHTML } = require('./ficParser');
+const { fetchHTML } = require('./fetchHtmlUtil');
 
 /**
  * Fetches metadata from LiveJournal

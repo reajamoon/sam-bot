@@ -2,7 +2,7 @@
  * Dreamwidth metadata fetcher and parser
  * @module dwMeta
  */
-const { fetchHTML } = require('./ficParser');
+const { fetchHTML } = require('./fetchHtmlUtil');
 
 /**
  * Fetches metadata from Dreamwidth

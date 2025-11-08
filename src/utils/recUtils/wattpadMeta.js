@@ -2,7 +2,7 @@
  * Wattpad metadata fetcher and parser
  * @module WattpadMeta
  */
-const { fetchHTML } = require('./ficParser');
+const { fetchHTML } = require('./fetchHtmlUtil');
 const normalizeMetadata = require('./normalizeMetadata');
 
 /**

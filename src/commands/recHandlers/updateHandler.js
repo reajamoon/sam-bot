@@ -191,19 +191,29 @@ async function handleUpdateRecommendation(interaction) {
         await recommendation.reload();
         console.log(`[rec update] Recommendation updated and reloaded (DB ops took ${Date.now() - dbStart}ms)`);
 
-        const embed = createRecommendationEmbed(recommendation, interaction.user, metadata, {
-            updated: true,
-            newTags,
-            newNotes,
-            newUrl,
-            newTitle,
-            newAuthor,
-            newSummary,
-            newRating,
-            newStatus,
-            newWordCount
-        });
-        await interaction.editReply({ content: null, embeds: [embed] });
+                // Build the rec object for the embed utility
+                const recForEmbed = {
+                    ...recommendation.toJSON(),
+                    ...metadata,
+                    id: recommendation.id,
+                    url: recommendation.url,
+                    recommendedByUsername: recommendation.recommendedByUsername,
+                    notes: newNotes !== null ? newNotes : recommendation.notes,
+                    // Provide a getParsedTags method for compatibility
+                    getParsedTags: function() {
+                        if (Array.isArray(newTags) && newTags.length > 0) return newTags;
+                        if (Array.isArray(this.tags)) return this.tags;
+                        if (typeof this.tags === 'string') {
+                            try {
+                                const parsed = JSON.parse(this.tags);
+                                if (Array.isArray(parsed)) return parsed;
+                            } catch {}
+                        }
+                        return [];
+                    }
+                };
+                const embed = await createRecommendationEmbed(recForEmbed);
+                await interaction.editReply({ content: null, embeds: [embed] });
     } catch (error) {
         console.error('[rec update] Error:', error);
         await interaction.editReply({
