@@ -2,6 +2,7 @@ const { Recommendation } = require('../../models');
 const { fetchFicMetadata } = require('../../utils/recUtils/ficParser');
 const findRecommendationByIdOrUrl = require('../../utils/recUtils/findRecommendationByIdOrUrl');
 const { EmbedBuilder, MessageFlags } = require('discord.js');
+const createRecommendationEmbed = require('../../utils/recUtils/createRecommendationEmbed');
 
 const isValidFanficUrl = require('../../utils/recUtils/isValidFanficUrl');
 
@@ -190,76 +191,17 @@ async function handleUpdateRecommendation(interaction) {
         await recommendation.reload();
         console.log(`[rec update] Recommendation updated and reloaded (DB ops took ${Date.now() - dbStart}ms)`);
 
-        const embed = new EmbedBuilder()
-            .setTitle(`📝 ${recommendation.title}`)
-            .setDescription(`**By:** ${recommendation.author}`)
-            .setURL(recommendation.url)
-            .setColor(0xFF9800)
-            .setTimestamp()
-            .setFooter({
-                text: `Updated by ${interaction.user.username} • Originally added by ${recommendation.recommendedByUsername} • ID: ${recommendation.id}`,
-                iconURL: interaction.user.displayAvatarURL()
-            });
-        if (recommendation.summary) {
-            embed.addFields({ 
-                name: 'Summary', 
-                value: recommendation.summary.length > 400 ? recommendation.summary.substring(0, 400) + '...' : recommendation.summary 
-            });
-        }
-        const siteName = recommendation.url.includes('archiveofourown.org') ? 'AO3' : 
-                        recommendation.url.includes('fanfiction.net') ? 'FFNet' : 
-                        recommendation.url.includes('wattpad.com') ? 'Wattpad' :
-                        recommendation.url.includes('livejournal.com') ? 'LiveJournal' :
-                        recommendation.url.includes('dreamwidth.org') ? 'Dreamwidth' :
-                        recommendation.url.includes('tumblr.com') ? 'Tumblr' : 'Link';
-        let linkValue = `[Read on ${siteName}](${recommendation.url})`;
-        if (recommendation.deleted && recommendation.attachmentUrl) {
-            linkValue += `\n📎 [Backup Copy Available](${recommendation.attachmentUrl}) *(with permission)*`;
-        }
-        embed.addFields({ 
-            name: '🔗 Read Here', 
-            value: linkValue, 
-            inline: false 
-        });
-        const fields = [];
-        if (recommendation.rating) fields.push({ name: 'Rating', value: recommendation.rating || 'Not Rated', inline: true });
-        if (recommendation.wordCount) fields.push({ name: 'Words', value: recommendation.wordCount ? recommendation.wordCount.toLocaleString() : 'Unknown', inline: true });
-        if (recommendation.chapters) fields.push({ name: 'Chapters', value: recommendation.chapters || 'Unknown', inline: true });
-        if (recommendation.status) {
-            let statusValue = recommendation.status || 'Unknown';
-            if (recommendation.deleted) statusValue += ' (Deleted)';
-            fields.push({ name: 'Status', value: statusValue, inline: true });
-        } else if (recommendation.deleted) {
-            fields.push({ name: 'Status', value: 'Deleted', inline: true });
-        }
-        if (fields.length > 0) {
-            embed.addFields(fields);
-        }
-        const allTags = recommendation.getParsedTags();
-        if (allTags.length > 0) {
-            embed.addFields({ 
-                name: 'Tags', 
-                value: allTags.slice(0, 8).join(', ') + (allTags.length > 8 ? '...' : '') 
-            });
-        }
-        if (recommendation.notes) {
-            embed.addFields({ name: 'Notes', value: recommendation.notes });
-        }
-        let updateSummary = [];
-        if (metadata) updateSummary.push('metadata refreshed');
-        if (newTags !== null) updateSummary.push('tags updated');
-        if (newNotes !== null) updateSummary.push('notes updated');
-        if (newUrl) updateSummary.push('URL changed');
-        if (newTitle !== null) updateSummary.push('title updated');
-        if (newAuthor !== null) updateSummary.push('author updated');
-        if (newSummary !== null) updateSummary.push('summary updated');
-        if (newRating !== null) updateSummary.push('rating updated');
-        if (newStatus !== null) updateSummary.push('status updated');
-        if (newWordCount !== null) updateSummary.push('word count updated');
-        embed.addFields({ 
-            name: 'Changes Made', 
-            value: updateSummary.length > 0 ? updateSummary.join(', ') : 'metadata refreshed',
-            inline: false 
+        const embed = createRecommendationEmbed(recommendation, interaction.user, metadata, {
+            updated: true,
+            newTags,
+            newNotes,
+            newUrl,
+            newTitle,
+            newAuthor,
+            newSummary,
+            newRating,
+            newStatus,
+            newWordCount
         });
         await interaction.editReply({ content: null, embeds: [embed] });
     } catch (error) {

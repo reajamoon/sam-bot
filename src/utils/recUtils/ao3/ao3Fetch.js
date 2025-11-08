@@ -34,7 +34,11 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
             browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
             page = await browser.newPage();
             await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:118.0) Gecko/20100101 Firefox/118.0');
-            await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-US,en;q=0.5', 'Upgrade-Insecure-Requests': '1' });
+            await page.setExtraHTTPHeaders({
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Upgrade-Insecure-Requests': '1',
+                'X-Sam-Bot-Info': 'Hi AO3 devs! This is Sam, a hand-coded Discord bot for a single small server. I only fetch header metadata for user recs and do not retrieve fic content. Contact: https://github.com/reajamoon/sam-bot'
+            });
             await page.goto(ao3Url, { waitUntil: 'domcontentloaded', timeout: 15000 });
             html = await page.content();
             await browser.close();

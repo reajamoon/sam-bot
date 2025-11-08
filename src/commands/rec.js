@@ -9,12 +9,13 @@ const handleAddRecommendation = require('./recHandlers/addHandler');
 const handleRemoveRecommendation = require('./recHandlers/removeHandler');
 const handleRandomRecommendation = require('./recHandlers/randomHandler');
 const handleStats = require('./recHandlers/statsHandler');
-const { fetchFicMetadata, quickLinkCheck } = require('../utils/recUtils/ficParser');
+const { fetchFicMetadata } = require('../utils/recUtils/ficParser');
 const findRecommendationByIdOrUrl = require('../utils/recUtils/findRecommendationByIdOrUrl');
 const createRecommendationEmbed = require('../utils/recUtils/createRecommendationEmbed');
 const handleUpdateRecommendation = require('./recHandlers/updateHandler');
 const handleSearchRecommendations = require('./recHandlers/searchHandler');
 const { handleHelp, handleHelpNavigation } = require('./recHandlers/helpHandler');
+const quickLinkCheck = require('../utils/recUtils/quickLinkCheck');
 
 /**
  * Main /rec command export object.

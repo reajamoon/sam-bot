@@ -1,6 +1,7 @@
 const { Recommendation } = require('../../models/index.js');
 const { fetchFicMetadata } = require('../../utils/recUtils/ficParser.js');
 const { EmbedBuilder, MessageFlags } = require('discord.js');
+const createRecommendationEmbed = require('../../utils/recUtils/createRecommendationEmbed');
 
 const isValidFanficUrl = require('../../utils/recUtils/isValidFanficUrl');
 
@@ -118,92 +119,7 @@ async function handleAddRecommendation(interaction) {
     });
 
     // Build the embed for the response, same format as random/search
-    const embed = new EmbedBuilder()
-      .setTitle(`📚 ${metadata.title}`)
-      .setDescription(`**By:** ${metadata.author}\n*✅ Added to the Profound Bond Library!*`)
-      .setURL(url)
-      .setColor(0x4CAF50)
-      .setTimestamp()
-      .setFooter({
-        text: `From the Profound Bond Library • Recommended by ${interaction.user.username} • ID: ${recommendation.id}`,
-        iconURL: interaction.user.displayAvatarURL()
-      });
-
-    if (metadata.summary) {
-      embed.addFields({ 
-        name: 'Summary', 
-        value: metadata.summary.length > 400 ? metadata.summary.substring(0, 400) + '...' : metadata.summary 
-      });
-    }
-
-    // Add a big link to the fic (AO3, FFNet, etc)
-    const siteName = url.includes('archiveofourown.org') ? 'AO3' : 
-            url.includes('fanfiction.net') ? 'FFNet' : 
-            url.includes('wattpad.com') ? 'Wattpad' :
-            url.includes('livejournal.com') ? 'LiveJournal' :
-            url.includes('dreamwidth.org') ? 'Dreamwidth' :
-            url.includes('tumblr.com') ? 'Tumblr' : 'Link';
-      
-    embed.addFields({ 
-      name: '🔗 Read Here', 
-      value: `[Read on ${siteName}](${url})`, 
-      inline: false 
-    });
-
-    const fields = [];
-    if (metadata.rating) fields.push({ name: 'Rating', value: metadata.rating || 'Not Rated', inline: true });
-    if (metadata.wordCount) fields.push({ name: 'Words', value: metadata.wordCount ? metadata.wordCount.toLocaleString() : 'Unknown', inline: true });
-    if (metadata.chapters) fields.push({ name: 'Chapters', value: metadata.chapters || 'Unknown', inline: true });
-    if (metadata.status) fields.push({ name: 'Status', value: metadata.status || 'Unknown', inline: true });
-
-    if (fields.length > 0) {
-      embed.addFields(fields);
-    }
-
-    // If this is a reblog, add a warning
-    if (metadata.isReblog && metadata.reblogWarning) {
-      embed.addFields({ 
-        name: '⚠ Reblog Detected', 
-        value: metadata.reblogWarning,
-        inline: false 
-      });
-    }
-
-    // If I found an AO3 version, suggest it here
-    if (metadata.hasAO3Links && metadata.ao3Suggestion) {
-      let ao3FieldValue = metadata.ao3Suggestion;
-          
-      if (metadata.ao3Preview) {
-        ao3FieldValue += `\n\n**AO3 Preview:**\n**Title:** ${metadata.ao3Preview.title}\n**Author:** ${metadata.ao3Preview.author}`;
-        if (metadata.ao3Preview.rating) {
-          ao3FieldValue += `\n**Rating:** ${metadata.ao3Preview.rating}`;
-        }
-        if (metadata.ao3Preview.wordCount) {
-          ao3FieldValue += `\n**Word Count:** ${metadata.ao3Preview.wordCount.toLocaleString()}`;
-        }
-        ao3FieldValue += `\n**URL:** ${metadata.ao3Preview.url}`;
-      } else if (metadata.ao3Links && metadata.ao3Links.length > 0) {
-        ao3FieldValue += `\n**Found AO3 Link:** ${metadata.ao3Links[0].url}`;
-      }
-          
-      embed.addFields({ 
-        name: '📚 AO3 Version Available', 
-        value: ao3FieldValue,
-        inline: false 
-      });
-    }
-
-    const allTags = [...(metadata.tags || []), ...additionalTags];
-    if (allTags.length > 0) {
-      embed.addFields({ 
-        name: 'Tags', 
-        value: allTags.slice(0, 8).join(', ') + (allTags.length > 8 ? '...' : '') 
-      });
-    }
-
-    if (notes) {
-      embed.addFields({ name: 'Notes', value: notes });
-    }
+    const embed = createRecommendationEmbed(metadata, url, interaction.user, recommendation.id, additionalTags, notes);
 
     await interaction.editReply({ embeds: [embed] });
   } catch (error) {
