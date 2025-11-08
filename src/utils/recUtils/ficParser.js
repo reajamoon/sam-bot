@@ -3,26 +3,7 @@
  * @param {string} url - The URL to fetch
  * @returns {Promise<string>} - The page HTML
  */
-async function fetchHTMLWithBrowser(url) {
-    // Generic browser-based HTML fetch
-    const puppeteer = require('puppeteer');
-    const browser = await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-    const page = await browser.newPage();
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:118.0) Gecko/20100101 Firefox/118.0');
-    await page.setExtraHTTPHeaders({
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Upgrade-Insecure-Requests': '1'
-    });
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
-    const html = await page.content();
-    await browser.close();
-    return html;
-}
-const https = require('https');
-const http = require('http');
+const { fetchHTML, fetchHTMLWithBrowser } = require('./fetchHtmlUtil');
 const { fetchAO3MetadataWithFallback, parseAO3Metadata, detectAO3LinksInHtml } = require('./ao3Meta');
 const { fetchFFNetMetadata } = require('./ffnMeta');
 const { fetchWattpadMetadata } = require('./wattpadMeta');
@@ -127,58 +108,7 @@ function createFallbackMetadata(url, source, errorMessage) {
     return fallback;
 }
 
-/**
- * Fetches HTML content from a URL
- */
-function fetchHTML(url) {
-    return new Promise((resolve, reject) => {
-        // Always append ?view_adult=true for AO3 URLs
-        let urlToFetch = url;
-        if (urlToFetch.includes('archiveofourown.org') && !urlToFetch.includes('view_adult=true')) {
-            urlToFetch += (urlToFetch.includes('?') ? '&' : '?') + 'view_adult=true';
-        }
-        const options = {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:118.0) Gecko/20100101 Firefox/118.0',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1'
-            }
-        };
-
-        https.get(urlToFetch, options, (res) => {
-            // Check for HTTP error status codes
-            if (res.statusCode === 404) {
-                reject(new Error('HTTP_404_NOT_FOUND'));
-                return;
-            } else if (res.statusCode === 403) {
-                reject(new Error('HTTP_403_FORBIDDEN'));
-                return;
-            } else if (res.statusCode === 500) {
-                reject(new Error('HTTP_500_SERVER_ERROR'));
-                return;
-            } else if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 400)) {
-                reject(new Error(`HTTP_${res.statusCode}_ERROR`));
-                return;
-            }
-
-            let data = '';
-            res.on('data', (chunk) => {
-                data += chunk;
-            });
-            res.on('end', () => {
-                resolve(data);
-            });
-        }).on('error', (err) => {
-            reject(err);
-        });
-    });
-}
-
 module.exports = {
     fetchFicMetadata,
-    quickLinkCheck,
-    fetchHTML,
-    fetchHTMLWithBrowser
+    quickLinkCheck
 };

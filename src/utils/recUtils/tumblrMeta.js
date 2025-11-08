@@ -2,7 +2,7 @@
  * Tumblr metadata fetcher and parser
  * @module tumblrMeta
  */
-const { fetchHTML } = require('./ficParser');
+const { fetchHTML } = require('./fetchHtmlUtil');
 
 /**
  * Fetches metadata from Tumblr
@@ -259,8 +259,6 @@ function detectTumblrReblog(url, html) {
 
     return result;
 }
-
-// You may want to copy createFallbackMetadata from ficParser.js if needed
 
 module.exports = {
     fetchTumblrMetadata,

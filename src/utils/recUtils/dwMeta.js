@@ -2,7 +2,7 @@
  * Dreamwidth metadata fetcher and parser
  * @module dwMeta
  */
-const { fetchHTML } = require('./ficParser');
+const { fetchHTML } = require('./fetchHtmlUtil');
 
 /**
  * Fetches metadata from Dreamwidth
@@ -123,8 +123,6 @@ async function fetchDreamwidthMetadata(url, includeRawHtml = false) {
         return createFallbackMetadata(url, 'dreamwidth', 'Could not parse Dreamwidth content');
     }
 }
-
-// You may want to copy createFallbackMetadata from ficParser.js if needed
 
 module.exports = {
     fetchDreamwidthMetadata

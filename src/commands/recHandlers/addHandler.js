@@ -119,8 +119,28 @@ async function handleAddRecommendation(interaction) {
     });
 
     // Build the embed for the response, same format as random/search
-    const embed = createRecommendationEmbed(metadata, url, interaction.user, recommendation.id, additionalTags, notes);
-
+    // Build the rec object for the embed utility
+    const recForEmbed = {
+      ...metadata,
+      url,
+      id: recommendation.id,
+      recommendedByUsername: interaction.user.username,
+      notes,
+      // Provide a getParsedTags method for compatibility
+      getParsedTags: function() {
+        // Prefer additionalTags if provided, else use metadata.tags
+        if (Array.isArray(additionalTags) && additionalTags.length > 0) return additionalTags;
+        if (Array.isArray(this.tags)) return this.tags;
+        if (typeof this.tags === 'string') {
+          try {
+            const parsed = JSON.parse(this.tags);
+            if (Array.isArray(parsed)) return parsed;
+          } catch {}
+        }
+        return [];
+      }
+    };
+    const embed = await createRecommendationEmbed(recForEmbed);
     await interaction.editReply({ embeds: [embed] });
   } catch (error) {
     // If something goes wrong, reply with a single error message
