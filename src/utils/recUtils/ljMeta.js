@@ -54,8 +54,8 @@ async function fetchLiveJournalMetadata(url, includeRawHtml = false) {
                 .replace(/\s+/g, ' ')
                 .trim();
 
-            metadata.summary = cleanContent.length > 300 
-                ? cleanContent.substring(0, 300) + '...' 
+            metadata.summary = cleanContent.length > 300
+                ? cleanContent.substring(0, 300) + '...'
                 : cleanContent;
         }
 
@@ -126,8 +126,6 @@ async function fetchLiveJournalMetadata(url, includeRawHtml = false) {
         return createFallbackMetadata(url, 'livejournal', 'Could not parse LiveJournal content');
     }
 }
-
-// You may want to copy createFallbackMetadata from ficParser.js if needed
 
 module.exports = {
     fetchLiveJournalMetadata
