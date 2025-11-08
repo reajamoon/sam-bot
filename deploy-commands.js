@@ -16,29 +16,18 @@ for (const file of commandFiles) {
 // Construct and prepare an instance of the REST module
 const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
 
-// Guild IDs for both servers
-const guildIds = [
-    process.env.TEST_GUILD_ID,        // Crypto's Cabana (test server)
-    process.env.PROFOUND_BOND_GUILD_ID // Profound Bond (main server)
-];
-
-// Deploy commands to multiple guilds
+// Deploy commands to GUILD_ID
 (async () => {
     try {
-        console.log(`Started refreshing ${commands.length} application (/) commands across ${guildIds.length} servers.`);
+        const guildId = process.env.GUILD_ID;
+        console.log(`Started refreshing ${commands.length} application (/) commands for guild: ${guildId}`);
 
-        for (const guildId of guildIds) {
-            console.log(`Deploying to guild: ${guildId}`);
-            
-            const data = await rest.put(
-                Routes.applicationGuildCommands(process.env.CLIENT_ID, guildId),
-                { body: commands },
-            );
+        const data = await rest.put(
+            Routes.applicationGuildCommands(process.env.CLIENT_ID, guildId),
+            { body: commands },
+        );
 
-            console.log(`✅ Successfully deployed ${data.length} commands to guild ${guildId}`);
-        }
-
-        console.log(`🎉 All commands deployed successfully to all servers!`);
+        console.log(`✅ Successfully deployed ${data.length} commands to guild ${guildId}`);
     } catch (error) {
         console.error('❌ Error deploying commands:', error);
     }

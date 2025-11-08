@@ -9,12 +9,13 @@ const handleAddRecommendation = require('./recHandlers/addHandler');
 const handleRemoveRecommendation = require('./recHandlers/removeHandler');
 const handleRandomRecommendation = require('./recHandlers/randomHandler');
 const handleStats = require('./recHandlers/statsHandler');
-const { fetchFicMetadata, quickLinkCheck } = require('../utils/ficParser');
+const { fetchFicMetadata } = require('../utils/recUtils/ficParser');
 const findRecommendationByIdOrUrl = require('../utils/recUtils/findRecommendationByIdOrUrl');
 const createRecommendationEmbed = require('../utils/recUtils/createRecommendationEmbed');
 const handleUpdateRecommendation = require('./recHandlers/updateHandler');
 const handleSearchRecommendations = require('./recHandlers/searchHandler');
 const { handleHelp, handleHelpNavigation } = require('./recHandlers/helpHandler');
+const quickLinkCheck = require('../utils/recUtils/quickLinkCheck');
 
 /**
  * Main /rec command export object.
@@ -142,8 +143,24 @@ module.exports = {
                         .setRequired(false)))
         .addSubcommand(subcommand =>
             subcommand
+                .setName('remove')
+                .setDescription('Remove a fanfiction recommendation')
+                .addIntegerOption(option =>
+                    option.setName('id')
+                        .setDescription('ID of the recommendation to remove')
+                        .setRequired(false))
+                .addStringOption(option =>
+                    option.setName('url')
+                        .setDescription('URL of the recommendation to remove')
+                        .setRequired(false)))
+        .addSubcommand(subcommand =>
+            subcommand
                 .setName('help')
                 .setDescription('Show detailed help for the recommendation system'))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('stats')
+                .setDescription('Show library and contributor statistics'))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('search')
