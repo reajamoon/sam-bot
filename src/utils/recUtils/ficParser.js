@@ -21,7 +21,7 @@ const quickLinkCheck = require('./quickLinkCheck');
 async function fetchFicMetadata(url, includeRawHtml = false) {
     // Add overall timeout to prevent Discord interaction expiry
     const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Metadata fetch timeout - taking too long')), 10000)
+        setTimeout(() => reject(new Error('Metadata fetch timeout - taking too long')), 30000)
     );
 
     const fetchPromise = async () => {
