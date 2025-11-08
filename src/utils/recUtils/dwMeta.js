@@ -124,8 +124,6 @@ async function fetchDreamwidthMetadata(url, includeRawHtml = false) {
     }
 }
 
-// You may want to copy createFallbackMetadata from ficParser.js if needed
-
 module.exports = {
     fetchDreamwidthMetadata
 };

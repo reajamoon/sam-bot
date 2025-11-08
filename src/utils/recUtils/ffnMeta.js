@@ -2,7 +2,7 @@
  * FanFiction.Net metadata fetcher and parser
  * @module FFNetMeta
  */
-const { fetchHTML } = require('./fetchHtmlUtil');
+const { fetchHTML } = require('./ficParser');
 const normalizeMetadata = require('./normalizeMetadata');
 
 /**

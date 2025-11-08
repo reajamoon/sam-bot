@@ -108,7 +108,6 @@ function createFallbackMetadata(url, source, errorMessage) {
     return fallback;
 }
 
-
 module.exports = {
     fetchFicMetadata,
     quickLinkCheck
