@@ -21,7 +21,7 @@ async function fetchTumblrMetadata(url, includeRawHtml = false) {
         if (html.includes('Enable JavaScript') || html.includes('cf-browser-verification')) {
             // Try Puppeteer fallback for JS-required/protected pages
             try {
-                const { fetchHTMLWithBrowser } = require('./ficParser');
+                const { fetchHTMLWithBrowser } = require('./fetchHtmlUtil');
                 const browserHtml = await fetchHTMLWithBrowser(url);
                 if (browserHtml && browserHtml.length > 1000 && !browserHtml.includes('Enable JavaScript') && !browserHtml.includes('cf-browser-verification')) {
                     // Use browserHtml for parsing

@@ -12,22 +12,45 @@ function isAO3LoggedInPage(html) {
 }
 
 async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
-    const { getLoggedInAO3Page, appendAdultViewParamIfNeeded } = require('./ao3Utils');
+    const { getLoggedInAO3Page, appendAdultViewParamIfNeeded, bypassStayLoggedInInterstitial } = require('./ao3Utils');
     const { parseAO3Metadata } = require('./ao3Parser');
     let html, browser, page, ao3Url;
     let loggedIn = false;
     ao3Url = url;
     try {
-        ({ browser, page } = await getLoggedInAO3Page());
-        await page.goto(ao3Url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+        const loginResult = await getLoggedInAO3Page();
+        browser = loginResult.browser;
+        page = loginResult.page;
+        // If logged in with cookies, always navigate to the fic URL
+        if (loginResult.loggedInWithCookies) {
+            await page.goto(ao3Url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+        }
         // Check for login redirect
-        const currentUrl = page.url();
+        let currentUrl = page.url();
         if (currentUrl.includes('/users/login?restricted=true&return_to=')) {
             // Perform login (should already be logged in, but just in case)
             // After login, go back to the original work URL
             await page.goto(ao3Url, { waitUntil: 'domcontentloaded', timeout: 15000 });
         }
+        // Bypass 'stay logged in' interstitial if present
+        await bypassStayLoggedInInterstitial(page, ao3Url);
         html = await page.content();
+        // Extra check: ensure not still on login/interstitial page
+        const pageTitle = await page.title();
+        if (
+            html.includes('<form id="loginform"') ||
+            /New\s*Session/i.test(pageTitle) ||
+            currentUrl.includes('/users/login')
+        ) {
+            await browser.close();
+            return {
+                title: 'Unknown Title',
+                author: 'Unknown Author',
+                url: ao3Url,
+                error: 'AO3 session or login required',
+                summary: 'AO3 is still requiring a login or new session after login attempt. Please wait a few minutes and try again.'
+            };
+        }
         await browser.close();
         loggedIn = isAO3LoggedInPage(html);
     } catch (e) {
@@ -38,7 +61,8 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
         ao3Url = appendAdultViewParamIfNeeded ? appendAdultViewParamIfNeeded(url) : url;
         try {
             const puppeteer = require('puppeteer');
-            browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+            const headless = process.env.AO3_HEADLESS === 'false' ? false : true;
+            browser = await puppeteer.launch({ headless, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
             page = await browser.newPage();
             await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:118.0) Gecko/20100101 Firefox/118.0');
             await page.setExtraHTTPHeaders({
@@ -47,10 +71,10 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
                 'X-Sam-Bot-Info': 'Hi AO3 devs! This is Sam, a hand-coded Discord bot for a single small server. I only fetch header metadata for user recs and do not retrieve fic content. Contact: https://github.com/reajamoon/sam-bot'
             });
             await page.goto(ao3Url, { waitUntil: 'domcontentloaded', timeout: 15000 });
-            // Check for login redirect again
             const currentUrl = page.url();
+            const pageTitle = await page.title();
+            const htmlSnap = await page.content();
             if (currentUrl.includes('/users/login?restricted=true&return_to=')) {
-                // Can't access, return error
                 await browser.close();
                 return {
                     title: 'Unknown Title',
@@ -60,7 +84,7 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
                     summary: 'AO3 is requiring a login or new session. Please log in to AO3 and try again.'
                 };
             }
-            html = await page.content();
+            html = htmlSnap;
             await browser.close();
         } catch (e) {
             if (browser) await browser.close();

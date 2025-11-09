@@ -48,6 +48,9 @@ typings/
 # Optional REPL history
 .node_repl_history
 
+# AO3 session cookies
+ao3_cookies.json
+
 # Output of 'npm pack'
 *.tgz
 
@@ -115,3 +118,4 @@ database/bot.sqlite
 sqlite3.exe
 ecosystem.config.js
 *.csv
+*.html
