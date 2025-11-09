@@ -2,6 +2,19 @@
 
 ---
 
+
+## 2025-11-08
+
+### Features & Improvements
+- AO3 parser, login/session, and fetch utilities fully scrutinized for stupid weird little loopies and blackholes of logic.
+- AO3 login/session logic now uses cookie persistence and always navigates to the fic URL after login instead of just staring blankly at the login confirmation screen.
+- All AO3 fetch and parser modules are modular, silent, and return clear error objects for user feedback. bless.
+- Resolved a loop where Sam would look for a typo'd tablename in the database, get sad it wasn't there, look again, repeat, many times a second until crashing taking Dean and Cas down with him until they were all stuck in a horrifying restart-crash death spiral.
+- Code and comments reviewed for clarity and maintainability :)
+
+
+---
+
 ## 2025-11-05
 
 ### Features & Improvements
