@@ -1,6 +1,6 @@
 // queueWorker.js
 // Background worker to process fic parsing jobs from the ParseQueue
-const { sequelize, ParseQueue, ParseQueueSubscriber, Recommendation } = require('../src/models');
+const { sequelize, ParseQueue, ParseQueueSubscriber, Recommendation, Config } = require('../src/models');
 const { fetchFicMetadata } = require('../src/utils/recUtils/ficParser');
 const createRecommendationEmbed = require('../src/utils/recUtils/createRecommendationEmbed');
 const { Client, GatewayIntentBits } = require('discord.js');
@@ -17,20 +17,26 @@ async function processQueueJob(job) {
     }
     await job.update({ status: 'done', result: metadata, error_message: null });
     // Optionally, update Recommendation DB if needed here
-    // Notify all subscribers
+    // Notify all subscribers in the configured channel
     const subscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: job.id } });
-    for (const sub of subscribers) {
-      try {
-        const user = await client.users.fetch(sub.user_id);
-        if (user) {
-          const embed = await createRecommendationEmbed(metadata);
-          await user.send({ content: `Your fic parsing job for <${job.fic_url}> is complete!`, embeds: [embed] });
-        }
-      } catch (err) {
-        console.warn(`[QueueWorker] Failed to DM user ${sub.user_id}:`, err.message);
-      }
+    const configEntry = await Config.findOne({ where: { key: 'fic_queue_channel' } });
+    if (!configEntry) {
+      console.warn('[QueueWorker] No fic_queue_channel configured. Skipping notification.');
+      return;
     }
-    // Optionally, clean up subscribers after notification
+    const channelId = configEntry.value;
+    const channel = await client.channels.fetch(channelId).catch(() => null);
+    if (!channel || !channel.isTextBased()) {
+      console.warn(`[QueueWorker] Could not fetch or use channel ${channelId}. Skipping notification.`);
+      return;
+    }
+    const embed = await createRecommendationEmbed(metadata);
+    const mentions = subscribers.map(sub => `<@${sub.user_id}>`).join(' ');
+    await channel.send({
+      content: `${mentions}\nYour fic parsing job for <${job.fic_url}> is complete!`,
+      embeds: [embed]
+    });
+    // Clean up subscribers after notification
     await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
   } catch (err) {
     await job.update({ status: 'error', error_message: err.message });
