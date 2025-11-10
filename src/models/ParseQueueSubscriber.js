@@ -15,11 +15,6 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    channel_id: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      comment: 'Channel to notify when fic parsing is complete'
-    },
   }, {
     timestamps: true,
     tableName: 'ParseQueueSubscribers',
