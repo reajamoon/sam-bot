@@ -35,7 +35,7 @@ async function fetchDreamwidthMetadata(url, includeRawHtml = false) {
         if (!authorMatch) {
             authorMatch = html.match(/journal[:\s]+([^<\s,]+)/i);
         }
-        metadata.author = authorMatch ? authorMatch[1].trim() : 'Unknown Author';
+        metadata.authors = [authorMatch ? authorMatch[1].trim() : 'Unknown Author'];
 
         // Content/Summary - Dreamwidth uses similar structure to LiveJournal
         let summaryMatch = html.match(/<div[^>]*class="[^"]*entry-content[^"]*"[^>]*>(.*?)<\/div>/s);
@@ -87,13 +87,15 @@ async function fetchDreamwidthMetadata(url, includeRawHtml = false) {
         metadata.language = 'English';
 
         if (includeRawHtml) metadata.rawHtml = html;
-        return metadata;
+    // Remove legacy 'author' field if present
+    if (metadata.author) delete metadata.author;
+    return metadata;
     } catch (error) {
         // Handle HTTP errors from fetchHTML
         if (error.message === 'HTTP_404_NOT_FOUND') {
             return {
                 title: 'Post Not Found',
-                author: 'Unknown Author',
+                authors: ['Unknown Author'],
                 url: url,
                 error: '404_not_found',
                 summary: 'This Dreamwidth post appears to have been deleted or moved. The link is no longer working.',
@@ -102,7 +104,7 @@ async function fetchDreamwidthMetadata(url, includeRawHtml = false) {
         } else if (error.message === 'HTTP_403_FORBIDDEN') {
             return {
                 title: 'Access Denied',
-                author: 'Unknown Author',
+                authors: ['Unknown Author'],
                 url: url,
                 error: 'Access denied',
                 summary: 'This Dreamwidth post is private or restricted. You might need to be logged in or have special permissions to view it.',
@@ -111,7 +113,7 @@ async function fetchDreamwidthMetadata(url, includeRawHtml = false) {
         } else if (error.message.startsWith('HTTP_')) {
             return {
                 title: 'Connection Error',
-                author: 'Unknown Author',
+                authors: ['Unknown Author'],
                 url: url,
                 error: error.message,
                 summary: 'There was a problem connecting to this Dreamwidth post. The site might be down or experiencing issues.',

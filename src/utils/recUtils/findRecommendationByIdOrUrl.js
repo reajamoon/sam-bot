@@ -11,6 +11,7 @@ const { Op } = require('sequelize');
  * @throws {Error} If not found or invalid input
  */
 async function findRecommendationByIdOrUrl(interaction, recId, recUrl, ao3Id) {
+    const normalizeAO3Url = require('./normalizeAO3Url');
     const { Recommendation } = require('../../models');
     console.log('DEBUG Recommendation import:', {
         type: typeof Recommendation,
@@ -38,9 +39,11 @@ async function findRecommendationByIdOrUrl(interaction, recId, recUrl, ao3Id) {
             throw new Error(`I couldn't find a recommendation with ID ${recId} in our library.`);
         }
     } else if (recUrl) {
+        // Normalize AO3 URLs for lookup
+        const normalizedUrl = normalizeAO3Url(recUrl);
         recommendation = await Recommendation.findOne({
             where: {
-                url: recUrl
+                url: normalizedUrl
             }
         });
         if (!recommendation) {

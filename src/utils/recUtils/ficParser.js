@@ -79,7 +79,7 @@ function createFallbackMetadata(url, source, errorMessage) {
     const fallback = {
         url: url,
         title: `${platformName} Story`,
-        author: 'Unknown Author',
+        authors: ['Unknown Author'],
         summary: `This story is hosted on ${platformName}. ${errorMessage}. You might want to manually add the story details using the manual fields.`,
         chapters: '1',
         status: 'Unknown',
@@ -93,7 +93,7 @@ function createFallbackMetadata(url, source, errorMessage) {
     if (source === 'tumblr') {
         const authorMatch = url.match(/https?:\/\/([^.]+)\.tumblr\.com/);
         if (authorMatch) {
-            fallback.author = authorMatch[1];
+            fallback.authors = [authorMatch[1]];
 
             // Simple reblog detection based on URL patterns
             const urlReblogPattern = /\/post\/\d+\/.+/;

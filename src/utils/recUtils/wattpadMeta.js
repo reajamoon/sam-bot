@@ -34,14 +34,14 @@ async function fetchWattpadMetadata(url, includeRawHtml = false) {
         }
 
         // Author - look for username patterns
-        let authorMatch = html.match(/<a[^>]*href="\/user\/[^\"]*"[^>]*>([^<]+)/);
+        let authorMatch = html.match(/<a[^>]*href="\/user\/[^"]*"[^>]*>([^<]+)/);
         if (!authorMatch) {
             authorMatch = html.match(/"username":"([^"]+)"/);
         }
         if (!authorMatch) {
             authorMatch = html.match(/by\s+([^<\n]+)/i);
         }
-        metadata.author = authorMatch ? authorMatch[1].trim() : 'Unknown Author';
+        metadata.authors = authorMatch ? [authorMatch[1].trim()] : ['Unknown Author'];
 
         // Description/Summary - Wattpad uses description class
         let summaryMatch = html.match(/<div[^>]*class="[^"]*description[^"]*"[^>]*>(.*?)<\/div>/s);
@@ -64,7 +64,7 @@ async function fetchWattpadMetadata(url, includeRawHtml = false) {
                 // Extract story data from the JSON
                 if (data.story) {
                     metadata.title = data.story.title || metadata.title;
-                    metadata.author = data.story.user?.username || metadata.author;
+                    metadata.authors = [data.story.user?.username || (metadata.authors && metadata.authors[0]) || 'Unknown Author'];
                     metadata.summary = data.story.description || metadata.summary;
 
                     if (data.story.numParts) {
@@ -128,13 +128,15 @@ async function fetchWattpadMetadata(url, includeRawHtml = false) {
         metadata.status = metadata.status || 'Unknown';
 
         if (includeRawHtml) metadata.rawHtml = html;
+    // Remove legacy 'author' field if present
+    if (metadata.author) delete metadata.author;
     return normalizeMetadata(metadata, 'wattpad');
     } catch (error) {
         // Handle HTTP errors from fetchHTML
         if (error.message === 'HTTP_404_NOT_FOUND') {
             return {
                 title: 'Story Not Found',
-                author: 'Unknown Author',
+                authors: ['Unknown Author'],
                 url: url,
                 error: '404_not_found',
                 summary: 'This story appears to have been deleted or moved. The link is no longer working. You might want to check if the author has reposted it elsewhere.',
@@ -143,7 +145,7 @@ async function fetchWattpadMetadata(url, includeRawHtml = false) {
         } else if (error.message === 'HTTP_403_FORBIDDEN') {
             return {
                 title: 'Access Denied',
-                author: 'Unknown Author',
+                authors: ['Unknown Author'],
                 url: url,
                 error: 'Access denied',
                 summary: 'This story is restricted or requires special permissions to access. It might be private or requires account login.',
@@ -152,7 +154,7 @@ async function fetchWattpadMetadata(url, includeRawHtml = false) {
         } else if (error.message.startsWith('HTTP_')) {
             return {
                 title: 'Connection Error',
-                author: 'Unknown Author',
+                authors: ['Unknown Author'],
                 url: url,
                 error: error.message,
                 summary: 'There was a problem connecting to this story. The site might be down or experiencing issues.',

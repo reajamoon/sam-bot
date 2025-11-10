@@ -5,7 +5,7 @@ const quickLinkCheck = require('./quickLinkCheck');
 async function createRecommendationEmbed(rec) {
     const embed = new EmbedBuilder()
         .setTitle(`📖 ${rec.title}`)
-        .setDescription(`**By:** ${rec.author}`)
+        .setDescription(`**By:** ${(rec.authors && Array.isArray(rec.authors)) ? rec.authors.join(', ') : (rec.author || 'Unknown Author')}`)
         .setURL(rec.url)
         .setColor(0x9C27B0)
         .setTimestamp()
