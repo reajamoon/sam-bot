@@ -38,7 +38,7 @@ function formatTimezoneForProfile(timezone, timezoneDisplay = 'iana') {
                     hour: '2-digit',
                     minute: '2-digit'
                 });
-                
+
                 // Calculate offset using a simple method. If it’s wrong, blame JavaScript.
                 const utcTime = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }));
                 const timezoneTime = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
@@ -123,53 +123,40 @@ function formatBirthdayForStats(birthday, timezone) {
  */
 async function generateServerStats(discordUser, dbUser, client, interaction = null) {
     try {
-    // Only show server stats for Profound Bond guild. If not set, nothing to see here.
-        if (!process.env.PROFOUND_BOND_GUILD_ID) {
-            return { row2Fields: [], row3Fields: [], row4Fields: [], row6Fields: [], hasStats: false };
-        }
-
-        const guild = client.guilds.cache.get(process.env.PROFOUND_BOND_GUILD_ID);
+        const guild = interaction ? interaction.guild : null;
         if (!guild) {
             return { row2Fields: [], row3Fields: [], row4Fields: [], row6Fields: [], hasStats: false };
         }
 
-    // Get guild member (may not exist)
         let member;
         try {
             member = await guild.members.fetch(discordUser.id);
         } catch (error) {
-            // User not in guild. Bail out.
             return { row2Fields: [], row3Fields: [], row4Fields: [], row6Fields: [], hasStats: false };
         }
-
         const row2Fields = [];
         const row3Fields = [];
         const row4Fields = [];
         const row6Fields = [];
-
     // Server join date with breakdown and PB-versary
         if (member.joinedAt) {
             const joinDate = member.joinedAt;
             const now = new Date();
-
             // Calculate time since joining (years, months, days)
             let years = now.getFullYear() - joinDate.getFullYear();
             let months = now.getMonth() - joinDate.getMonth();
             let days = now.getDate() - joinDate.getDate();
-            
             // Adjust for negative days (calendar math is fun)
             if (days < 0) {
                 months--;
                 const lastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
                 days += lastMonth.getDate();
             }
-            
             // Adjust for negative months (still fun)
             if (months < 0) {
                 years--;
                 months += 12;
             }
-            
             // Format the time since joining (y/mo/d)
             let timeSinceJoining = '';
             if (years > 0) {
@@ -183,7 +170,6 @@ async function generateServerStats(discordUser, dbUser, client, interaction = nu
             if (days > 0 || timeSinceJoining === '') {
                 timeSinceJoining += `${days}d`;
             }
-            
             // Calculate next PB-versary (how long until cake?)
             const isPBversaryToday = now.getMonth() === joinDate.getMonth() && now.getDate() === joinDate.getDate();
             let pbversaryText = '';
@@ -200,7 +186,7 @@ async function generateServerStats(discordUser, dbUser, client, interaction = nu
                 let monthsUntil = 0;
                 let daysUntil = 0;
                 // Count full months (calendar shenanigans)
-                while (tempDate.getFullYear() < nextPBversary.getFullYear() || 
+                while (tempDate.getFullYear() < nextPBversary.getFullYear() ||
                        (tempDate.getFullYear() === nextPBversary.getFullYear() && tempDate.getMonth() < nextPBversary.getMonth())) {
                     tempDate.setMonth(tempDate.getMonth() + 1);
                     monthsUntil++;
@@ -218,31 +204,26 @@ async function generateServerStats(discordUser, dbUser, client, interaction = nu
                     pbversaryText = `🎂 PB-versary in ${daysUntil}d`;
                 }
             }
-            
             const joinDateFormatted = joinDate.toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric'
             });
-            
             row2Fields.push({
                 name: 'Joined PB',
                 value: `${joinDateFormatted}\n*${timeSinceJoining} ago*\n${pbversaryText}`,
                 inline: true
             });
         }
-
     // Server roles (excluding @everyone, obviously)
         const roles = member.roles.cache
             .filter(role => role.name !== '@everyone')
             .sort((a, b) => b.position - a.position);
-
         if (roles.size > 0) {
             const roleArray = Array.from(roles.values()).slice(0, 3); // Top 3 roles only
             const roleList = roleArray.map(role => role.name).join(', ');
             const extraRoles = roles.size - roleArray.length;
             const roleText = extraRoles > 0 ? `${roleList} +${extraRoles} more` : roleList; // If you have more, congrats
-            
             row2Fields.push({
                 name: 'Server Roles',
                 value: roleText,
@@ -251,7 +232,6 @@ async function generateServerStats(discordUser, dbUser, client, interaction = nu
         } else {
             row2Fields.push({ name: '\u200B', value: '\u200B', inline: true });
         }
-
     // Message count (third field in Row 2)
         if (dbUser.messageCount > 0) {
             let messageValue = `${dbUser.messageCount.toLocaleString()}`;
@@ -279,9 +259,7 @@ async function generateServerStats(discordUser, dbUser, client, interaction = nu
         } else {
             row2Fields.push({ name: '\u200B', value: '\u200B', inline: true });
         }
-
     // ROW 3 FIELDS: Birthday > Zodiac Sign > Chinese Zodiac (the fun stuff)
-        
     // Birthday (only if set and not hidden)
         if (dbUser.birthday && !dbUser.birthdayHidden) {
             row3Fields.push({
@@ -292,7 +270,6 @@ async function generateServerStats(discordUser, dbUser, client, interaction = nu
         } else {
             row3Fields.push({ name: '\u200B', value: '\u200B', inline: true });
         }
-
     // Zodiac Sign (calculated from birthday)
         if (dbUser.birthday) {
             const [year, month, day] = dbUser.birthday.split('-').map(Number);
@@ -304,11 +281,9 @@ async function generateServerStats(discordUser, dbUser, client, interaction = nu
         } else {
             row3Fields.push({ name: '\u200B', value: '\u200B', inline: true });
         }
-
     // Chinese Zodiac (calculated from birthday year)
         if (dbUser.birthday && !dbUser.birthdayYearHidden) {
             const [year, month, day] = dbUser.birthday.split('-').map(Number);
-            
             // Only show Chinese zodiac if a real year was provided (not a placeholder like 1900)
             // If you see 1900, it's a privacy thing.
             if (year >= 1920 && year <= new Date().getFullYear()) {
@@ -324,7 +299,6 @@ async function generateServerStats(discordUser, dbUser, client, interaction = nu
         } else {
             row3Fields.push({ name: '\u200B', value: '\u200B', inline: true });
         }
-
     // ROW 4 FIELDS: Timezone > Pronouns > Age (the basics)
         // Timezone
         if (dbUser.timezone) {
@@ -365,7 +339,6 @@ async function generateServerStats(discordUser, dbUser, client, interaction = nu
         } else {
             row4Fields.push({ name: '\u200B', value: '\u200B', inline: true });
         }
-
     // Pronouns (if set)
         if (dbUser.pronouns) {
             row4Fields.push({
@@ -376,7 +349,6 @@ async function generateServerStats(discordUser, dbUser, client, interaction = nu
         } else {
             row4Fields.push({ name: '\u200B', value: '\u200B', inline: true });
         }
-
     // Age (calculated from birthday if available and year was provided, unless age is hidden)
         if (dbUser.birthday && !dbUser.birthdayAgePrivacy && !dbUser.birthdayYearHidden && !dbUser.birthdayAgeOnly) {
             // Parse birthday from YYYY-MM-DD format (classic)
@@ -389,11 +361,9 @@ async function generateServerStats(discordUser, dbUser, client, interaction = nu
                 const today = new Date();
                 let age = today.getFullYear() - birthDate.getFullYear();
                 const monthDiff = today.getMonth() - birthDate.getMonth();
-                
                 if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
                     age--;
                 }
-                
                 row4Fields.push({
                     name: 'Age',
                     value: `${age} years old`,
@@ -406,12 +376,10 @@ async function generateServerStats(discordUser, dbUser, client, interaction = nu
         } else {
             row4Fields.push({ name: '\u200B', value: '\u200B', inline: true });
         }
-
     // Last activity (when did they last show up?)
         if (dbUser.lastSeen) {
             const lastSeen = new Date(dbUser.lastSeen);
             const timeSinceLastSeen = Date.now() - lastSeen.getTime();
-
             let lastSeenText;
             if (timeSinceLastSeen < 60000) { // Less than 1 minute
                 lastSeenText = 'Just now';
@@ -431,18 +399,15 @@ async function generateServerStats(discordUser, dbUser, client, interaction = nu
                     year: 'numeric'
                 });
             }
-
             row6Fields.push({
                 name: 'Last Seen',
                 value: lastSeenText,
                 inline: true
             });
         }
-
     // Status (Online/Idle/DND/Offline)
         let statusText = 'Offline';
         let statusEmoji = '⚫';
-
         if (member.presence) {
             switch (member.presence.status) {
                 case 'online':
@@ -462,13 +427,11 @@ async function generateServerStats(discordUser, dbUser, client, interaction = nu
                     statusEmoji = '⚫';
             }
         }
-
         row6Fields.push({
             name: 'Status',
             value: `${statusEmoji} ${statusText}`,
             inline: true
         });
-
     // Server boost status (only show if actively boosting)
         if (member.premiumSince) {
             row6Fields.push({
@@ -477,12 +440,10 @@ async function generateServerStats(discordUser, dbUser, client, interaction = nu
                 inline: true
             });
         }
-
     // Pad row6Fields with empty fields if needed (Discord embed rules)
         while (row6Fields.length < 3) {
             row6Fields.push({ name: '\u200B', value: '\u200B', inline: true });
         }
-
         return {
             row2Fields,
             row3Fields,

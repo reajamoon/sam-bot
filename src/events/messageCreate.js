@@ -6,10 +6,9 @@ module.exports = {
     async execute(message) {
         // Don't track bot messages
         if (message.author.bot) return;
-        
-        // Only track messages in the Profound Bond server
-        if (message.guild?.id !== process.env.PROFOUND_BOND_GUILD_ID) return;
-        
+
+    // Guild ID check removed: bot will operate in any server it is invited to
+
         try {
             // Find or create user in database
             const [user, created] = await User.findOrCreate({
@@ -54,7 +53,7 @@ module.exports = {
                 //     console.log(`${message.author.username} leveled up to ${user.level}!`);
                 // }
             }
-            
+
         } catch (error) {
             console.error('Error tracking message:', error);
         }
