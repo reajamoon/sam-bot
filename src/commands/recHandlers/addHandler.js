@@ -29,18 +29,44 @@ async function handleAddRecommendation(interaction) {
       });
     }
 
-    // See if this fic is already in the database
-    const existingRec = await Recommendation.findOne({
-      where: {
-        url: url
-      }
-    });
 
-    if (existingRec) {
-      return await interaction.editReply({
-        content: `That fic's already in our library. ${existingRec.recommendedByUsername} added it on ${existingRec.createdAt.toLocaleDateString()}. Great minds think alike though!`
-      });
+    // --- Fic Parsing Queue Logic ---
+    const { ParseQueue, ParseQueueSubscriber } = require('../../models');
+    // Check if a queue entry exists for this fic_url
+    let queueEntry = await ParseQueue.findOne({ where: { fic_url: url } });
+    if (queueEntry) {
+      if (queueEntry.status === 'pending' || queueEntry.status === 'processing') {
+        // Add user as subscriber if not already
+        const existingSub = await ParseQueueSubscriber.findOne({ where: { queue_id: queueEntry.id, user_id: interaction.user.id } });
+        if (!existingSub) {
+          await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
+        }
+        return await interaction.editReply({
+          content: 'That fic is already being processed! You’ll get a notification when it’s ready.'
+        });
+      } else if (queueEntry.status === 'done' && queueEntry.result) {
+        // Return cached result (simulate embed)
+        const embed = await createRecommendationEmbed(queueEntry.result);
+        return await interaction.editReply({
+          content: 'This fic was already parsed! Here are the details:',
+          embeds: [embed]
+        });
+      } else if (queueEntry.status === 'error') {
+        return await interaction.editReply({
+          content: `There was an error parsing this fic previously: ${queueEntry.error_message || 'Unknown error.'} You can try again later.`
+        });
+      }
     }
+    // If no entry, create a new pending job and add user as subscriber
+    queueEntry = await ParseQueue.create({
+      fic_url: url,
+      status: 'pending',
+      requested_by: interaction.user.id
+    });
+    await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
+    return await interaction.editReply({
+      content: 'Your fic has been added to the parsing queue! I’ll notify you when it’s ready.'
+    });
 
     let metadata;
     // If the user gave a title and author, just use those instead of parsing
