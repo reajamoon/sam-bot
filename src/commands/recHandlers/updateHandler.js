@@ -72,76 +72,54 @@ async function handleUpdateRecommendation(interaction) {
             return;
         }
 
-    let urlToUse = newUrl || recommendation.url;
-    urlToUse = normalizeAO3Url(urlToUse);
+        let urlToUse = newUrl || recommendation.url;
+        urlToUse = normalizeAO3Url(urlToUse);
         let shouldUpdateMetadata = false;
         let metadata = null;
 
-        if (newUrl && newUrl !== recommendation.url) {
-            if (!isValidFanficUrl(newUrl)) {
-                await interaction.editReply({
-                    content: 'That doesn\'t look like a supported fanfiction URL. As your librarian, I can work with Archive of Our Own (AO3), FanFiction.Net, and Wattpad links.'
-                });
-                return;
-            }
-            const dupStart = Date.now();
-            console.log('[rec update] Checking for duplicate URL...');
-            const existingRec = await Recommendation.findOne({
-                where: {
-                    url: newUrl,
-                    id: { [require('sequelize').Op.ne]: recId }
+        // --- Fic Parsing Queue Logic ---
+        const { ParseQueue, ParseQueueSubscriber } = require('../../models');
+        // Only queue if updating metadata (not just tags/notes/etc)
+        if (newUrl || (!newUrl && !newTags && !newNotes && !newTitle && !newAuthor && !newSummary && !newRating && !newStatus && !newWordCount)) {
+            // Check if a queue entry exists for this fic_url
+            let queueEntry = await ParseQueue.findOne({ where: { fic_url: urlToUse } });
+            if (queueEntry) {
+                if (queueEntry.status === 'pending' || queueEntry.status === 'processing') {
+                    // Add user as subscriber if not already
+                    const existingSub = await ParseQueueSubscriber.findOne({ where: { queue_id: queueEntry.id, user_id: interaction.user.id } });
+                    if (!existingSub) {
+                        await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
+                    }
+                    await interaction.editReply({
+                        content: 'That fic is already being processed! You’ll get a notification when it’s ready.'
+                    });
+                    return;
+                } else if (queueEntry.status === 'done' && queueEntry.result) {
+                    // Return cached result (simulate embed)
+                    const embed = await createRecommendationEmbed(queueEntry.result);
+                    await interaction.editReply({
+                        content: 'This fic was already parsed! Here are the details:',
+                        embeds: [embed]
+                    });
+                    return;
+                } else if (queueEntry.status === 'error') {
+                    await interaction.editReply({
+                        content: `There was an error parsing this fic previously: ${queueEntry.error_message || 'Unknown error.'} You can try again later.`
+                    });
+                    return;
                 }
-            });
-            console.log(`[rec update] Duplicate URL found: ${!!existingRec} (dup check took ${Date.now() - dupStart}ms)`);
-            if (existingRec) {
-                await interaction.editReply({
-                    content: `That URL is already in our library (ID: ${existingRec.id}). Each URL can only appear once in the collection.`
-                });
-                return;
             }
-            shouldUpdateMetadata = true;
-        } else if (!newUrl && !newTags && !newNotes && !newTitle && !newAuthor && !newSummary && !newRating && !newStatus && !newWordCount) {
-            shouldUpdateMetadata = true;
-        }
-
-        if (shouldUpdateMetadata) {
+            // If no entry, create a new pending job and add user as subscriber
+            queueEntry = await ParseQueue.create({
+                fic_url: urlToUse,
+                status: 'pending',
+                requested_by: interaction.user.id
+            });
+            await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
             await interaction.editReply({
-                content: '🔄 Fetching updated metadata...'
+                content: 'Your fic has been added to the parsing queue! I’ll notify you when it’s ready.'
             });
-            const metaStart = Date.now();
-            console.log('[rec update] Fetching metadata for:', urlToUse);
-            metadata = await fetchFicMetadata(urlToUse);
-            console.log(`[rec update] Metadata fetch result: ${metadata ? 'success' : 'failed'} (fetch took ${Date.now() - metaStart}ms)`);
-            if (!metadata) {
-                await interaction.editReply({
-                    content: 'I couldn\'t fetch the details from that URL. The original recommendation remains unchanged.'
-                });
-                return;
-            }
-            if (metadata.error && metadata.error === 'Site protection detected') {
-                await interaction.editReply({
-                    content: `That site's protection is blocking me from fetching updated metadata. The original recommendation remains unchanged.`
-                });
-                return;
-            }
-            if (metadata.is404 || (metadata.error && metadata.error === '404_not_found')) {
-                await interaction.editReply({
-                    content: `📭 **Story Not Found (404)**\n\nThe story at this URL appears to have been deleted or moved. The original recommendation remains unchanged.\n\nYou might want to:\n• Update the URL if you know where it moved: \`/rec update id:${recId} new_url:new_link_here\`\n• Remove this recommendation: \`/rec remove id:${recId}\`\n• Keep it as-is for reference`
-                });
-                return;
-            }
-            if (metadata.is403) {
-                await interaction.editReply({
-                    content: `🔒 **Access Restricted (403)**\n\nThis story is now restricted or requires special permissions. The original recommendation remains unchanged.`
-                });
-                return;
-            }
-            if (metadata.isHttpError) {
-                await interaction.editReply({
-                    content: `⚠ **Connection Error**\n\nI'm having trouble connecting to that site right now. The original recommendation remains unchanged. Try again later.`
-                });
-                return;
-            }
+            return;
         }
 
         const updateData = {};

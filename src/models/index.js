@@ -17,11 +17,17 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
 const User = require('./User')(sequelize);
 const Guild = require('./Guild')(sequelize);
 const Recommendation = require('./Recommendation')(sequelize);
+
 const BirthdayMessage = require('./BirthdayMessage')(sequelize);
+
+const ParseQueue = require('./ParseQueue')(sequelize);
+const ParseQueueSubscriber = require('./ParseQueueSubscriber')(sequelize);
 
 // Define associations
 User.belongsToMany(Guild, { through: 'UserGuilds' });
 Guild.belongsToMany(User, { through: 'UserGuilds' });
+
+
 
 const db = {
     sequelize,
@@ -29,7 +35,9 @@ const db = {
     User,
     Guild,
     Recommendation,
-    BirthdayMessage
+    BirthdayMessage,
+    ParseQueue,
+    ParseQueueSubscriber
 };
 
 module.exports = db;
