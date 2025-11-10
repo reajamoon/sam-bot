@@ -2,6 +2,7 @@ const { Client, Collection, GatewayIntentBits } = require('discord.js');
 const { readdirSync } = require('fs');
 const { join } = require('path');
 require('dotenv').config();
+console.log('[sam-bot] DATABASE_URL:', process.env.DATABASE_URL);
 const logger = require('./utils/logger');
 const { sequelize } = require('./models');
 const BirthdayNotificationManager = require('./utils/birthdayNotifications');
