@@ -16,13 +16,15 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
     const { parseAO3Metadata } = require('./ao3Parser');
     let html, browser, page, ao3Url;
     let loggedIn = false;
+    let retried = false;
     ao3Url = url;
-    try {
+    async function doLoginAndFetch() {
         const loginResult = await getLoggedInAO3Page();
         browser = loginResult.browser;
         page = loginResult.page;
         // If logged in with cookies, always navigate to the fic URL
         if (loginResult.loggedInWithCookies) {
+            console.log('[AO3] Navigated with cookies.');
             await page.goto(ao3Url, { waitUntil: 'domcontentloaded', timeout: 15000 });
         }
         // Check for login redirect
@@ -43,58 +45,35 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
             currentUrl.includes('/users/login')
         ) {
             await browser.close();
-            return {
-                title: 'Unknown Title',
-                author: 'Unknown Author',
-                url: ao3Url,
-                error: 'AO3 session or login required',
-                summary: 'AO3 is still requiring a login or new session after login attempt. Please wait a few minutes and try again.'
-            };
+            return false;
         }
         await browser.close();
         loggedIn = isAO3LoggedInPage(html);
-    } catch (e) {
-        if (browser) await browser.close();
-        loggedIn = false;
+        return true;
     }
-    if (!loggedIn) {
-        ao3Url = appendAdultViewParamIfNeeded ? appendAdultViewParamIfNeeded(url) : url;
-        try {
-            const puppeteer = require('puppeteer');
-            const headless = process.env.AO3_HEADLESS === 'false' ? false : true;
-            browser = await puppeteer.launch({ headless, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-            page = await browser.newPage();
-            await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:118.0) Gecko/20100101 Firefox/118.0');
-            await page.setExtraHTTPHeaders({
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Upgrade-Insecure-Requests': '1',
-                'X-Sam-Bot-Info': 'Hi AO3 devs! This is Sam, a hand-coded Discord bot for a single small server. I only fetch header metadata for user recs and do not retrieve fic content. Contact: https://github.com/reajamoon/sam-bot'
-            });
-            await page.goto(ao3Url, { waitUntil: 'domcontentloaded', timeout: 15000 });
-            const currentUrl = page.url();
-            const pageTitle = await page.title();
-            const htmlSnap = await page.content();
-            if (currentUrl.includes('/users/login?restricted=true&return_to=')) {
-                await browser.close();
-                return {
-                    title: 'Unknown Title',
-                    author: 'Unknown Author',
-                    url: ao3Url,
-                    error: 'AO3 session required',
-                    summary: 'AO3 is requiring a login or new session. Please log in to AO3 and try again.'
-                };
-            }
-            html = htmlSnap;
-            await browser.close();
-        } catch (e) {
-            if (browser) await browser.close();
-            html = null;
+
+    let ok = await doLoginAndFetch();
+    if (!ok) {
+        // If we failed, delete cookies and try again once
+        const fs = require('fs');
+        const COOKIES_PATH = 'ao3_cookies.json';
+        if (fs.existsSync(COOKIES_PATH)) {
+            console.warn('[AO3] Detected login/interstitial page. Deleting cookies and retrying login.');
+            try { fs.unlinkSync(COOKIES_PATH); } catch {}
         }
+        retried = true;
+        ok = await doLoginAndFetch();
     }
-    if (html) {
+    if (ok && html) {
         return parseAO3Metadata(html, ao3Url, includeRawHtml);
     }
-    return null;
+    return {
+        title: 'Unknown Title',
+        author: 'Unknown Author',
+        url: ao3Url,
+        error: 'AO3 session or login required',
+        summary: 'AO3 is still requiring a login or new session after login attempt. Please wait a few minutes and try again.'
+    };
 }
 
 module.exports = { fetchAO3MetadataWithFallback, isAO3LoggedInPage };
