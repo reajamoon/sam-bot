@@ -73,25 +73,33 @@ async function getLoggedInAO3Page() {
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:118.0) Gecko/20100101 Firefox/118.0');
     await page.setExtraHTTPHeaders({
         'Accept-Language': 'en-US,en;q=0.5',
-        'Upgrade-Insecure-Requests': '1'
+        'Upgrade-Insecure-Requests': '1',
+        'X-Sam-Bot-Info': 'Hi AO3 devs! This is Sam, a hand-coded Discord bot for a single small server. I only fetch header metadata for user recs and do not retrieve fic content. Contact: https://github.com/reajamoon/sam-bot'
     });
 
     if (fs.existsSync(COOKIES_PATH)) {
         try {
+            console.log('[AO3] Loading cookies from file...');
             const cookies = JSON.parse(fs.readFileSync(COOKIES_PATH, 'utf8'));
             await page.goto('https://archiveofourown.org/', { waitUntil: 'domcontentloaded' });
             await page.setCookie(...cookies);
             await page.reload({ waitUntil: 'domcontentloaded' });
             const content = await page.content();
             if (content.includes('Log Out') || content.includes('My Dashboard')) {
+                console.log('[AO3] Successfully logged in with cookies.');
                 return { browser, page, loggedInWithCookies: true };
+            } else {
+                // Not logged in, cookies are bad/expired
+                console.warn('[AO3] Cookies invalid or expired. Deleting cookies and forcing fresh login.');
+                fs.unlinkSync(COOKIES_PATH);
             }
-            // If not logged in, fall through to login flow
         } catch (err) {
-            // If loading cookies fails, fall through to login flow
+            console.warn('[AO3] Failed to load cookies, will attempt fresh login.', err);
+            try { fs.unlinkSync(COOKIES_PATH); } catch {}
         }
     }
     // Go to login page
+    console.log('[AO3] Navigating to login page...');
     await page.goto(AO3_LOGIN_URL, { waitUntil: 'domcontentloaded' });
     try {
         let pageContent = await page.content();
@@ -144,8 +152,10 @@ async function getLoggedInAO3Page() {
             // Save cookies after successful login
             const cookies = await page.cookies();
             fs.writeFileSync(COOKIES_PATH, JSON.stringify(cookies, null, 2));
+            console.log('[AO3] Login successful, cookies saved.');
         }
     } catch (err) {
+        console.error('[AO3] Login failed.', err);
         throw new Error('AO3 login failed.');
     }
     return { browser, page };
