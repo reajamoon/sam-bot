@@ -1,5 +1,12 @@
-// ao3Parser.js
-// AO3 HTML parsing logic
+const { parseAnonymousAO3Fic } = require('./anon');
+
+function isAnonymousAO3Fic(html) {
+    return (
+        /<h3[^>]*class="byline heading"[^>]*>\s*by\s*Anonymous\s*<\/h3>/i.test(html) ||
+        /<a[^>]*rel="author"[^>]*>Anonymous<\/a>/i.test(html) ||
+        /<h3[^>]*class="byline heading"[^>]*>\s*by\s*<a[^>]*>Anonymous<\/a>\s*<\/h3>/i.test(html)
+    );
+}
 
 function parseAO3Metadata(html, url, includeRawHtml = false) {
     const fs = require('fs');
@@ -10,7 +17,7 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
         if (html.includes('<title>New Session') || html.includes('Please log in to continue') || html.includes('name="user_session"')) {
             return {
                 title: 'Unknown Title',
-                author: 'Unknown Author',
+                authors: ['Unknown Author'],
                 url: url,
                 error: 'AO3 session required',
                 summary: 'AO3 is requiring a login or new session. Please log in to AO3 and try again.'
@@ -21,7 +28,7 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
         if (titleMatch && /cloudflare/i.test(titleMatch[1])) {
             return {
                 title: 'Unknown Title',
-                author: 'Unknown Author',
+                authors: ['Unknown Author'],
                 url: url,
                 error: 'Site protection detected',
                 summary: 'Site protection is blocking metadata fetch.'
@@ -31,7 +38,7 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
         if (headerMatch && /cloudflare/i.test(headerMatch[1])) {
             return {
                 title: 'Unknown Title',
-                author: 'Unknown Author',
+                authors: ['Unknown Author'],
                 url: url,
                 error: 'Site protection detected',
                 summary: 'Site protection is blocking metadata fetch.'
@@ -54,11 +61,17 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
         } else {
             metadata.title = 'Unknown Title';
         }
-        const authorMatch = html.match(/<a rel="author" href="[^"]*">([^<]+)/);
-        metadata.author = authorMatch ? authorMatch[1].trim() : 'Unknown Author';
-        const summaryMatch = html.match(/<div class="summary module">[\s\S]*?<blockquote class="userstuff">\s*<p>([\s\S]*?)<\/p>/);
+        // Handle Anonymous fics with utility
+        if (isAnonymousAO3Fic(html)) {
+            return parseAnonymousAO3Fic(html, url);
+        } else {
+            const authorMatch = html.match(/<a rel="author" href="[^\"]*">([^<]+)/);
+            metadata.authors = authorMatch ? [authorMatch[1].trim()] : ['Unknown Author'];
+        }
+module.exports = { parseAO3Metadata, isAnonymousAO3Fic };
+        const summaryMatch = html.match(/<div class="summary module">[\s\S]*?<blockquote class="userstuff">([\s\S]*?)<\/blockquote>/);
         if (summaryMatch) {
-            metadata.summary = summaryMatch[1].replace(/<[^>]*>/g, '').trim();
+            metadata.summary = summaryMatch[1].replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
         }
         const fandomMatch = metaBlock.match(/<dd class="fandom tags">[\s\S]*?<a[^>]*>([^<]+)/);
         metadata.fandom = fandomMatch ? fandomMatch[1].trim() : null;
@@ -95,7 +108,7 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
         }
         if (includeRawHtml) metadata.rawHtml = html;
         // If we failed to extract a title or author, treat as parse failure
-        if (metadata.title === 'Unknown Title' || metadata.author === 'Unknown Author') {
+        if (metadata.title === 'Unknown Title' || !metadata.authors || metadata.authors[0] === 'Unknown Author') {
             return {
                 error: true,
                 message: 'Failed to parse AO3 metadata: missing title or author',

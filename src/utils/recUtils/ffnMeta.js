@@ -23,7 +23,7 @@ async function fetchFFNetMetadata(url, includeRawHtml = false) {
             console.log('Cloudflare protection detected on FFNet');
             const result = {
                 title: 'Unknown Title',
-                author: 'Unknown Author',
+                authors: ['Unknown Author'],
                 url: url,
                 error: 'Site protection detected',
                 summary: 'Yeah, so this site has some serious security measures that are blocking me from reading the story details. Think of it like warding - keeps the bad stuff out, but also keeps me from doing my job.'
@@ -36,7 +36,7 @@ async function fetchFFNetMetadata(url, includeRawHtml = false) {
         if (error.message === 'HTTP_404_NOT_FOUND') {
             return {
                 title: 'Story Not Found',
-                author: 'Unknown Author',
+                authors: ['Unknown Author'],
                 url: url,
                 error: '404_not_found',
                 summary: 'This story appears to have been deleted or moved. The link is no longer working. You might want to check if the author has reposted it elsewhere.',
@@ -45,7 +45,7 @@ async function fetchFFNetMetadata(url, includeRawHtml = false) {
         } else if (error.message === 'HTTP_403_FORBIDDEN') {
             return {
                 title: 'Access Denied',
-                author: 'Unknown Author',
+                authors: ['Unknown Author'],
                 url: url,
                 error: 'Access denied',
                 summary: 'This story is restricted or requires special permissions to access. It might be locked to registered users only.',
@@ -54,7 +54,7 @@ async function fetchFFNetMetadata(url, includeRawHtml = false) {
         } else if (error.message.startsWith('HTTP_')) {
             return {
                 title: 'Connection Error',
-                author: 'Unknown Author',
+                authors: ['Unknown Author'],
                 url: url,
                 error: error.message,
                 summary: 'There was a problem connecting to this story. The site might be down or experiencing issues.',
@@ -91,9 +91,9 @@ async function fetchFFNetMetadata(url, includeRawHtml = false) {
         if (!authorMatch) {
             authorMatch = html.match(/By:\s*<a[^>]*>([^<]+)/i);
         }
-        metadata.author = authorMatch ? authorMatch[1].trim() : 'Unknown Author';
+        metadata.authors = [authorMatch ? authorMatch[1].trim() : 'Unknown Author'];
 
-        console.log('FFNet parsed author:', metadata.author);
+        console.log('FFNet parsed authors:', metadata.authors);
 
         // Summary - multiple patterns
         let summaryMatch = html.match(/<div class='xcontrast_txt' style='margin-top:2px'>([^<]+)/);
@@ -170,7 +170,9 @@ async function fetchFFNetMetadata(url, includeRawHtml = false) {
 
         console.log('FFNet final metadata:', JSON.stringify(metadata, null, 2));
         if (includeRawHtml) metadata.rawHtml = html;
-    return normalizeMetadata(metadata, 'ffnet');
+        // Remove legacy 'author' field if present
+        if (metadata.author) delete metadata.author;
+        return normalizeMetadata(metadata, 'ffnet');
     } catch (error) {
         console.error('Error parsing FFNet metadata:', error);
         return null;

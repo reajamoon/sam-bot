@@ -45,7 +45,7 @@ async function fetchTumblrMetadata(url, includeRawHtml = false) {
                     metadata.title = jsonData.headline;
                 }
                 if (jsonData.author && jsonData.author.name) {
-                    metadata.author = jsonData.author.name;
+                    metadata.authors = [jsonData.author.name];
                 }
                 if (jsonData.description) {
                     metadata.summary = jsonData.description;
@@ -69,20 +69,20 @@ async function fetchTumblrMetadata(url, includeRawHtml = false) {
         }
 
         // Author - extract from URL or blog name
-        if (!metadata.author) {
+        if (!metadata.authors) {
             let authorMatch = url.match(/https?:\/\/([^.]+)\.tumblr\.com/);
             if (!authorMatch) {
                 authorMatch = html.match(/<span[^>]*class="[^"]*blog-name[^"]*"[^>]*>([^<]+)/);
             }
-            metadata.author = authorMatch ? authorMatch[1].trim() : 'Unknown Author';
+            metadata.authors = [authorMatch ? authorMatch[1].trim() : 'Unknown Author'];
         }
 
         // Reblog Detection - check if this is a reblog
         const isReblog = detectTumblrReblog(url, html);
         if (isReblog.isReblog) {
             metadata.isReblog = true;
-            metadata.rebloggedBy = metadata.author; // The user from the URL
-            metadata.reblogWarning = `⚠️ This appears to be a reblog by ${metadata.author}. The original author may be different. Please check the post content and manually enter the correct author name.`;
+            metadata.rebloggedBy = metadata.authors && metadata.authors[0]; // The user from the URL
+            metadata.reblogWarning = `⚠️ This appears to be a reblog by ${metadata.rebloggedBy}. The original author may be different. Please check the post content and manually enter the correct author name.`;
 
             // Try to find original author in content
             if (isReblog.originalAuthor) {
@@ -142,13 +142,15 @@ async function fetchTumblrMetadata(url, includeRawHtml = false) {
         metadata.language = 'English';
 
         if (includeRawHtml) metadata.rawHtml = html;
-        return metadata;
+    // Remove legacy 'author' field if present
+    if (metadata.author) delete metadata.author;
+    return metadata;
     } catch (error) {
         // Handle HTTP errors from fetchHTML
         if (error.message === 'HTTP_404_NOT_FOUND') {
             return {
                 title: 'Post Not Found',
-                author: 'Unknown Author',
+                authors: ['Unknown Author'],
                 url: url,
                 error: '404_not_found',
                 summary: 'This Tumblr post appears to have been deleted or the blog was deactivated. The link is no longer working.',
@@ -157,7 +159,7 @@ async function fetchTumblrMetadata(url, includeRawHtml = false) {
         } else if (error.message === 'HTTP_403_FORBIDDEN') {
             return {
                 title: 'Access Denied',
-                author: 'Unknown Author',
+                authors: ['Unknown Author'],
                 url: url,
                 error: 'Access denied',
                 summary: 'This Tumblr post is from a private blog or has restricted access. You might need special permissions to view it.',
@@ -166,7 +168,7 @@ async function fetchTumblrMetadata(url, includeRawHtml = false) {
         } else if (error.message.startsWith('HTTP_')) {
             return {
                 title: 'Connection Error',
-                author: 'Unknown Author',
+                authors: ['Unknown Author'],
                 url: url,
                 error: error.message,
                 summary: 'There was a problem connecting to this Tumblr post. The site might be down or experiencing issues.',

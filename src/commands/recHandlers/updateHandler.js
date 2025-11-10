@@ -35,10 +35,12 @@ async function handleUpdateRecommendation(interaction) {
         await interaction.deferReply();
         console.log(`[rec update] deferReply completed in ${Date.now() - startTime}ms`);
 
-        const recId = interaction.options.getInteger('id');
-        const findUrl = interaction.options.getString('find_url');
-        const findAo3Id = interaction.options.getInteger('find_ao3_id');
-        const newUrl = interaction.options.getString('new_url');
+    const normalizeAO3Url = require('../../utils/recUtils/normalizeAO3Url');
+    const recId = interaction.options.getInteger('id');
+    const findUrl = interaction.options.getString('find_url');
+    const findAo3Id = interaction.options.getInteger('find_ao3_id');
+    let newUrl = interaction.options.getString('new_url');
+    if (newUrl) newUrl = normalizeAO3Url(newUrl);
         const newTitle = interaction.options.getString('title');
         const newAuthor = interaction.options.getString('author');
         const newSummary = interaction.options.getString('summary');
@@ -70,7 +72,8 @@ async function handleUpdateRecommendation(interaction) {
             return;
         }
 
-        const urlToUse = newUrl || recommendation.url;
+    let urlToUse = newUrl || recommendation.url;
+    urlToUse = normalizeAO3Url(urlToUse);
         let shouldUpdateMetadata = false;
         let metadata = null;
 
@@ -145,7 +148,14 @@ async function handleUpdateRecommendation(interaction) {
         if (metadata) {
             updateData.url = urlToUse;
             if (metadata.title) updateData.title = metadata.title;
-            if (metadata.author) updateData.author = metadata.author;
+            // If authors array exists and has more than one author, join for DB field
+            if (Array.isArray(metadata.authors) && metadata.authors.length > 1) {
+                updateData.author = metadata.authors.join(', ');
+            } else if (Array.isArray(metadata.authors) && metadata.authors.length === 1) {
+                updateData.author = metadata.authors[0];
+            } else if (metadata.author) {
+                updateData.author = metadata.author;
+            }
             if (metadata.summary) updateData.summary = metadata.summary;
             if (metadata.tags) updateData.tags = JSON.stringify(metadata.tags);
             if (metadata.rating) updateData.rating = metadata.rating;
@@ -156,15 +166,15 @@ async function handleUpdateRecommendation(interaction) {
             if (metadata.publishedDate) updateData.publishedDate = metadata.publishedDate;
             if (metadata.updatedDate) updateData.updatedDate = metadata.updatedDate;
         }
-        if (newTags !== null) updateData.tags = JSON.stringify(newTags);
-        if (newNotes !== null) updateData.notes = newNotes;
-        if (newUrl) updateData.url = newUrl;
-        if (newTitle !== null) updateData.title = newTitle;
-        if (newAuthor !== null) updateData.author = newAuthor;
-        if (newSummary !== null) updateData.summary = newSummary;
-        if (newRating !== null) updateData.rating = newRating;
-        if (newStatus !== null) updateData.status = newStatus;
-        if (newWordCount !== null) updateData.wordCount = newWordCount;
+    if (newTags !== null) updateData.tags = JSON.stringify(newTags);
+    if (newNotes !== null) updateData.notes = newNotes;
+    if (newUrl) updateData.url = newUrl;
+    if (newTitle !== null) updateData.title = newTitle;
+    if (newAuthor !== null) updateData.author = newAuthor;
+    if (newSummary !== null) updateData.summary = newSummary;
+    if (newRating !== null) updateData.rating = newRating;
+    if (newStatus !== null) updateData.status = newStatus;
+    if (newWordCount !== null) updateData.wordCount = newWordCount;
         if (newAttachment) {
             const { validateAttachment } = require('../../utils/validateAttachment');
             const willBeDeleted = newDeleted !== null ? newDeleted : recommendation.deleted;
@@ -195,6 +205,7 @@ async function handleUpdateRecommendation(interaction) {
                 const recForEmbed = {
                     ...recommendation.toJSON(),
                     ...metadata,
+                    authors: (metadata && Array.isArray(metadata.authors)) ? metadata.authors : (metadata && metadata.author ? [metadata.author] : [recommendation.author]),
                     id: recommendation.id,
                     url: recommendation.url,
                     recommendedByUsername: recommendation.recommendedByUsername,
