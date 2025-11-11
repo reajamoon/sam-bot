@@ -24,7 +24,19 @@ async function handleAddRecommendation(interaction) {
     }
 
     // --- Fic Parsing Queue Logic ---
-    const { ParseQueue, ParseQueueSubscriber } = require('../../models');
+    const { ParseQueue, ParseQueueSubscriber, Recommendation } = require('../../models');
+    // Check if fic is already in the library
+    const existingRec = await Recommendation.findOne({ where: { url } });
+    if (existingRec) {
+      const createRecommendationEmbed = require('../../utils/recUtils/createRecommendationEmbed');
+      const embed = await createRecommendationEmbed(existingRec);
+      const addedDate = existingRec.createdAt ? `<t:${Math.floor(new Date(existingRec.createdAt).getTime()/1000)}:F>` : '';
+      return await interaction.editReply({
+        content: `*${existingRec.title}* was already added to the library by **${existingRec.recommendedByUsername}**${addedDate ? `, on ${addedDate}` : ''}! Great minds think alike though.`,
+        embeds: [embed]
+      });
+    }
+    // Not in library: check queue
     let queueEntry = await ParseQueue.findOne({ where: { fic_url: url } });
     if (queueEntry) {
       if (queueEntry.status === 'pending' || queueEntry.status === 'processing') {
@@ -45,7 +57,7 @@ async function handleAddRecommendation(interaction) {
           notes,
           notify: async (embed) => {
             await interaction.editReply({
-              content: 'This fic was already parsed! Here are the details:',
+              content: null,
               embeds: [embed]
             });
           }
