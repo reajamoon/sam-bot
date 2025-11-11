@@ -30,6 +30,12 @@ async function handleUpdateRecommendation(interaction) {
         const recId = interaction.options.getInteger('id');
         const findUrl = interaction.options.getString('find_url');
         const findAo3Id = interaction.options.getInteger('find_ao3_id');
+        if (!recId && !findUrl && !findAo3Id) {
+            await interaction.editReply({
+                content: 'You need to provide at least one identifier: `id`, `find_url`, or `find_ao3_id`.'
+            });
+            return;
+        }
         let newUrl = interaction.options.getString('new_url');
         if (newUrl) newUrl = normalizeAO3Url(newUrl);
         const newTitle = interaction.options.getString('title');
