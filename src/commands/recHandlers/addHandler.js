@@ -28,12 +28,9 @@ async function handleAddRecommendation(interaction) {
     // Check if fic is already in the library
     const existingRec = await Recommendation.findOne({ where: { url } });
     if (existingRec) {
-      const createRecommendationEmbed = require('../../utils/recUtils/createRecommendationEmbed');
-      const embed = await createRecommendationEmbed(existingRec);
       const addedDate = existingRec.createdAt ? `<t:${Math.floor(new Date(existingRec.createdAt).getTime()/1000)}:F>` : '';
       return await interaction.editReply({
-        content: `*${existingRec.title}* was already added to the library by **${existingRec.recommendedByUsername}**${addedDate ? `, on ${addedDate}` : ''}! Great minds think alike though.`,
-        embeds: [embed]
+        content: `*${existingRec.title}* was already added to the library by **${existingRec.recommendedByUsername}**${addedDate ? `, on ${addedDate}` : ''}! Great minds think alike though.`
       });
     }
     // Not in library: check queue
