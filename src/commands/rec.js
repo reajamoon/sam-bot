@@ -31,6 +31,10 @@ module.exports = {
         .setDescription('Manage fanfiction recommendations')
         .addSubcommand(subcommand =>
             subcommand
+                .setName('queue')
+                .setDescription('View the current fic metadata parsing queue'))
+        .addSubcommand(subcommand =>
+            subcommand
                 .setName('add')
                 .setDescription('Add a new fanfiction recommendation')
                 .addStringOption(option =>
@@ -189,6 +193,7 @@ module.exports = {
 
         const subcommand = interaction.options.getSubcommand();
 
+        const handleQueue = require('./recHandlers/queueHandler');
         try {
             switch (subcommand) {
                 case 'add':
@@ -208,6 +213,9 @@ module.exports = {
                     break;
                 case 'update':
                     await handleUpdateRecommendation(interaction);
+                    break;
+                case 'queue':
+                    await handleQueue(interaction);
                     break;
                 case 'add_ao3share': {
                     const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
