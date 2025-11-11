@@ -4,6 +4,11 @@ const processRecommendationJob = require('../../utils/recUtils/processRecommenda
 // Adds a new fic rec. Checks for duplicates, fetches metadata, and builds the embed.
 async function handleAddRecommendation(interaction) {
   try {
+    console.log('[rec add] Handler called', {
+      user: interaction.user?.id,
+      url: interaction.options.getString('url'),
+      options: interaction.options.data
+    });
     await interaction.deferReply();
 
     const normalizeAO3Url = require('../../utils/recUtils/normalizeAO3Url');

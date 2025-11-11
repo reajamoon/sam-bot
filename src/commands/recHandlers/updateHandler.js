@@ -24,6 +24,13 @@ function validateAttachment(newAttachment, willBeDeleted) {
 
 async function handleUpdateRecommendation(interaction) {
     try {
+        console.log('[rec update] Handler called', {
+            user: interaction.user?.id,
+            id: interaction.options.getInteger('id'),
+            find_url: interaction.options.getString('find_url'),
+            find_ao3_id: interaction.options.getInteger('find_ao3_id'),
+            options: interaction.options.data
+        });
         await interaction.deferReply();
 
         const normalizeAO3Url = require('../../utils/recUtils/normalizeAO3Url');
