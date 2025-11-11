@@ -29,13 +29,17 @@ async function processQueueJob(job) {
     }
     if (job.notes) notes = job.notes;
     const startTime = Date.now();
+    // Check for existing recommendation by URL
+    let existingRec = await Recommendation.findOne({ where: { url: job.fic_url } });
+    const isUpdate = !!existingRec;
     await processRecommendationJob({
       url: job.fic_url,
       user,
       manualFields: {},
       additionalTags,
       notes,
-      isUpdate: false,
+      isUpdate,
+      existingRec,
       notify: async (embedOrError) => {
         if (!embedOrError || embedOrError.error) {
           await job.update({ status: 'error', error_message: embedOrError?.error || 'Unknown error' });
