@@ -217,6 +217,9 @@ module.exports = {
                 case 'queue':
                     await handleQueue(interaction);
                     break;
+                    case 'resetqueue':
+                        await handleResetQueue(interaction);
+                        break;
                 case 'add_ao3share': {
                     const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
                     const modal = new ModalBuilder()
