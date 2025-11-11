@@ -161,9 +161,54 @@ async function handleUpdateRecommendation(interaction) {
                 throw err;
             }
             await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
-            await interaction.editReply({
-                content: 'Your fic has been added to the parsing queue! I’ll notify you when it’s ready.'
-            });
+            // Poll for instant completion (duration matches suppression threshold in config)
+            const { Config } = require('../../models');
+            let pollTimeout = 3000; // default 3 seconds
+            try {
+                const thresholdConfig = await Config.findOne({ where: { key: 'instant_queue_suppress_threshold_ms' } });
+                if (thresholdConfig && !isNaN(Number(thresholdConfig.value))) {
+                    pollTimeout = Number(thresholdConfig.value);
+                }
+            } catch {}
+            const pollInterval = 200;
+            const start = Date.now();
+            let foundDone = false;
+            let resultEmbed = null;
+            while (Date.now() - start < pollTimeout) {
+                // Refetch the queue entry
+                const updatedQueue = await ParseQueue.findOne({ where: { id: queueEntry.id } });
+                if (updatedQueue && updatedQueue.status === 'done' && updatedQueue.result) {
+                    // Fetch the updated recommendation for embed
+                    const updatedRec = await findRecommendationByIdOrUrl(interaction, recId, urlToUse, null);
+                    if (updatedRec) {
+                        await processRecommendationJob({
+                            url: urlToUse,
+                            user: { id: interaction.user.id, username: interaction.user.username },
+                            manualFields: {},
+                            additionalTags: newTags || [],
+                            notes: newNotes || '',
+                            isUpdate: true,
+                            existingRec: updatedRec,
+                            notify: async (embed) => {
+                                resultEmbed = embed;
+                            }
+                        });
+                        foundDone = true;
+                        break;
+                    }
+                }
+                await new Promise(res => setTimeout(res, pollInterval));
+            }
+            if (foundDone && resultEmbed) {
+                await interaction.editReply({
+                    content: 'Here’s the updated fic info (processed instantly):',
+                    embeds: [resultEmbed]
+                });
+            } else {
+                await interaction.editReply({
+                    content: 'Your fic has been added to the parsing queue! I’ll notify you when it’s ready.'
+                });
+            }
             return;
         }
 

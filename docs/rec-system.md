@@ -51,7 +51,15 @@ The Rec System lets PB members share, search, and discover fanfiction recommenda
 - Update utility modules for new metadata or filtering
 - Use standardized custom ID format for all new buttons and navigation
 
+
 ## Queue & Notification System
+
+### Configurable Instant Suppression Threshold
+
+- The key `instant_queue_suppress_threshold_ms` in the `Config` table controls the time window (in milliseconds) for instant job suppression and instant result polling.
+- Both the queue worker and the `/rec update` handler read this value to determine how long to wait before suppressing notifications or returning instant results.
+- This value can be updated in the database at any time to adjust the threshold without code changes.
+- This key is intended for future dashboard/config UI use—documented here for reference.
 
 - All fic metadata fetches are queued, deduplicated, and processed in order. No direct parsing is allowed outside the queue.
 - Subscribers (users who requested or are interested in a job) are tracked and notified when the job completes.
