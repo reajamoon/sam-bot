@@ -9,8 +9,19 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBit
 async function processQueueJob(job) {
   try {
     await job.update({ status: 'processing' });
-    // Use a system/queue user context for the rec
-    const user = { id: job.requested_by || 'queue', username: 'QueueWorker' };
+    // Use the original requester's user context for the rec
+    // Try to get the username from the first subscriber, fallback to 'Unknown User'
+    let user = { id: job.requested_by || 'queue', username: 'Unknown User' };
+    const firstSub = await ParseQueueSubscriber.findOne({ where: { queue_id: job.id }, order: [['created_at', 'ASC']] });
+    if (firstSub) {
+      // Try to get username from User table
+      const { User } = require('./src/models');
+      const userRecord = await User.findOne({ where: { discordId: firstSub.user_id } });
+      user = {
+        id: firstSub.user_id,
+        username: userRecord ? userRecord.username : `User ${firstSub.user_id}`
+      };
+    }
     await processRecommendationJob({
       url: job.fic_url,
       user,
