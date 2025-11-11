@@ -9,8 +9,14 @@ async function handleAo3ShareModal(interaction) {
     try {
         ficData = parseAo3ShareHtml(html);
     } catch (err) {
+        let msg = 'Sorry, I could not parse the AO3 share HTML.';
+        if (err.parseErrors && err.parseErrors.length > 0) {
+            msg += '\n' + err.parseErrors.map(e => `• ${e}`).join('\n');
+        } else if (err.message) {
+            msg += `\n${err.message}`;
+        }
         return await interaction.reply({
-            content: 'Sorry, I could not parse the AO3 share HTML. Please check your input.',
+            content: msg + '\n\nMake sure you pasted the full AO3 share HTML export, starting with the work link.',
             flags: MessageFlags.Ephemeral
         });
     }
