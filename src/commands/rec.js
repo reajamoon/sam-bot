@@ -176,7 +176,11 @@ module.exports = {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('add_ao3share')
-                .setDescription('Add a new fanfiction recommendation by pasting AO3 share HTML')),
+                .setDescription('Add a new fanfiction recommendation by pasting AO3 share HTML'))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('resetqueue')
+                .setDescription('Reset stuck fic metadata jobs (mods/admins only)')),
 
     /**
      * Main entry for all /rec subcommands. Routes to the appropriate handler.
