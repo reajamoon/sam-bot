@@ -135,21 +135,29 @@ async function handleUpdateRecommendation(interaction) {
                             });
                             return;
                         } else if (queueEntry.status === 'done' && queueEntry.result) {
-                            // Return friendly duplicate message with details
-                            // Find who added it and when
-                            const rec = await findRecommendationByIdOrUrl(interaction, recId, urlToUse, null);
-                            let addedBy = 'someone';
-                            let addedAt = null;
-                            if (rec && rec.recommendedByUsername) addedBy = rec.recommendedByUsername;
-                            if (rec && rec.createdAt) addedAt = new Date(rec.createdAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
-                            const title = rec && rec.title ? rec.title : 'This fic';
+                            // Return friendly duplicate message with details, robust fallback
+                            let rec = null;
+                            try {
+                                rec = await findRecommendationByIdOrUrl(interaction, recId, urlToUse, null);
+                            } catch {}
+                            let addedBy = rec && rec.recommendedByUsername ? rec.recommendedByUsername : 'someone';
+                            let addedAt = rec && rec.createdAt ? new Date(rec.createdAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : null;
+                            let title = rec && rec.title ? rec.title : 'This fic';
+                            let msg = `${title} was already added by ${addedBy}${addedAt ? ` on ${addedAt}` : ''}, but hey! Great minds think alike, right?`;
+                            if (!rec) msg = 'This fic was already added to the library! Great minds think alike, right?';
                             await interaction.editReply({
-                                content: `${title} was already added by ${addedBy}${addedAt ? ` on ${addedAt}` : ''}, but hey! Great minds think alike, right?`,
+                                content: msg
                             });
                             return;
                         } else if (queueEntry.status === 'error') {
                             await interaction.editReply({
                                 content: `There was an error parsing this fic previously: ${queueEntry.error_message || 'Unknown error.'} You can try again later.`
+                            });
+                            return;
+                        } else {
+                            // Fallback for any other status
+                            await interaction.editReply({
+                                content: 'This fic is already in the queue. You’ll get a notification when it’s ready!'
                             });
                             return;
                         }
