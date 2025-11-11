@@ -16,6 +16,14 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING, // Comma-separated Discord user IDs
       allowNull: false,
     },
+    notes: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    additional_tags: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     result: {
       type: DataTypes.JSON,
       allowNull: true,

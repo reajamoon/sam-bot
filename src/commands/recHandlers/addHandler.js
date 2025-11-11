@@ -70,7 +70,9 @@ async function handleAddRecommendation(interaction) {
     queueEntry = await ParseQueue.create({
       fic_url: url,
       status: 'pending',
-      requested_by: interaction.user.id
+      requested_by: interaction.user.id,
+      notes: notes || '',
+      additional_tags: JSON.stringify(additionalTags || [])
     });
     await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
     return await interaction.editReply({
