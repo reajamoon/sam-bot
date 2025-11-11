@@ -52,22 +52,12 @@ async function handleUpdateRecommendation(interaction) {
             });
             return;
         }
-
-        const isOwner = recommendation.recommendedBy === interaction.user.id;
-        const isAdmin = interaction.member.permissions.has('ManageMessages');
-        if (!isOwner && !isAdmin) {
-            await interaction.editReply({
-                content: `That recommendation was added by ${recommendation.recommendedByUsername}. You can only update your own recommendations unless you're a moderator.`
-            });
-            return;
-        }
-
         let urlToUse = newUrl || recommendation.url;
         urlToUse = normalizeAO3Url(urlToUse);
 
         // --- Fic Parsing Queue Logic ---
         const { ParseQueue, ParseQueueSubscriber } = require('../../models');
-        // Always use the queue for any update that requires a metadata fetch (newUrl or no manual fields)
+        // Always use the queue for any update that requires a metadata fetch
         const needsMetadataFetch = newUrl || (!newTitle && !newAuthor && !newSummary && !newRating && !newStatus && !newWordCount);
         if (needsMetadataFetch) {
             let queueEntry = await ParseQueue.findOne({ where: { fic_url: urlToUse } });
