@@ -31,19 +31,19 @@ module.exports = {
         .setDescription('Manage fanfiction recommendations')
         .addSubcommand(subcommand =>
             subcommand
-                .setName('queue')
-                .setDescription('View the current fic metadata parsing queue'))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('add')
-                .setDescription('Add a new fanfiction recommendation')
-                .addStringOption(option =>
-                    option.setName('url')
-                        .setDescription('URL of the fanfiction')
+                .setName('update')
+                .setDescription('Update an existing recommendation with fresh metadata')
+                .addIntegerOption(option =>
+                    option.setName('id')
+                        .setDescription('ID of the recommendation to update')
                         .setRequired(true))
                 .addStringOption(option =>
-                    option.setName('title')
-                        .setDescription('Story title (required if auto-parsing fails)')
+                    option.setName('find_url')
+                        .setDescription('URL of the recommendation to update')
+                        .setRequired(false))
+                .addIntegerOption(option =>
+                    option.setName('find_ao3_id')
+                        .setDescription('AO3 Work ID to find (just the number)')
                         .setRequired(false))
                 .addStringOption(option =>
                     option.setName('author')
@@ -81,18 +81,10 @@ module.exports = {
             subcommand
                 .setName('update')
                 .setDescription('Update an existing recommendation with fresh metadata')
-                .addIntegerOption(option =>
-                    option.setName('id')
-                        .setDescription('ID of the recommendation to update')
-                        .setRequired(false))
                 .addStringOption(option =>
-                    option.setName('find_url')
-                        .setDescription('URL of the recommendation to update')
-                        .setRequired(false))
-                .addIntegerOption(option =>
-                    option.setName('find_ao3_id')
-                        .setDescription('AO3 Work ID to find (just the number)')
-                        .setRequired(false))
+                    option.setName('identifier')
+                        .setDescription('ID, URL, or AO3 Work ID of the recommendation to update')
+                        .setRequired(true))
                 .addStringOption(option =>
                     option.setName('new_url')
                         .setDescription('New URL (optional, will re-fetch metadata if URL changed)')

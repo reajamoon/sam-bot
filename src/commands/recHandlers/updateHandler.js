@@ -34,14 +34,24 @@ async function handleUpdateRecommendation(interaction) {
         await interaction.deferReply();
 
         const normalizeAO3Url = require('../../utils/recUtils/normalizeAO3Url');
-        const recId = interaction.options.getInteger('id');
-        const findUrl = interaction.options.getString('find_url');
-        const findAo3Id = interaction.options.getInteger('find_ao3_id');
-        if (!recId && !findUrl && !findAo3Id) {
+        const identifier = interaction.options.getString('identifier');
+        let recId = null, findUrl = null, findAo3Id = null;
+        if (!identifier) {
             await interaction.editReply({
-                content: 'You need to provide at least one identifier: `id`, `find_url`, or `find_ao3_id`.'
+                content: 'You need to provide an ID, URL, or AO3 Work ID.'
             });
             return;
+        }
+        // Try to parse identifier as ID (integer)
+        if (/^\d+$/.test(identifier)) {
+            // If it's a long number, treat as AO3 Work ID if not found as rec ID
+            recId = parseInt(identifier, 10);
+            findAo3Id = recId;
+        } else if (/^https?:\/\//.test(identifier)) {
+            findUrl = identifier;
+        } else {
+            // fallback: try as AO3 Work ID
+            findAo3Id = identifier;
         }
         let newUrl = interaction.options.getString('new_url');
         if (newUrl) newUrl = normalizeAO3Url(newUrl);
