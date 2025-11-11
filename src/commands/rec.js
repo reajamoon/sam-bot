@@ -137,6 +137,10 @@ module.exports = {
                     option.setName('tags')
                         .setDescription('Update additional tags (comma-separated)')
                         .setRequired(false))
+                .addBooleanOption(option =>
+                    option.setName('append')
+                        .setDescription('Append these tags to existing additional tags (instead of replacing)')
+                        .setRequired(false))
                 .addStringOption(option =>
                     option.setName('notes')
                         .setDescription('Update personal notes about this fic')
@@ -164,7 +168,11 @@ module.exports = {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('search')
-                .setDescription('Search for recommendations by title, author, or tags')),
+                .setDescription('Search for recommendations by title, author, or tags'))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('add_ao3share')
+                .setDescription('Add a new fanfiction recommendation by pasting AO3 share HTML')),
 
     /**
      * Main entry for all /rec subcommands. Routes to the appropriate handler.
@@ -201,6 +209,20 @@ module.exports = {
                 case 'update':
                     await handleUpdateRecommendation(interaction);
                     break;
+                case 'add_ao3share': {
+                    const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
+                    const modal = new ModalBuilder()
+                        .setCustomId('ao3share_modal')
+                        .setTitle('Paste AO3 Share HTML');
+                    const htmlInput = new TextInputBuilder()
+                        .setCustomId('ao3share_html')
+                        .setLabel('Paste the AO3 share HTML here')
+                        .setStyle(TextInputStyle.Paragraph)
+                        .setRequired(true);
+                    modal.addComponents(new ActionRowBuilder().addComponents(htmlInput));
+                    await interaction.showModal(modal);
+                    break;
+                }
                 case 'help':
                     await handleHelp(interaction);
                     break;

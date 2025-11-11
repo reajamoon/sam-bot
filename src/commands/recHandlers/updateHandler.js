@@ -40,8 +40,10 @@ async function handleUpdateRecommendation(interaction) {
         const newWordCount = interaction.options.getInteger('wordcount');
         const newDeleted = interaction.options.getBoolean('deleted');
         const newAttachment = interaction.options.getAttachment('attachment');
-        const newTags = interaction.options.getString('tags')?.split(',').map(tag => tag.trim()).filter(tag => tag) || null;
-        const newNotes = interaction.options.getString('notes');
+    const newTags = interaction.options.getString('tags')?.split(',').map(tag => tag.trim()).filter(tag => tag) || null;
+    const newNotes = interaction.options.getString('notes');
+    // Support append mode for additional tags
+    const appendAdditional = interaction.options.getBoolean('append');
 
         const recommendation = await findRecommendationByIdOrUrl(interaction, recId, findUrl, findAo3Id);
         if (!recommendation) {
@@ -115,6 +117,13 @@ async function handleUpdateRecommendation(interaction) {
         }
 
         // If not queueing, update the recommendation directly
+        // For additional tags, support append or replace
+        let additionalTagsToSend = newTags || [];
+        if (appendAdditional && newTags && newTags.length > 0) {
+            let oldAdditional = [];
+            try { oldAdditional = JSON.parse(recommendation.additionalTags || '[]'); } catch { oldAdditional = []; }
+            additionalTagsToSend = Array.from(new Set([...oldAdditional, ...newTags]));
+        }
         await processRecommendationJob({
             url: urlToUse,
             user: { id: interaction.user.id, username: interaction.user.username },
@@ -126,7 +135,7 @@ async function handleUpdateRecommendation(interaction) {
                 wordCount: newWordCount,
                 status: newStatus
             },
-            additionalTags: newTags || [],
+            additionalTags: additionalTagsToSend,
             notes: newNotes || '',
             isUpdate: true,
             existingRec: recommendation,
