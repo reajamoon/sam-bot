@@ -28,6 +28,7 @@ async function processQueueJob(job) {
       try { additionalTags = JSON.parse(job.additional_tags); } catch { additionalTags = []; }
     }
     if (job.notes) notes = job.notes;
+    const startTime = Date.now();
     await processRecommendationJob({
       url: job.fic_url,
       user,
@@ -41,6 +42,18 @@ async function processQueueJob(job) {
           return;
         }
         await job.update({ status: 'done', result: embedOrError.recommendation, error_message: null });
+        // Suppress notification if instant_candidate and within threshold
+        let thresholdMs = 3000; // default 3 seconds
+        const thresholdConfig = await Config.findOne({ where: { key: 'instant_queue_suppress_threshold_ms' } });
+        if (thresholdConfig && !isNaN(Number(thresholdConfig.value))) {
+          thresholdMs = Number(thresholdConfig.value);
+        }
+        const elapsed = Date.now() - new Date(job.submitted_at).getTime();
+        if (job.instant_candidate && elapsed < thresholdMs) {
+          // Clean up subscribers silently
+          await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
+          return;
+        }
         // Notify all subscribers in the configured channel
         const subscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: job.id } });
         const configEntry = await Config.findOne({ where: { key: 'fic_queue_channel' } });

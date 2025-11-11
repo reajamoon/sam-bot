@@ -67,7 +67,9 @@ async function handleUpdateRecommendation(interaction) {
 
         // --- Fic Parsing Queue Logic ---
         const { ParseQueue, ParseQueueSubscriber } = require('../../models');
-        if (newUrl || (!newUrl && !newTags && !newNotes && !newTitle && !newAuthor && !newSummary && !newRating && !newStatus && !newWordCount)) {
+        // Always use the queue for any update that requires a metadata fetch (newUrl or no manual fields)
+        const needsMetadataFetch = newUrl || (!newTitle && !newAuthor && !newSummary && !newRating && !newStatus && !newWordCount);
+        if (needsMetadataFetch) {
             let queueEntry = await ParseQueue.findOne({ where: { fic_url: urlToUse } });
             if (queueEntry) {
                 if (queueEntry.status === 'pending' || queueEntry.status === 'processing') {
@@ -104,10 +106,14 @@ async function handleUpdateRecommendation(interaction) {
                     return;
                 }
             }
+            // Edge case: Only mark as instant_candidate if there are no other pending/processing jobs
+            const activeJobs = await ParseQueue.count({ where: { status: ['pending', 'processing'] } });
+            const isInstant = activeJobs === 0;
             queueEntry = await ParseQueue.create({
                 fic_url: urlToUse,
                 status: 'pending',
-                requested_by: interaction.user.id
+                requested_by: interaction.user.id,
+                instant_candidate: isInstant
             });
             await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
             await interaction.editReply({

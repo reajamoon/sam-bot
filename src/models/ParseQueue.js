@@ -12,6 +12,16 @@ module.exports = (sequelize) => {
       allowNull: false,
       defaultValue: 'pending',
     },
+    instant_candidate: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+        submitted_at: {
+          type: DataTypes.DATE,
+          allowNull: false,
+          defaultValue: DataTypes.NOW,
+        },
     requested_by: {
       type: DataTypes.STRING, // Comma-separated Discord user IDs
       allowNull: false,
