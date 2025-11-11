@@ -1,8 +1,8 @@
 // queueWorker.js
 // Background worker to process fic parsing jobs from the ParseQueue
-const { sequelize, ParseQueue, ParseQueueSubscriber, Recommendation, Config } = require('../src/models');
-const { fetchFicMetadata } = require('../src/utils/recUtils/ficParser');
-const createRecommendationEmbed = require('../src/utils/recUtils/createRecommendationEmbed');
+const { sequelize, ParseQueue, ParseQueueSubscriber, Recommendation, Config } = require('./src/models');
+const { fetchFicMetadata } = require('./src/utils/recUtils/ficParser');
+const createRecommendationEmbed = require('./src/utils/recUtils/createRecommendationEmbed');
 const { Client, GatewayIntentBits } = require('discord.js');
 require('dotenv').config();
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.DirectMessages] });
@@ -67,4 +67,4 @@ client.once('ready', () => {
   pollQueue();
 });
 
-client.login(process.env.DISCORD_TOKEN);
+client.login(process.env.BOT_TOKEN);

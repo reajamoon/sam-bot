@@ -25,8 +25,9 @@ module.exports = (sequelize) => {
       allowNull: true,
     },
   }, {
-    timestamps: true,
-    tableName: 'ParseQueue',
+      timestamps: true,
+      tableName: 'ParseQueue',
+      underscored: true,
   });
 
   return ParseQueue;
