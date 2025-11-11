@@ -44,9 +44,17 @@ async function processRecommendationJob({
       url
     };
   } else {
-    metadata = await fetchFicMetadata(url);
-    if (metadata && metadata.url) metadata.url = normalizeAO3Url(metadata.url);
-    if (!metadata) return { error: 'Could not fetch details from that URL.' };
+    try {
+      metadata = await fetchFicMetadata(url);
+      if (metadata && metadata.url) metadata.url = normalizeAO3Url(metadata.url);
+    } catch (err) {
+      console.error('[processRecommendationJob] Error fetching metadata:', err);
+      return { error: 'Could not fetch details from that URL.' };
+    }
+    if (!metadata) {
+      console.error('[processRecommendationJob] Metadata fetch returned null for URL:', url);
+      return { error: 'Could not fetch details from that URL.' };
+    }
     if (metadata.error && metadata.error === 'Site protection detected') {
       return { error: 'Site protection detected. Manual entry required.' };
     }
@@ -65,6 +73,16 @@ async function processRecommendationJob({
     if (manualFields.summary) metadata.summary = manualFields.summary;
     if (manualFields.wordCount) metadata.wordCount = manualFields.wordCount;
     if (manualFields.rating) metadata.rating = manualFields.rating;
+  }
+
+  // Ensure required fields are present and valid
+  if (!metadata || !metadata.title || !user || !user.id || !user.username || !url) {
+    console.error('[processRecommendationJob] Missing required fields:', {
+      metadata,
+      user,
+      url
+    });
+    return { error: 'Missing required fields for recommendation.' };
   }
 
   let recommendation;
@@ -107,35 +125,55 @@ async function processRecommendationJob({
     if (existingRec.category !== metadata.category) updateFields.category = metadata.category;
 
     if (Object.keys(updateFields).length > 0) {
-      await existingRec.update(updateFields);
-      await existingRec.reload();
+      try {
+        await existingRec.update(updateFields);
+        await existingRec.reload();
+      } catch (err) {
+        console.error('[processRecommendationJob] Error updating recommendation:', {
+          id: existingRec.id,
+          updateFields,
+          error: err,
+        });
+        return { error: 'Failed to update recommendation. Please try again or contact an admin.' };
+      }
     }
     recommendation = existingRec;
   } else {
     // Create new recommendation
-    recommendation = await Recommendation.create({
-      url,
-      title: metadata.title,
-      author: (metadata.authors && metadata.authors[0]) || metadata.author || 'Unknown Author',
-      summary: metadata.summary,
-      tags: JSON.stringify(Array.isArray(metadata.tags) ? metadata.tags : []),
-      rating: metadata.rating,
-      wordCount: metadata.wordCount,
-      chapters: metadata.chapters,
-      status: metadata.status,
-      language: metadata.language,
-      publishedDate: metadata.publishedDate,
-      updatedDate: metadata.updatedDate,
-      recommendedBy: user.id,
-      recommendedByUsername: user.username,
-      additionalTags: JSON.stringify(Array.isArray(additionalTags) ? additionalTags : []),
-      notes: notes,
-      kudos: metadata.kudos,
-      hits: metadata.hits,
-      bookmarks: metadata.bookmarks,
-      comments: metadata.comments,
-      category: metadata.category
-    });
+    try {
+      recommendation = await Recommendation.create({
+        url,
+        title: metadata.title,
+        author: (metadata.authors && metadata.authors[0]) || metadata.author || 'Unknown Author',
+        summary: metadata.summary,
+        tags: JSON.stringify(Array.isArray(metadata.tags) ? metadata.tags : []),
+        rating: metadata.rating,
+        wordCount: metadata.wordCount,
+        chapters: metadata.chapters,
+        status: metadata.status,
+        language: metadata.language,
+        publishedDate: metadata.publishedDate,
+        updatedDate: metadata.updatedDate,
+        recommendedBy: user.id,
+        recommendedByUsername: user.username,
+        additionalTags: JSON.stringify(Array.isArray(additionalTags) ? additionalTags : []),
+        notes: notes,
+        kudos: metadata.kudos,
+        hits: metadata.hits,
+        bookmarks: metadata.bookmarks,
+        comments: metadata.comments,
+        category: metadata.category
+      });
+    } catch (err) {
+      console.error('[processRecommendationJob] Error creating recommendation:', {
+        url,
+        title: metadata.title,
+        user,
+        metadata,
+        error: err,
+      });
+      return { error: 'Failed to create recommendation. Please try again or contact an admin.' };
+    }
   }
 
   // Build recForEmbed
