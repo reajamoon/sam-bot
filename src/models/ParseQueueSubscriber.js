@@ -18,6 +18,7 @@ module.exports = (sequelize) => {
   }, {
     timestamps: true,
     tableName: 'ParseQueueSubscribers',
+    underscored: true,
   });
 
   return ParseQueueSubscriber;
