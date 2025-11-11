@@ -105,12 +105,31 @@ async function handleUpdateRecommendation(interaction) {
             // Edge case: Only mark as instant_candidate if there are no other pending/processing jobs
             const activeJobs = await ParseQueue.count({ where: { status: ['pending', 'processing'] } });
             const isInstant = activeJobs === 0;
-            queueEntry = await ParseQueue.create({
-                fic_url: urlToUse,
-                status: 'pending',
-                requested_by: interaction.user.id,
-                instant_candidate: isInstant
-            });
+            try {
+                queueEntry = await ParseQueue.create({
+                    fic_url: urlToUse,
+                    status: 'pending',
+                    requested_by: interaction.user.id,
+                    instant_candidate: isInstant
+                });
+            } catch (err) {
+                // Handle race condition: duplicate key error
+                if (err && err.code === '23505') {
+                    // Find the now-existing queue entry
+                    queueEntry = await ParseQueue.findOne({ where: { fic_url: urlToUse } });
+                    if (queueEntry && (queueEntry.status === 'pending' || queueEntry.status === 'processing')) {
+                        const existingSub = await ParseQueueSubscriber.findOne({ where: { queue_id: queueEntry.id, user_id: interaction.user.id } });
+                        if (!existingSub) {
+                            await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
+                        }
+                        await interaction.editReply({
+                            content: 'That fic is already being processed! You’ll get a notification when it’s ready.'
+                        });
+                        return;
+                    }
+                }
+                throw err;
+            }
             await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
             await interaction.editReply({
                 content: 'Your fic has been added to the parsing queue! I’ll notify you when it’s ready.'
