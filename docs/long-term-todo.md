@@ -3,6 +3,7 @@
 ---
 
 ## Core Features
+- [ ] Fic club features
 - [ ] Add regular backup/export for recommendations
 - [x] Implement data migration scripts for schema changes
 - [ ] Optimize database queries for large library

@@ -2,6 +2,18 @@
 
 ---
 
+## 2025-11-11
+
+### Features & Improvements
+- All fic metadata fetches (AO3 and others) now use a deduplicated queue system to prevent memory leaks and lag.
+- Queue jobs are always used for metadata fetches, never direct parsing, ensuring reliability and no overlap.
+- All interested users are notified when a job completes, with instant jobs suppressing redundant notifications for a smooth smooooth experience.
+- Queue worker, subscriber, and job processor logic reviewed and hardened for reliability.
+- Notification suppression for instant jobs is configurable and robust to edge cases.
+- Documentation updated to reflect queue architecture and notification changes.
+- Made some little fixes and tweaks to how /rec update ID lookup works, hopefully handles better than before.
+
+---
 
 ## 2025-11-08
 
@@ -11,7 +23,6 @@
 - All AO3 fetch and parser modules are modular, silent, and return clear error objects for user feedback. bless.
 - Resolved a loop where Sam would look for a typo'd tablename in the database, get sad it wasn't there, look again, repeat, many times a second until crashing taking Dean and Cas down with him until they were all stuck in a horrifying restart-crash death spiral.
 - Code and comments reviewed for clarity and maintainability :)
-
 
 ---
 

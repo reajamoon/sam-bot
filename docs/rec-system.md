@@ -18,7 +18,9 @@ The Rec System lets PB members share, search, and discover fanfiction recommenda
 - Remove or update recs (with permission checks)
 - Multi-page help system and navigation
 
+
 ## Architecture
+- All fic metadata fetches (AO3 and others) are handled through a robust, deduplicated queue system. This ensures no overlap, prevents memory leaks, and keeps the bot responsive even under heavy load.
 - Modular command and handler structure (`rec.js` routes to handlers)
 - Utility modules for embed creation, validation, pagination, statistics, and config
 - All buttons and navigation use standardized custom IDs
@@ -49,9 +51,16 @@ The Rec System lets PB members share, search, and discover fanfiction recommenda
 - Update utility modules for new metadata or filtering
 - Use standardized custom ID format for all new buttons and navigation
 
+## Queue & Notification System
+
+- All fic metadata fetches are queued, deduplicated, and processed in order. No direct parsing is allowed outside the queue.
+- Subscribers (users who requested or are interested in a job) are tracked and notified when the job completes.
+- If a job is processed instantly (queue was empty and job completes within a few seconds), redundant notifications are suppressed.
+- The queue worker, subscriber, and job processor logic are hip to edge cases and restarts.
+
 ## Migration Status
 
-The rec system has already been modularized. Handler modules and utility files are split out, and the main command file just routes logic. Most migration steps are complete, but some advanced features (analytics, discovery, user preference tracking) are still planned for the future. If you see any TODOs in utility files, those are just reminders to finish moving some code out of the main command file.
+The rec system is fully modularized and uses a queue for all metadata fetches. Handler modules and utility files are split out, and the main command file just routes logic. Most migration steps are complete, but some advanced features (analytics, user preference tracking) are still planned for the future. If you see any TODOs in utility files, those are just reminders to finish moving some code out of the main command file.
 
 ## Benefits
 
