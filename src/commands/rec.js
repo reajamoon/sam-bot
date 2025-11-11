@@ -197,7 +197,8 @@ module.exports = {
 
         const subcommand = interaction.options.getSubcommand();
 
-        const handleQueue = require('./recHandlers/queueHandler');
+    const handleQueue = require('./recHandlers/queueHandler');
+    const handleResetQueue = require('./recHandlers/resetQueueHandler');
         try {
             switch (subcommand) {
                 case 'add':
