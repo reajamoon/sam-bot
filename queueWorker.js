@@ -22,12 +22,18 @@ async function processQueueJob(job) {
         username: userRecord ? userRecord.username : `User ${firstSub.user_id}`
       };
     }
+    let additionalTags = [];
+    let notes = '';
+    if (job.additional_tags) {
+      try { additionalTags = JSON.parse(job.additional_tags); } catch { additionalTags = []; }
+    }
+    if (job.notes) notes = job.notes;
     await processRecommendationJob({
       url: job.fic_url,
       user,
       manualFields: {},
-      additionalTags: [],
-      notes: '',
+      additionalTags,
+      notes,
       isUpdate: false,
       notify: async (embedOrError) => {
         if (!embedOrError || embedOrError.error) {
