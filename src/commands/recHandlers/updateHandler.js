@@ -1,10 +1,7 @@
-const { Recommendation } = require('../../models');
-const { fetchFicMetadata } = require('../../utils/recUtils/ficParser');
 const findRecommendationByIdOrUrl = require('../../utils/recUtils/findRecommendationByIdOrUrl');
-const { EmbedBuilder, MessageFlags } = require('discord.js');
-const createRecommendationEmbed = require('../../utils/recUtils/createRecommendationEmbed');
-
+const { MessageFlags } = require('discord.js');
 const isValidFanficUrl = require('../../utils/recUtils/isValidFanficUrl');
+const processRecommendationJob = require('../../utils/recUtils/processRecommendationJob');
 
 // Modular validation helpers
 function validateAttachment(newAttachment, willBeDeleted) {
@@ -26,21 +23,28 @@ function validateAttachment(newAttachment, willBeDeleted) {
 }
 
 async function handleUpdateRecommendation(interaction) {
-    // Timing diagnostics
     try {
-        const startTime = Date.now();
-        console.log(`[rec update] Interaction received at: ${new Date().toISOString()}`);
-        console.log(`[rec update] Discord interaction createdTimestamp: ${interaction.createdTimestamp}`);
-        console.log(`[rec update] Discord interaction age (ms): ${Date.now() - interaction.createdTimestamp}`);
+        console.log('[rec update] Handler called', {
+            user: interaction.user?.id,
+            id: interaction.options.getInteger('id'),
+            find_url: interaction.options.getString('find_url'),
+            find_ao3_id: interaction.options.getInteger('find_ao3_id'),
+            options: interaction.options.data
+        });
         await interaction.deferReply();
-        console.log(`[rec update] deferReply completed in ${Date.now() - startTime}ms`);
 
-    const normalizeAO3Url = require('../../utils/recUtils/normalizeAO3Url');
-    const recId = interaction.options.getInteger('id');
-    const findUrl = interaction.options.getString('find_url');
-    const findAo3Id = interaction.options.getInteger('find_ao3_id');
-    let newUrl = interaction.options.getString('new_url');
-    if (newUrl) newUrl = normalizeAO3Url(newUrl);
+        const normalizeAO3Url = require('../../utils/recUtils/normalizeAO3Url');
+        const recId = interaction.options.getInteger('id');
+        const findUrl = interaction.options.getString('find_url');
+        const findAo3Id = interaction.options.getInteger('find_ao3_id');
+        if (!recId && !findUrl && !findAo3Id) {
+            await interaction.editReply({
+                content: 'You need to provide at least one identifier: `id`, `find_url`, or `find_ao3_id`.'
+            });
+            return;
+        }
+        let newUrl = interaction.options.getString('new_url');
+        if (newUrl) newUrl = normalizeAO3Url(newUrl);
         const newTitle = interaction.options.getString('title');
         const newAuthor = interaction.options.getString('author');
         const newSummary = interaction.options.getString('summary');
@@ -49,182 +53,240 @@ async function handleUpdateRecommendation(interaction) {
         const newWordCount = interaction.options.getInteger('wordcount');
         const newDeleted = interaction.options.getBoolean('deleted');
         const newAttachment = interaction.options.getAttachment('attachment');
-        const newTags = interaction.options.getString('tags')?.split(',').map(tag => tag.trim()).filter(tag => tag) || null;
-        const newNotes = interaction.options.getString('notes');
+    const newTags = interaction.options.getString('tags')?.split(',').map(tag => tag.trim()).filter(tag => tag) || null;
+    const newNotes = interaction.options.getString('notes');
+    // Support append mode for additional tags
+    const appendAdditional = interaction.options.getBoolean('append');
 
-        const findStart = Date.now();
-        console.log('[rec update] Finding recommendation...');
         const recommendation = await findRecommendationByIdOrUrl(interaction, recId, findUrl, findAo3Id);
-        console.log(`[rec update] Recommendation found: ${!!recommendation} (find took ${Date.now() - findStart}ms)`);
         if (!recommendation) {
             await interaction.editReply({
                 content: `I couldn't find a recommendation with ID ${recId} in our library. Use \`/rec stats\` to see what's available.`
             });
             return;
         }
+        let urlToUse = newUrl || recommendation.url;
+        urlToUse = normalizeAO3Url(urlToUse);
 
-        const isOwner = recommendation.recommendedBy === interaction.user.id;
-        const isAdmin = interaction.member.permissions.has('ManageMessages');
-        if (!isOwner && !isAdmin) {
+        // --- Fic Parsing Queue Logic ---
+        const { ParseQueue, ParseQueueSubscriber } = require('../../models');
+        // Always use the queue for any update that requires a metadata fetch
+        const needsMetadataFetch = newUrl || (!newTitle && !newAuthor && !newSummary && !newRating && !newStatus && !newWordCount);
+        if (needsMetadataFetch) {
+            let queueEntry = await ParseQueue.findOne({ where: { fic_url: urlToUse } });
+            if (queueEntry) {
+                if (queueEntry.status === 'pending' || queueEntry.status === 'processing') {
+                    const existingSub = await ParseQueueSubscriber.findOne({ where: { queue_id: queueEntry.id, user_id: interaction.user.id } });
+                    if (!existingSub) {
+                        await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
+                    }
+                    await interaction.editReply({
+                        content: 'That fic is already being processed! You’ll get a notification when it’s ready.'
+                    });
+                    return;
+                } else if (queueEntry.status === 'done' && queueEntry.result) {
+                    // Return cached result (simulate embed)
+                    await processRecommendationJob({
+                        url: urlToUse,
+                        user: { id: interaction.user.id, username: interaction.user.username },
+                        manualFields: {},
+                        additionalTags: newTags || [],
+                        notes: newNotes || '',
+                        isUpdate: true,
+                        existingRec: recommendation,
+                        notify: async (embed) => {
+                            await interaction.editReply({
+                                content: 'This fic was already parsed! Here are the details:',
+                                embeds: [embed]
+                            });
+                        }
+                    });
+                    return;
+                } else if (queueEntry.status === 'error') {
+                    await interaction.editReply({
+                        content: `There was an error parsing this fic previously: ${queueEntry.error_message || 'Unknown error.'} You can try again later.`
+                    });
+                    return;
+                }
+            }
+            // Edge case: Only mark as instant_candidate if there are no other pending/processing jobs
+            const activeJobs = await ParseQueue.count({ where: { status: ['pending', 'processing'] } });
+            const isInstant = activeJobs === 0;
+            try {
+                queueEntry = await ParseQueue.create({
+                    fic_url: urlToUse,
+                    status: 'pending',
+                    requested_by: interaction.user.id,
+                    instant_candidate: isInstant
+                });
+            } catch (err) {
+                // Handle race condition: duplicate key error (Sequelize or raw pg)
+                if ((err && err.code === '23505') || (err && err.name === 'SequelizeUniqueConstraintError')) {
+                    // Find the now-existing queue entry
+                    queueEntry = await ParseQueue.findOne({ where: { fic_url: urlToUse } });
+                    if (queueEntry) {
+                        if (queueEntry.status === 'pending' || queueEntry.status === 'processing') {
+                            const existingSub = await ParseQueueSubscriber.findOne({ where: { queue_id: queueEntry.id, user_id: interaction.user.id } });
+                            if (!existingSub) {
+                                await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
+                            }
+                            await interaction.editReply({
+                                content: 'That fic is already being processed! You’ll get a notification when it’s ready.'
+                            });
+                            return;
+                        } else if (queueEntry.status === 'done' && queueEntry.result) {
+                            // Return friendly duplicate message with details, robust fallback
+                            let rec = null;
+                            try {
+                                rec = await findRecommendationByIdOrUrl(interaction, recId, urlToUse, null);
+                            } catch {}
+                            let addedBy = rec && rec.recommendedByUsername ? rec.recommendedByUsername : 'someone';
+                            let addedAt = rec && rec.createdAt ? new Date(rec.createdAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : null;
+                            let title = rec && rec.title ? rec.title : 'This fic';
+                            let msg = `${title} was already added by ${addedBy}${addedAt ? ` on ${addedAt}` : ''}, but hey! Great minds think alike, right?`;
+                            if (!rec) msg = 'This fic was already added to the library! Great minds think alike, right?';
+                            await interaction.editReply({
+                                content: msg
+                            });
+                            return;
+                        } else if (queueEntry.status === 'error') {
+                            await interaction.editReply({
+                                content: `There was an error parsing this fic previously: ${queueEntry.error_message || 'Unknown error.'} You can try again later.`
+                            });
+                            return;
+                        } else {
+                            // Fallback for any other status
+                            await interaction.editReply({
+                                content: 'This fic is already in the queue. You’ll get a notification when it’s ready!'
+                            });
+                            return;
+                        }
+                    }
+                }
+                throw err;
+            }
+            await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
+            // Poll for instant completion (duration matches suppression threshold in config)
+            const { Config } = require('../../models');
+            let pollTimeout = 3000; // default 3 seconds
+            try {
+                const thresholdConfig = await Config.findOne({ where: { key: 'instant_queue_suppress_threshold_ms' } });
+                if (thresholdConfig && !isNaN(Number(thresholdConfig.value))) {
+                    pollTimeout = Number(thresholdConfig.value);
+                }
+            } catch {}
+            const pollInterval = 200;
+            const start = Date.now();
+            let foundDone = false;
+            let resultEmbed = null;
+            while (Date.now() - start < pollTimeout) {
+                // Refetch the queue entry
+                const updatedQueue = await ParseQueue.findOne({ where: { id: queueEntry.id } });
+                if (updatedQueue && updatedQueue.status === 'done' && updatedQueue.result) {
+                    // Fetch the updated recommendation for embed
+                    const updatedRec = await findRecommendationByIdOrUrl(interaction, recId, urlToUse, null);
+                    if (updatedRec) {
+                        const result = await processRecommendationJob({
+                            url: urlToUse,
+                            user: { id: interaction.user.id, username: interaction.user.username },
+                            manualFields: {},
+                            additionalTags: newTags || [],
+                            notes: newNotes || '',
+                            isUpdate: true,
+                            existingRec: updatedRec,
+                            notify: async (embed) => {
+                                resultEmbed = embed;
+                            }
+                        });
+                        if (!resultEmbed && result && result.embed) {
+                            resultEmbed = result.embed;
+                        }
+                    }
+                    foundDone = true;
+                    break;
+                }
+                await new Promise(res => setTimeout(res, pollInterval));
+            }
+            if (foundDone && resultEmbed) {
+                await interaction.editReply({
+                    content: 'That fic was already updated! Here’s the latest info:',
+                    embeds: [resultEmbed]
+                });
+                return;
+            }
+            // Final fallback: check if the job is now done in the DB (worker may have been too fast)
+            const finalQueue = await ParseQueue.findOne({ where: { id: queueEntry.id, status: 'done' } });
+            if (finalQueue && finalQueue.result) {
+                const updatedRec = await findRecommendationByIdOrUrl(interaction, recId, urlToUse, null);
+                if (updatedRec) {
+                    const result = await processRecommendationJob({
+                        url: urlToUse,
+                        user: { id: interaction.user.id, username: interaction.user.username },
+                        manualFields: {},
+                        additionalTags: newTags || [],
+                        notes: newNotes || '',
+                        isUpdate: true,
+                        existingRec: updatedRec
+                    });
+                    if (result && result.embed) {
+                        await interaction.editReply({
+                            content: 'That fic was already updated! Here’s the latest info:',
+                            embeds: [result.embed]
+                        });
+                        return;
+                    }
+                }
+            }
+            // If still not found, fallback to queue message
             await interaction.editReply({
-                content: `That recommendation was added by ${recommendation.recommendedByUsername}. You can only update your own recommendations unless you're a moderator.`
+                content: 'Your fic has been added to the parsing queue! I’ll notify you when it’s ready.'
             });
             return;
         }
 
-    let urlToUse = newUrl || recommendation.url;
-    urlToUse = normalizeAO3Url(urlToUse);
-        let shouldUpdateMetadata = false;
-        let metadata = null;
-
-        if (newUrl && newUrl !== recommendation.url) {
-            if (!isValidFanficUrl(newUrl)) {
-                await interaction.editReply({
-                    content: 'That doesn\'t look like a supported fanfiction URL. As your librarian, I can work with Archive of Our Own (AO3), FanFiction.Net, and Wattpad links.'
-                });
-                return;
-            }
-            const dupStart = Date.now();
-            console.log('[rec update] Checking for duplicate URL...');
-            const existingRec = await Recommendation.findOne({
-                where: {
-                    url: newUrl,
-                    id: { [require('sequelize').Op.ne]: recId }
-                }
-            });
-            console.log(`[rec update] Duplicate URL found: ${!!existingRec} (dup check took ${Date.now() - dupStart}ms)`);
-            if (existingRec) {
-                await interaction.editReply({
-                    content: `That URL is already in our library (ID: ${existingRec.id}). Each URL can only appear once in the collection.`
-                });
-                return;
-            }
-            shouldUpdateMetadata = true;
-        } else if (!newUrl && !newTags && !newNotes && !newTitle && !newAuthor && !newSummary && !newRating && !newStatus && !newWordCount) {
-            shouldUpdateMetadata = true;
+        // If not queueing, update the recommendation directly
+        // For additional tags, support append or replace
+        let additionalTagsToSend = newTags || [];
+        if (appendAdditional && newTags && newTags.length > 0) {
+            let oldAdditional = [];
+            try { oldAdditional = JSON.parse(recommendation.additionalTags || '[]'); } catch { oldAdditional = []; }
+            additionalTagsToSend = Array.from(new Set([...oldAdditional, ...newTags]));
         }
-
-        if (shouldUpdateMetadata) {
-            await interaction.editReply({
-                content: '🔄 Fetching updated metadata...'
-            });
-            const metaStart = Date.now();
-            console.log('[rec update] Fetching metadata for:', urlToUse);
-            metadata = await fetchFicMetadata(urlToUse);
-            console.log(`[rec update] Metadata fetch result: ${metadata ? 'success' : 'failed'} (fetch took ${Date.now() - metaStart}ms)`);
-            if (!metadata) {
-                await interaction.editReply({
-                    content: 'I couldn\'t fetch the details from that URL. The original recommendation remains unchanged.'
-                });
-                return;
-            }
-            if (metadata.error && metadata.error === 'Site protection detected') {
-                await interaction.editReply({
-                    content: `That site's protection is blocking me from fetching updated metadata. The original recommendation remains unchanged.`
-                });
-                return;
-            }
-            if (metadata.is404 || (metadata.error && metadata.error === '404_not_found')) {
-                await interaction.editReply({
-                    content: `📭 **Story Not Found (404)**\n\nThe story at this URL appears to have been deleted or moved. The original recommendation remains unchanged.\n\nYou might want to:\n• Update the URL if you know where it moved: \`/rec update id:${recId} new_url:new_link_here\`\n• Remove this recommendation: \`/rec remove id:${recId}\`\n• Keep it as-is for reference`
-                });
-                return;
-            }
-            if (metadata.is403) {
-                await interaction.editReply({
-                    content: `🔒 **Access Restricted (403)**\n\nThis story is now restricted or requires special permissions. The original recommendation remains unchanged.`
-                });
-                return;
-            }
-            if (metadata.isHttpError) {
-                await interaction.editReply({
-                    content: `⚠ **Connection Error**\n\nI'm having trouble connecting to that site right now. The original recommendation remains unchanged. Try again later.`
-                });
-                return;
-            }
-        }
-
-        const updateData = {};
-        if (metadata) {
-            updateData.url = urlToUse;
-            if (metadata.title) updateData.title = metadata.title;
-            // If authors array exists and has more than one author, join for DB field
-            if (Array.isArray(metadata.authors) && metadata.authors.length > 1) {
-                updateData.author = metadata.authors.join(', ');
-            } else if (Array.isArray(metadata.authors) && metadata.authors.length === 1) {
-                updateData.author = metadata.authors[0];
-            } else if (metadata.author) {
-                updateData.author = metadata.author;
-            }
-            if (metadata.summary) updateData.summary = metadata.summary;
-            if (metadata.tags) updateData.tags = JSON.stringify(metadata.tags);
-            if (metadata.rating) updateData.rating = metadata.rating;
-            if (metadata.wordCount) updateData.wordCount = metadata.wordCount;
-            if (metadata.chapters) updateData.chapters = metadata.chapters;
-            if (metadata.status) updateData.status = metadata.status;
-            if (metadata.language) updateData.language = metadata.language;
-            if (metadata.publishedDate) updateData.publishedDate = metadata.publishedDate;
-            if (metadata.updatedDate) updateData.updatedDate = metadata.updatedDate;
-        }
-    if (newTags !== null) updateData.tags = JSON.stringify(newTags);
-    if (newNotes !== null) updateData.notes = newNotes;
-    if (newUrl) updateData.url = newUrl;
-    if (newTitle !== null) updateData.title = newTitle;
-    if (newAuthor !== null) updateData.author = newAuthor;
-    if (newSummary !== null) updateData.summary = newSummary;
-    if (newRating !== null) updateData.rating = newRating;
-    if (newStatus !== null) updateData.status = newStatus;
-    if (newWordCount !== null) updateData.wordCount = newWordCount;
-        if (newAttachment) {
-            const { validateAttachment } = require('../../utils/validateAttachment');
-            const willBeDeleted = newDeleted !== null ? newDeleted : recommendation.deleted;
-            const attachStart = Date.now();
-            const validationError = validateAttachment(newAttachment, willBeDeleted);
-            if (validationError) {
-                await interaction.editReply({
-                    content: validationError + '\n\n**And remember:** Only attach files if you\'ve got the author\'s permission. I\'m not running a piracy operation here.'
-                });
-                console.log(`[rec update] Attachment validation failed (took ${Date.now() - attachStart}ms)`);
-                return;
-            }
-            updateData.attachmentUrl = newAttachment.url;
-            await interaction.followUp({
-                content: `Alright, file's attached. But listen up - this server has a strict policy about this. You better have the author's explicit permission, because if you don't, the mods are going to remove it faster than you can say "copyright infringement." Don't make me look bad here.`,
-                flags: MessageFlags.Ephemeral
-            });
-            console.log(`[rec update] Attachment followUp sent (took ${Date.now() - attachStart}ms)`);
-        }
-
-        const dbStart = Date.now();
-        console.log('[rec update] Updating recommendation in DB...');
-        await recommendation.update(updateData);
-        await recommendation.reload();
-        console.log(`[rec update] Recommendation updated and reloaded (DB ops took ${Date.now() - dbStart}ms)`);
-
-                // Build the rec object for the embed utility
-                const recForEmbed = {
-                    ...recommendation.toJSON(),
-                    ...metadata,
-                    authors: (metadata && Array.isArray(metadata.authors)) ? metadata.authors : (metadata && metadata.author ? [metadata.author] : [recommendation.author]),
-                    id: recommendation.id,
-                    url: recommendation.url,
-                    recommendedByUsername: recommendation.recommendedByUsername,
-                    notes: newNotes !== null ? newNotes : recommendation.notes,
-                    // Provide a getParsedTags method for compatibility
-                    getParsedTags: function() {
-                        if (Array.isArray(newTags) && newTags.length > 0) return newTags;
-                        if (Array.isArray(this.tags)) return this.tags;
-                        if (typeof this.tags === 'string') {
-                            try {
-                                const parsed = JSON.parse(this.tags);
-                                if (Array.isArray(parsed)) return parsed;
-                            } catch {}
-                        }
-                        return [];
+        await processRecommendationJob({
+            url: urlToUse,
+            user: { id: interaction.user.id, username: interaction.user.username },
+            manualFields: {
+                title: newTitle,
+                author: newAuthor,
+                summary: newSummary,
+                rating: newRating,
+                wordCount: newWordCount,
+                status: newStatus
+            },
+            additionalTags: additionalTagsToSend,
+            notes: newNotes || '',
+            isUpdate: true,
+            existingRec: recommendation,
+            notify: async (embedOrError) => {
+                if (embedOrError && embedOrError.error) {
+                    let msg = '';
+                    if (embedOrError.error === 'Site protection detected. Manual entry required.') {
+                        msg = 'Site protection is blocking metadata fetch. Please enter details manually.';
+                    } else if (embedOrError.error === '404_not_found') {
+                        msg = 'Story not found (404). The link may be broken or deleted.';
+                    } else if (embedOrError.error === '403_forbidden') {
+                        msg = 'Access restricted (403). You may need to log in to view this story.';
+                    } else if (embedOrError.error === 'connection_error') {
+                        msg = 'Connection error. The site may be down or unreachable.';
+                    } else {
+                        msg = embedOrError.error;
                     }
-                };
-                const embed = await createRecommendationEmbed(recForEmbed);
-                await interaction.editReply({ content: null, embeds: [embed] });
+                    await interaction.editReply({ content: msg });
+                } else {
+                    await interaction.editReply({ content: null, embeds: [embedOrError] });
+                }
+            }
+        });
     } catch (error) {
         console.error('[rec update] Error:', error);
         await interaction.editReply({

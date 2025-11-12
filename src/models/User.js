@@ -130,6 +130,12 @@ module.exports = (sequelize) => {
             type: DataTypes.INTEGER,
             defaultValue: 0,
             comment: 'Number of messages sent since admin last set the message count'
+        },
+        queueNotifyTag: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: true,
+            allowNull: false,
+            comment: 'Whether to tag the user in fic queue notifications (true = tag, false = no tag)'
         }
     }, {
         tableName: 'users',

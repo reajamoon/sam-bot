@@ -44,7 +44,33 @@ async function debugLoginAndFetchWork(workUrl) {
 // ao3Utils.js
 // Utility for logging in to AO3 with Puppeteer and returning a logged-in page
 
+
 const puppeteer = require('puppeteer');
+let sharedBrowser = null;
+
+async function getSharedBrowser() {
+    if (sharedBrowser && sharedBrowser.process() && sharedBrowser.isConnected()) {
+        return sharedBrowser;
+    }
+    sharedBrowser = await puppeteer.launch({
+        headless: process.env.AO3_HEADLESS === 'false' ? false : true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    return sharedBrowser;
+}
+
+// Graceful shutdown for shared browser
+function setupBrowserShutdown() {
+    const shutdown = async () => {
+        if (sharedBrowser) {
+            try { await sharedBrowser.close(); } catch {}
+        }
+        process.exit(0);
+    };
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
+}
+setupBrowserShutdown();
 
 /**
  * Logs in to AO3 and returns a logged-in Puppeteer page.
@@ -65,10 +91,7 @@ async function getLoggedInAO3Page() {
     if (!username || !password) {
         throw new Error('AO3_USERNAME or AO3_PASSWORD is missing from environment.');
     }
-    const browser = await puppeteer.launch({
-        headless,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
+    const browser = await getSharedBrowser();
     const page = await browser.newPage();
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:118.0) Gecko/20100101 Firefox/118.0');
     await page.setExtraHTTPHeaders({
