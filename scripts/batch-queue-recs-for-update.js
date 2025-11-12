@@ -7,9 +7,26 @@ const { Sequelize } = require('sequelize');
 const dbConfig = require('../config/config.json');
 const env = process.env.NODE_ENV || 'development';
 const config = dbConfig[env];
-
-// Initialize Sequelize
-const sequelize = new Sequelize(config);
+let sequelize;
+if (config.use_env_variable) {
+  sequelize = new Sequelize(process.env[config.use_env_variable], {
+    dialect: config.dialect,
+    logging: config.logging,
+    pool: config.pool
+  });
+} else {
+  sequelize = new Sequelize(
+    config.database,
+    config.username,
+    config.password,
+    {
+      host: config.host,
+      dialect: config.dialect,
+      logging: config.logging,
+      pool: config.pool
+    }
+  );
+}
 const Recommendation = require('../src/models/Recommendation')(sequelize);
 
 // Import your queue model or utility
