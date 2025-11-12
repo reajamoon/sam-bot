@@ -9,9 +9,12 @@ function isAnonymousAO3Fic(html) {
 }
 
 function parseAO3Metadata(html, url, includeRawHtml = false) {
-        // Try to find meta block, but don't fail if not found
-        const metaBlockMatch = html.match(/<dl class="work meta group">([\s\S]*?)<\/dl>/);
-        const metaBlock = metaBlockMatch ? metaBlockMatch[0] : '';
+
+    // Always declare metadata object at the top
+    const metadata = { url: url };
+    // Try to find meta block, but don't fail if not found
+    const metaBlockMatch = html.match(/<dl class="work meta group">([\s\S]*?)<\/dl>/);
+    const metaBlock = metaBlockMatch ? metaBlockMatch[0] : '';
 
         // Archive Warnings (extract all <a class="tag"> inside <dd class="warning tags">)
         metadata.archiveWarnings = [];
@@ -73,7 +76,6 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
                 summary: updateMessages.siteProtection
             };
         }
-        const metadata = { url: url };
         // Try to find meta block, but don't fail if not found
         const metaBlockMatch = html.match(/<dl class="work meta group">([\s\S]*?)<\/dl>/);
         const metaBlock = metaBlockMatch ? metaBlockMatch[0] : '';
