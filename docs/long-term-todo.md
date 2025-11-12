@@ -3,9 +3,8 @@
 ---
 
 ## Core Features
- - [ ] Unify `/rec update <id>` to use a single identifier field (ID, URL, AO3 ID, etc.) with internal logic to resolve the type. Simplifies the command and improves user experience.
 - [ ] Fic club features
-- [ ] Add regular backup/export for recommendations
+- [x] Add regular backup/export for recommendations
 - [x] Implement data migration scripts for schema changes
 - [ ] Optimize database queries for large library
 - [ ] Preempt case where library grows outsized
@@ -13,6 +12,7 @@
     - Update the recommendation embed logic to set the embed color based on fic rating (e.g., Teen, Mature, Explicit) and/or content warnings. This should be handled in src/utils/recUtils/createRecommendationEmbed.js and coordinated with rating/warning parsing from fic metadata.
 
 ## User Experience
+ - [ ] Unify `/rec update <id>` to use a single identifier field (ID, URL, AO3 ID, etc.) with internal logic to detect and handle all types.
 - [ ] Enhance help and onboarding (interactive guides)
 - [ ] Add user profile pages (show contributions, stats)
 - [ ] Allow users to favorite fics
