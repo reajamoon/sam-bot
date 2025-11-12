@@ -114,6 +114,12 @@ async function handleUpdateRecommendation(interaction) {
         if (updateMode === 'fetch' || updateMode === 'manualAndFetch' || updateMode === 'fetchOnlyOrCooldown') {
             let queueEntry = await ParseQueue.findOne({ where: { fic_url: urlToUse } });
             if (queueEntry) {
+                console.log('[rec update] queueEntry found:', {
+                    id: queueEntry.id,
+                    status: queueEntry.status,
+                    result: queueEntry.result,
+                    error_message: queueEntry.error_message
+                });
                 if (queueEntry.status === 'pending' || queueEntry.status === 'processing') {
                     // Debug: log hasManualFields and its components
                     console.log('[rec update] hasManualFields:', hasManualFields, {
