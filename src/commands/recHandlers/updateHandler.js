@@ -81,7 +81,12 @@ async function handleUpdateRecommendation(interaction) {
         if (needsMetadataFetch) {
             let queueEntry = await ParseQueue.findOne({ where: { fic_url: urlToUse } });
             if (queueEntry) {
-                const manualFieldsRequested = newTitle || newAuthor || newSummary || newRating || newStatus || newWordCount || (newTags && newTags.length > 0) || newNotes;
+                                // Robustly detect any manual field update (not just truthy, but non-empty)
+                                const manualFieldsRequested = [newTitle, newAuthor, newSummary, newRating, newStatus]
+                                    .some(f => typeof f === 'string' && f.trim().length > 0)
+                                    || (typeof newWordCount === 'number' && !isNaN(newWordCount))
+                                    || (Array.isArray(newTags) && newTags.length > 0)
+                                    || (typeof newNotes === 'string' && newNotes.trim().length > 0);
                 if ((queueEntry.status === 'pending' || queueEntry.status === 'processing') && !manualFieldsRequested) {
                     const existingSub = await ParseQueueSubscriber.findOne({ where: { queue_id: queueEntry.id, user_id: interaction.user.id } });
                     if (!existingSub) {
