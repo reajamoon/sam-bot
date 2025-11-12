@@ -118,6 +118,18 @@ async function fetchTumblrMetadata(url, includeRawHtml = false) {
             }
         }
 
+        // Try to find major content warnings in summary or tags
+        let warning = null;
+        if (metadata.summary && /tw:|cw:|content warning|trigger warning/i.test(metadata.summary)) {
+            const warnMatch = metadata.summary.match(/(?:tw:|cw:|content warning|trigger warning)\s*([\w\s,;:.!\-]+)/i);
+            if (warnMatch) warning = warnMatch[1].trim();
+        }
+        if (metadata.tags && Array.isArray(metadata.tags)) {
+            const tagWarn = metadata.tags.find(t => /tw:|cw:|content warning|trigger warning/i.test(t));
+            if (tagWarn) warning = tagWarn;
+        }
+        if (warning) metadata.archiveWarning = warning;
+
         // Tags - Tumblr has tag sections
         const tagMatches = html.match(/<div[^>]*class="[^"]*tags[^"]*"[^>]*>(.*?)<\/div>/s);
         if (tagMatches) {
