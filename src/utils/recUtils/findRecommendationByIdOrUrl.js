@@ -20,8 +20,11 @@ async function findRecommendationByIdOrUrl(interaction, recId, recUrl, ao3Id) {
         isObject: typeof Recommendation === 'object',
         hasFindOne: Recommendation && typeof Recommendation.findOne === 'function'
     });
-    // Count how many identifiers are provided (ignore empty strings)
-    const identifierCount = [recId, recUrl, ao3Id].filter(id => id !== null && id !== undefined && id !== '').length;
+    // Count how many identifiers are provided (robust: only count positive integers for IDs, non-empty string for URL)
+    const idValid = typeof recId === 'number' && Number.isInteger(recId) && recId > 0;
+    const urlValid = typeof recUrl === 'string' && recUrl.trim().length > 0;
+    const ao3Valid = typeof ao3Id === 'number' && Number.isInteger(ao3Id) && ao3Id > 0;
+    const identifierCount = [idValid, urlValid, ao3Valid].filter(Boolean).length;
     if (identifierCount === 0) {
         throw new Error('You need to provide either an ID, URL, or AO3 Work ID to find the recommendation.');
     }
