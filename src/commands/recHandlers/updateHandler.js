@@ -137,7 +137,7 @@ async function handleUpdateRecommendation(interaction) {
                     if (hasManualFields) {
                         // Allow manual field update instantly, even if in queue
                         let resultEmbed = null;
-                        await processRecommendationJob({
+                        let resultObj = await processRecommendationJob({
                             url: urlToUse,
                             user: { id: interaction.user.id, username: interaction.user.username },
                             manualFields: {
@@ -157,6 +157,10 @@ async function handleUpdateRecommendation(interaction) {
                                 resultEmbed = embed;
                             }
                         });
+                        // Patch: update ParseQueue entry with result and status 'done'
+                        if (queueEntry) {
+                            await queueEntry.update({ status: 'done', result: resultObj });
+                        }
                         if (resultEmbed) {
                             await interaction.editReply({
                                 content: 'This fic was just updated! Here’s the latest info.',
@@ -179,8 +183,8 @@ async function handleUpdateRecommendation(interaction) {
                         });
                         return;
                     }
-                } else if (queueEntry.status === 'done' && queueEntry.result) {
-                    // Allow manual field updates to bypass cooldown
+                } else if (queueEntry.status === 'done') {
+                    // Allow manual field updates to bypass cooldown, regardless of result
                     const updatedRec = await findRecommendationByIdOrUrl(interaction, recId, urlToUse, null);
                     if (hasManualFields) {
                         let resultEmbed = null;
@@ -216,35 +220,37 @@ async function handleUpdateRecommendation(interaction) {
                         }
                         return;
                     }
-                    // Only enforce cooldown for metadata re-fetches
-                    const now = Date.now();
-                    let cooldownMsg = '';
-                    if (updatedRec && updatedRec.updatedAt) {
-                        const cooldownMs = 5 * 60 * 1000; // 5 min cooldown (replace with config if needed)
-                        const lastUpdate = new Date(updatedRec.updatedAt).getTime();
-                        const timeLeft = Math.max(0, cooldownMs - (now - lastUpdate));
-                        if (timeLeft > 0) {
-                            const min = Math.floor(timeLeft / 60000);
-                            const sec = Math.floor((timeLeft % 60000) / 1000);
-                            cooldownMsg = `\nYou can update this fic again in ${min > 0 ? `${min}m ` : ''}${sec}s.`;
+                    // Only enforce cooldown for metadata re-fetches if result is present
+                    if (queueEntry.result) {
+                        const now = Date.now();
+                        let cooldownMsg = '';
+                        if (updatedRec && updatedRec.updatedAt) {
+                            const cooldownMs = 5 * 60 * 1000; // 5 min cooldown (replace with config if needed)
+                            const lastUpdate = new Date(updatedRec.updatedAt).getTime();
+                            const timeLeft = Math.max(0, cooldownMs - (now - lastUpdate));
+                            if (timeLeft > 0) {
+                                const min = Math.floor(timeLeft / 60000);
+                                const sec = Math.floor((timeLeft % 60000) / 1000);
+                                cooldownMsg = `\nYou can update this fic again in ${min > 0 ? `${min}m ` : ''}${sec}s.`;
+                            }
                         }
+                        await processRecommendationJob({
+                            url: urlToUse,
+                            user: { id: interaction.user.id, username: interaction.user.username },
+                            manualFields: {},
+                            additionalTags: newTags || [],
+                            notes: newNotes || '',
+                            isUpdate: true,
+                            existingRec: updatedRec || recommendation,
+                            notify: async (embed) => {
+                                await interaction.editReply({
+                                    content: `This fic was just updated! Here’s the latest info.${cooldownMsg}`,
+                                    embeds: [embed]
+                                });
+                            }
+                        });
+                        return;
                     }
-                    await processRecommendationJob({
-                        url: urlToUse,
-                        user: { id: interaction.user.id, username: interaction.user.username },
-                        manualFields: {},
-                        additionalTags: newTags || [],
-                        notes: newNotes || '',
-                        isUpdate: true,
-                        existingRec: updatedRec || recommendation,
-                        notify: async (embed) => {
-                            await interaction.editReply({
-                                content: `This fic was just updated! Here’s the latest info.${cooldownMsg}`,
-                                embeds: [embed]
-                            });
-                        }
-                    });
-                    return;
                 } else if (queueEntry.status === 'error') {
                     await interaction.editReply({
                         content: `There was an error parsing this fic previously: ${queueEntry.error_message || 'Unknown error.'} You can try again later.`
