@@ -1,3 +1,14 @@
+    Recommendation.prototype.getArchiveWarnings = function() {
+        try {
+            if (Array.isArray(this.archiveWarnings)) return this.archiveWarnings;
+            if (Array.isArray(this.archive_warnings)) return this.archive_warnings;
+            if (typeof this.archive_warnings === 'string') {
+                const parsed = JSON.parse(this.archive_warnings);
+                if (Array.isArray(parsed)) return parsed;
+            }
+        } catch (error) {}
+        return [];
+    };
 const { DataTypes } = require('sequelize');
 
 module.exports = (sequelize) => {

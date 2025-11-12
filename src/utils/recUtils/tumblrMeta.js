@@ -131,7 +131,7 @@ async function fetchTumblrMetadata(url, includeRawHtml = false) {
             const tagWarn = metadata.tags.find(t => /tw:|cw:|content warning|trigger warning/i.test(t));
             if (tagWarn) warning = tagWarn;
         }
-        if (warning) metadata.archiveWarning = warning;
+    if (warning) metadata.archiveWarnings = [warning];
 
         // Tags - Tumblr has tag sections
         const tagMatches = html.match(/<div[^>]*class="[^"]*tags[^"]*"[^>]*>(.*?)<\/div>/s);

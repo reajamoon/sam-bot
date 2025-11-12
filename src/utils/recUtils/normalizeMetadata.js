@@ -33,22 +33,19 @@ function normalizeMetadata(metadata, source) {
         }
     }
 
-    // Normalize warnings: always use archiveWarning for major content warnings
-    if (normalized.warnings && !normalized.archiveWarning) {
-        normalized.archiveWarning = normalized.warnings;
+    // Normalize warnings: always use archiveWarnings (array) for major content warnings
+    if (normalized.warnings && !normalized.archiveWarnings) {
+        if (Array.isArray(normalized.warnings)) {
+            normalized.archiveWarnings = normalized.warnings;
+        } else if (typeof normalized.warnings === 'string') {
+            normalized.archiveWarnings = normalized.warnings.split(',').map(w => w.trim()).filter(Boolean);
+        } else {
+            normalized.archiveWarnings = [String(normalized.warnings)];
+        }
         delete normalized.warnings;
     }
-    // Always set archiveWarnings as an array if archiveWarning is present
-    if (!normalized.archiveWarnings && normalized.archiveWarning) {
-        if (Array.isArray(normalized.archiveWarning)) {
-            normalized.archiveWarnings = normalized.archiveWarning;
-        } else if (typeof normalized.archiveWarning === 'string') {
-            // Split on comma if multiple warnings in a string
-            normalized.archiveWarnings = normalized.archiveWarning.split(',').map(w => w.trim()).filter(Boolean);
-        } else {
-            normalized.archiveWarnings = [String(normalized.archiveWarning)];
-        }
-    }
+    // Remove any legacy archiveWarning field
+    if (normalized.archiveWarning) delete normalized.archiveWarning;
     if (source === 'wattpad') {
         // Wattpad normalization
         if (normalized.votes !== undefined) {

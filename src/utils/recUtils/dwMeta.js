@@ -92,7 +92,7 @@ async function fetchDreamwidthMetadata(url, includeRawHtml = false) {
             const tagWarn = metadata.tags.find(t => /tw:|cw:|content warning|trigger warning/i.test(t));
             if (tagWarn) warning = tagWarn;
         }
-        if (warning) metadata.archiveWarning = warning;
+    if (warning) metadata.archiveWarnings = [warning];
 
         // Default values for Dreamwidth
         metadata.chapters = '1';
