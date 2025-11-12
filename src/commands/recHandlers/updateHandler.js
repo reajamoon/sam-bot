@@ -190,7 +190,7 @@ async function handleUpdateRecommendation(interaction) {
                     }
                 } else if (queueEntry.status === 'done') {
                     // Allow manual field updates to bypass cooldown, regardless of result
-                    const updatedRec = await findRecommendationByIdOrUrl(interaction, recId, urlToUse, null);
+                    const updatedRec = await findRecommendationByIdOrUrl(interaction, recId, null, null);
                     if (hasManualFields) {
                         let resultEmbed = null;
                         await processRecommendationJob({
@@ -292,7 +292,7 @@ async function handleUpdateRecommendation(interaction) {
                             // Return friendly duplicate message with details, robust fallback
                             let rec = null;
                             try {
-                                rec = await findRecommendationByIdOrUrl(interaction, recId, urlToUse, null);
+                                rec = await findRecommendationByIdOrUrl(interaction, recId, null, null);
                             } catch {}
                             let addedBy = rec && rec.recommendedByUsername ? rec.recommendedByUsername : 'someone';
                             let addedAt = rec && rec.createdAt ? new Date(rec.createdAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : null;
@@ -338,7 +338,7 @@ async function handleUpdateRecommendation(interaction) {
                 const updatedQueue = await ParseQueue.findOne({ where: { id: queueEntry.id } });
                 if (updatedQueue && updatedQueue.status === 'done' && updatedQueue.result) {
                     // Fetch the updated recommendation for embed
-                    const updatedRec = await findRecommendationByIdOrUrl(interaction, recId, urlToUse, null);
+                    const updatedRec = await findRecommendationByIdOrUrl(interaction, recId, null, null);
                     if (updatedRec) {
                         const result = await processRecommendationJob({
                             url: urlToUse,
@@ -371,7 +371,7 @@ async function handleUpdateRecommendation(interaction) {
             // Final fallback: check if the job is now done in the DB (worker may have been too fast)
             const finalQueue = await ParseQueue.findOne({ where: { id: queueEntry.id, status: 'done' } });
             if (finalQueue && finalQueue.result) {
-                const updatedRec = await findRecommendationByIdOrUrl(interaction, recId, urlToUse, null);
+                const updatedRec = await findRecommendationByIdOrUrl(interaction, recId, null, null);
                 if (updatedRec) {
                     const result = await processRecommendationJob({
                         url: urlToUse,
