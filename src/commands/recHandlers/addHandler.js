@@ -19,7 +19,12 @@ async function handleAddRecommendation(interaction) {
     const manualSummary = interaction.options.getString('summary');
     const manualWordCount = interaction.options.getInteger('wordcount');
     const manualRating = interaction.options.getString('rating');
-    const additionalTags = interaction.options.getString('tags') ? interaction.options.getString('tags').split(',').map(t => t.trim()) : [];
+    // Robust tag parsing and deduplication
+    let additionalTags = interaction.options.getString('tags')
+      ? interaction.options.getString('tags').split(',').map(t => t.trim()).filter(Boolean)
+      : [];
+    // Deduplicate, case-insensitive
+    additionalTags = Array.from(new Set(additionalTags.map(t => t.toLowerCase())));
     const notes = interaction.options.getString('notes');
 
     if (!url || !isValidFanficUrl(url)) {
@@ -77,7 +82,7 @@ async function handleAddRecommendation(interaction) {
       status: 'pending',
       requested_by: interaction.user.id,
       notes: notes || '',
-      additional_tags: JSON.stringify(additionalTags || [])
+      additional_tags: JSON.stringify(additionalTags)
     });
     await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
     return await interaction.editReply({

@@ -53,7 +53,13 @@ async function handleUpdateRecommendation(interaction) {
         const newWordCount = interaction.options.getInteger('wordcount');
         const newDeleted = interaction.options.getBoolean('deleted');
         const newAttachment = interaction.options.getAttachment('attachment');
-    const newTags = interaction.options.getString('tags')?.split(',').map(tag => tag.trim()).filter(tag => tag) || null;
+        // Robust tag parsing and deduplication
+        let newTags = interaction.options.getString('tags')
+            ? interaction.options.getString('tags').split(',').map(tag => tag.trim()).filter(Boolean)
+            : null;
+        if (newTags) {
+            newTags = Array.from(new Set(newTags.map(t => t.toLowerCase())));
+        }
     const newNotes = interaction.options.getString('notes');
     // Support append mode for additional tags
     const appendAdditional = interaction.options.getBoolean('append');
@@ -288,10 +294,25 @@ async function handleUpdateRecommendation(interaction) {
         // For additional tags, support append or replace
         let additionalTagsToSend = newTags || [];
         if (appendAdditional && newTags && newTags.length > 0) {
+            // Merge with all existing tags (main + additional), deduplicate
             let oldAdditional = [];
             try { oldAdditional = JSON.parse(recommendation.additionalTags || '[]'); } catch { oldAdditional = []; }
-            additionalTagsToSend = Array.from(new Set([...oldAdditional, ...newTags]));
+            let mainTags = [];
+            if (recommendation.tags) {
+                if (Array.isArray(recommendation.tags)) {
+                    mainTags = recommendation.tags;
+                } else if (typeof recommendation.tags === 'string') {
+                    mainTags = recommendation.tags.split(',').map(t => t.trim()).filter(Boolean);
+                }
+            }
+            additionalTagsToSend = Array.from(new Set([
+                ...mainTags.map(t => t.toLowerCase()),
+                ...oldAdditional.map(t => t.toLowerCase()),
+                ...newTags.map(t => t.toLowerCase())
+            ]));
         }
+        // Always deduplicate and clean
+        additionalTagsToSend = Array.from(new Set((additionalTagsToSend || []).map(t => t.toLowerCase())));
         await processRecommendationJob({
             url: urlToUse,
             user: { id: interaction.user.id, username: interaction.user.username },
