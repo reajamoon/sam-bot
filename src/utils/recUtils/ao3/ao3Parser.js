@@ -9,6 +9,17 @@ function isAnonymousAO3Fic(html) {
 }
 
 function parseAO3Metadata(html, url, includeRawHtml = false) {
+    // Detect AO3 search results page and treat as error
+    const searchWorksTitle = /<title>\s*Search Works \| Archive of Our Own\s*<\/title>/i;
+    if (searchWorksTitle.test(html)) {
+        const updateMessages = require('../../../commands/recHandlers/updateMessages');
+        return {
+            error: true,
+            message: 'AO3 returned a search results page instead of a fic. The link may be incorrect or AO3 redirected the request.',
+            url,
+            details: updateMessages.parseError
+        };
+    }
 
     // Always declare metadata object at the top
     const metadata = { url: url };
@@ -80,16 +91,27 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
         const metaBlockMatch = html.match(/<dl class="work meta group">([\s\S]*?)<\/dl>/);
         const metaBlock = metaBlockMatch ? metaBlockMatch[0] : '';
 
-        // Title: try meta block, then global
-        let h2TitleMatch = metaBlock.match(/<h2 class="title heading">([\s\S]*?)<\/h2>/);
-        if (!h2TitleMatch) {
-            h2TitleMatch = html.match(/<h2 class="title heading">([\s\S]*?)<\/h2>/);
-        }
+        // Title: try <h2 class="title heading"> anywhere in HTML, never use <title> if it matches a search or site page
+        let h2TitleMatch = html.match(/<h2[^>]*class="title heading"[^>]*>([\s\S]*?)<\/h2>/i);
         if (h2TitleMatch) {
             let titleText = h2TitleMatch[1].replace(/<img[^>]*>/g, '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
             metadata.title = titleText || 'Unknown Title';
         } else {
-            metadata.title = 'Unknown Title';
+            // Fallback: use <title> only if it is not a known AO3 site/search page
+            const fallbackTitle = html.match(/<title>([^<]*)<\/title>/i);
+            if (fallbackTitle && !/\b(Search Works|Archive of Our Own|User Profile|Bookmarks|Tags|Collections|Works)\b/i.test(fallbackTitle[1])) {
+                let t = fallbackTitle[1].replace(/\s*\[Archive of Our Own\]$/, '').trim();
+                metadata.title = t || 'Unknown Title';
+            } else {
+                // If fallback title is a known AO3 site/search page, treat as parse error
+                const updateMessages = require('../../../commands/recHandlers/updateMessages');
+                return {
+                    error: true,
+                    message: 'AO3 page did not contain a fic title. The link may be incorrect, or AO3 returned a site/search page.',
+                    url,
+                    details: updateMessages.parseError
+                };
+            }
         }
 
         // Handle Anonymous fics with utility
@@ -97,34 +119,21 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
             return parseAnonymousAO3Fic(html, url);
         }
 
-        // Authors: try meta block, then global, support multiple
+        // Authors: robust extraction from <h3 class="byline heading">, all <a> tags, else plain text
         let authorMatches = [];
-        // Try meta block first
-        let authorRegex = /<a rel="author" href="[^"]*">([^<]+)/g;
-        let match;
-        if (metaBlock) {
-            while ((match = authorRegex.exec(metaBlock)) !== null) {
-                authorMatches.push(match[1].trim());
+        let bylineMatch = html.match(/<h3[^>]*class="byline heading"[^>]*>([\s\S]*?)<\/h3>/i);
+        if (bylineMatch) {
+            // Extract all <a> tags (any attributes)
+            const authorLinks = [...bylineMatch[1].matchAll(/<a[^>]*>([^<]+)<\/a>/g)].map(m => m[1].trim());
+            if (authorLinks.length > 0) {
+                authorMatches = authorLinks;
+            } else {
+                // Fallback: plain text (strip tags)
+                const plain = bylineMatch[1].replace(/<[^>]+>/g, '').trim();
+                if (plain) authorMatches = [plain];
             }
         }
-        // If not found, try global
-        if (authorMatches.length === 0) {
-            let bylineMatch = html.match(/<h3 class="byline heading">([\s\S]*?)<\/h3>/);
-            if (bylineMatch) {
-                let bylineHtml = bylineMatch[1];
-                authorRegex.lastIndex = 0;
-                while ((match = authorRegex.exec(bylineHtml)) !== null) {
-                    authorMatches.push(match[1].trim());
-                }
-            }
-        }
-        // If still not found, try global search for all rel="author"
-        if (authorMatches.length === 0) {
-            authorRegex.lastIndex = 0;
-            while ((match = authorRegex.exec(html)) !== null) {
-                authorMatches.push(match[1].trim());
-            }
-        }
+        // If still not found, fallback to ['Unknown Author']
         metadata.authors = authorMatches.length > 0 ? authorMatches : ['Unknown Author'];
 
         // Summary
