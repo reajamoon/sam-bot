@@ -32,7 +32,7 @@ async function findRecommendationByIdOrUrl(interaction, recId, recUrl, ao3Id) {
         throw new Error('Please provide only one identifier: either an ID, URL, or AO3 Work ID.');
     }
     let recommendation;
-    if (recId) {
+    if (idValid) {
         recommendation = await Recommendation.findOne({
             where: {
                 id: recId
@@ -41,7 +41,7 @@ async function findRecommendationByIdOrUrl(interaction, recId, recUrl, ao3Id) {
         if (!recommendation) {
             throw new Error(`I couldn't find a recommendation with ID ${recId} in our library.`);
         }
-    } else if (recUrl) {
+    } else if (urlValid) {
         // Normalize AO3 URLs for lookup
         const normalizedUrl = normalizeAO3Url(recUrl);
         recommendation = await Recommendation.findOne({
@@ -52,7 +52,7 @@ async function findRecommendationByIdOrUrl(interaction, recId, recUrl, ao3Id) {
         if (!recommendation) {
             throw new Error(`I couldn't find a recommendation with that URL in our library. Make sure you're using the exact URL that was originally added.`);
         }
-    } else if (ao3Id) {
+    } else if (ao3Valid) {
         recommendation = await Recommendation.findOne({
             where: {
                 url: {
