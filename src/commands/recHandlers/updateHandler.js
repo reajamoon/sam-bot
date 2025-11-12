@@ -85,7 +85,47 @@ async function handleUpdateRecommendation(interaction) {
                     });
                     return;
                 } else if (queueEntry.status === 'done' && queueEntry.result) {
-                    // Return cached result (simulate embed)
+                    // Allow manual field updates to bypass cooldown
+                    const manualFieldsRequested = newTitle || newAuthor || newSummary || newRating || newStatus || newWordCount || (newTags && newTags.length > 0) || newNotes;
+                    const updatedRec = await findRecommendationByIdOrUrl(interaction, recId, urlToUse, null);
+                    if (manualFieldsRequested) {
+                        await processRecommendationJob({
+                            url: urlToUse,
+                            user: { id: interaction.user.id, username: interaction.user.username },
+                            manualFields: {
+                                title: newTitle,
+                                author: newAuthor,
+                                summary: newSummary,
+                                rating: newRating,
+                                wordCount: newWordCount,
+                                status: newStatus
+                            },
+                            additionalTags: newTags || [],
+                            notes: newNotes || '',
+                            isUpdate: true,
+                            existingRec: updatedRec || recommendation,
+                            notify: async (embed) => {
+                                await interaction.editReply({
+                                    content: 'This fic was just updated! Here’s the latest info.',
+                                    embeds: [embed]
+                                });
+                            }
+                        });
+                        return;
+                    }
+                    // Only enforce cooldown for metadata re-fetches
+                    const now = Date.now();
+                    let cooldownMsg = '';
+                    if (updatedRec && updatedRec.updatedAt) {
+                        const cooldownMs = 5 * 60 * 1000; // 5 min cooldown (replace with config if needed)
+                        const lastUpdate = new Date(updatedRec.updatedAt).getTime();
+                        const timeLeft = Math.max(0, cooldownMs - (now - lastUpdate));
+                        if (timeLeft > 0) {
+                            const min = Math.floor(timeLeft / 60000);
+                            const sec = Math.floor((timeLeft % 60000) / 1000);
+                            cooldownMsg = `\nYou can update this fic again in ${min > 0 ? `${min}m ` : ''}${sec}s.`;
+                        }
+                    }
                     await processRecommendationJob({
                         url: urlToUse,
                         user: { id: interaction.user.id, username: interaction.user.username },
@@ -93,10 +133,10 @@ async function handleUpdateRecommendation(interaction) {
                         additionalTags: newTags || [],
                         notes: newNotes || '',
                         isUpdate: true,
-                        existingRec: recommendation,
+                        existingRec: updatedRec || recommendation,
                         notify: async (embed) => {
                             await interaction.editReply({
-                                content: 'This fic was already parsed! Here are the details:',
+                                content: `This fic was just updated! Here’s the latest info.${cooldownMsg}`,
                                 embeds: [embed]
                             });
                         }
