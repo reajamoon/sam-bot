@@ -3,6 +3,7 @@
  * @module FFNetMeta
  */
 const { fetchHTML } = require('./fetchHtmlUtil');
+const updateMessages = require('../../commands/recHandlers/updateMessages');
 const normalizeMetadata = require('./normalizeMetadata');
 
 /**
@@ -26,7 +27,7 @@ async function fetchFFNetMetadata(url, includeRawHtml = false) {
                 authors: ['Unknown Author'],
                 url: url,
                 error: 'Site protection detected',
-                summary: 'Yeah, so this site has some serious security measures that are blocking me from reading the story details. Think of it like warding - keeps the bad stuff out, but also keeps me from doing my job.'
+                summary: updateMessages.siteProtection
             };
             if (includeRawHtml) result.rawHtml = html.substring(0, 500) + '...';
             return result;
@@ -39,7 +40,7 @@ async function fetchFFNetMetadata(url, includeRawHtml = false) {
                 authors: ['Unknown Author'],
                 url: url,
                 error: '404_not_found',
-                summary: 'This story appears to have been deleted or moved. The link is no longer working. You might want to check if the author has reposted it elsewhere.',
+                summary: updateMessages.notFound404,
                 is404: true
             };
         } else if (error.message === 'HTTP_403_FORBIDDEN') {
@@ -48,7 +49,7 @@ async function fetchFFNetMetadata(url, includeRawHtml = false) {
                 authors: ['Unknown Author'],
                 url: url,
                 error: 'Access denied',
-                summary: 'This story is restricted or requires special permissions to access. It might be locked to registered users only.',
+                summary: updateMessages.forbidden403,
                 is403: true
             };
         } else if (error.message.startsWith('HTTP_')) {
@@ -57,7 +58,7 @@ async function fetchFFNetMetadata(url, includeRawHtml = false) {
                 authors: ['Unknown Author'],
                 url: url,
                 error: error.message,
-                summary: 'There was a problem connecting to this story. The site might be down or experiencing issues.',
+                summary: updateMessages.connectionError,
                 isHttpError: true
             };
         }

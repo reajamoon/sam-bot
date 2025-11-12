@@ -1,3 +1,4 @@
+const updateMessages = require('../../../commands/recHandlers/updateMessages');
 // ao3Fetch.js
 // AO3 login/fallback fetch logic
 
@@ -77,7 +78,7 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
         author: 'Unknown Author',
         url: ao3Url,
         error: 'AO3 session or login required',
-        summary: 'AO3 is still requiring a login or new session after login attempt. Please wait a few minutes and try again.'
+        summary: updateMessages.loginMessage
     };
 }
 

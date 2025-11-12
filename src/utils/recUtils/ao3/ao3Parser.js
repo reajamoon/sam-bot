@@ -16,33 +16,36 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
         if (!html) return null;
         // Check for AO3 'New Session' interstitial
         if (html.includes('<title>New Session') || html.includes('Please log in to continue') || html.includes('name="user_session"')) {
+            const updateMessages = require('../../../commands/recHandlers/updateMessages');
             return {
                 title: 'Unknown Title',
                 authors: ['Unknown Author'],
                 url: url,
                 error: 'AO3 session required',
-                summary: 'AO3 is requiring a login or new session. Please log in to AO3 and try again.'
+                summary: updateMessages.loginMessage
             };
         }
         // Only treat as site protection if 'cloudflare' appears in the <title> or in a known error header
         const titleMatch = html.match(/<title>([^<]*)<\/title>/i);
         if (titleMatch && /cloudflare/i.test(titleMatch[1])) {
+            const updateMessages = require('../../../commands/recHandlers/updateMessages');
             return {
                 title: 'Unknown Title',
                 authors: ['Unknown Author'],
                 url: url,
                 error: 'Site protection detected',
-                summary: 'Site protection is blocking metadata fetch.'
+                summary: updateMessages.siteProtection
             };
         }
         const headerMatch = html.match(/<h1[^>]*>([^<]*)<\/h1>/i);
         if (headerMatch && /cloudflare/i.test(headerMatch[1])) {
+            const updateMessages = require('../../../commands/recHandlers/updateMessages');
             return {
                 title: 'Unknown Title',
                 authors: ['Unknown Author'],
                 url: url,
                 error: 'Site protection detected',
-                summary: 'Site protection is blocking metadata fetch.'
+                summary: updateMessages.siteProtection
             };
         }
         const metadata = { url: url };
@@ -171,9 +174,10 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
         }
         // Final check
         if (metadata.title === 'Unknown Title' || !metadata.authors || metadata.authors[0] === 'Unknown Author') {
+            const updateMessages = require('../../../commands/recHandlers/updateMessages');
             return {
                 error: true,
-                message: 'Failed to parse AO3 metadata: missing title or author',
+                message: updateMessages.parseError,
                 url,
             };
         }

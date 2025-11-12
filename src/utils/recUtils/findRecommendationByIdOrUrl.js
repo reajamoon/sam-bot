@@ -1,5 +1,6 @@
 // Finds a rec by ID, URL, or AO3 work number. If you pass in more than one, expect sass.
 const { Op } = require('sequelize');
+const updateMessages = require('../../commands/recHandlers/updateMessages');
 
 /**
  * Finds a recommendation by ID, URL, or AO3 Work ID. Only one at a time, please.
@@ -28,10 +29,10 @@ async function findRecommendationByIdOrUrl(interaction, recId, recUrl, ao3Id) {
     const ao3Valid = typeof ao3Id === 'number' && Number.isInteger(ao3Id) && ao3Id > 0;
     const identifierCount = [idValid, urlValid, ao3Valid].filter(Boolean).length;
     if (identifierCount === 0) {
-        throw new Error('You need to provide either an ID, URL, or AO3 Work ID to find the recommendation.');
+        throw new Error(updateMessages.needIdentifier);
     }
     if (identifierCount > 1) {
-        throw new Error('Please provide only one identifier: either an ID, URL, or AO3 Work ID.');
+        throw new Error('Please provide only one identifier: either an ID, URL, or AO3 Work ID.'); // No shared message for this, keep as is
     }
     let recommendation;
     if (idValid) {
@@ -41,7 +42,7 @@ async function findRecommendationByIdOrUrl(interaction, recId, recUrl, ao3Id) {
             }
         });
         if (!recommendation) {
-            throw new Error(`I couldn't find a recommendation with ID ${recId} in our library.`);
+            throw new Error(updateMessages.notFound(recId));
         }
     } else if (urlValid) {
         // Normalize AO3 URLs for lookup
@@ -52,7 +53,7 @@ async function findRecommendationByIdOrUrl(interaction, recId, recUrl, ao3Id) {
             }
         });
         if (!recommendation) {
-            throw new Error(`I couldn't find a recommendation with that URL in our library. Make sure you're using the exact URL that was originally added.`);
+            throw new Error(updateMessages.notFound('that URL'));
         }
     } else if (ao3Valid) {
         recommendation = await Recommendation.findOne({
@@ -63,7 +64,7 @@ async function findRecommendationByIdOrUrl(interaction, recId, recUrl, ao3Id) {
             }
         });
         if (!recommendation) {
-            throw new Error(`I couldn't find an AO3 recommendation with Work ID ${ao3Id} in our library. Make sure the work ID is correct and that the fic has been added to our collection.`);
+            throw new Error(updateMessages.notFound(`AO3 Work ID ${ao3Id}`));
         }
     }
     return recommendation;

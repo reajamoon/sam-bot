@@ -1,3 +1,4 @@
+const updateMessages = require('./updateMessages');
 const isValidFanficUrl = require('../../utils/recUtils/isValidFanficUrl');
 const processRecommendationJob = require('../../utils/recUtils/processRecommendationJob');
 
@@ -30,11 +31,12 @@ async function handleAddRecommendation(interaction) {
     if (!url || !isValidFanficUrl(url)) {
       return await interaction.editReply({
         content: 'Please provide a valid fanfiction URL (AO3, FFNet, Wattpad, etc.)'
-      });
+      }); // Not in updateMessages, but could be added if reused
     }
 
     // --- Fic Parsing Queue Logic ---
-    const { ParseQueue, ParseQueueSubscriber, Recommendation } = require('../../models');
+    const { Recommendation } = require('../../models');
+    const createOrJoinQueueEntry = require('../../utils/recUtils/createOrJoinQueueEntry');
     // Check if fic is already in the library
     const existingRec = await Recommendation.findOne({ where: { url } });
     if (existingRec) {
@@ -43,51 +45,49 @@ async function handleAddRecommendation(interaction) {
         content: `*${existingRec.title}* was already added to the library by **${existingRec.recommendedByUsername}**${addedDate ? `, on ${addedDate}` : ''}! Great minds think alike though.`
       });
     }
-    // Not in library: check queue
-    let queueEntry = await ParseQueue.findOne({ where: { fic_url: url } });
-    if (queueEntry) {
-      if (queueEntry.status === 'pending' || queueEntry.status === 'processing') {
-        const existingSub = await ParseQueueSubscriber.findOne({ where: { queue_id: queueEntry.id, user_id: interaction.user.id } });
-        if (!existingSub) {
-          await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
+    // Use modular queue utility
+    const { queueEntry, status, message } = await createOrJoinQueueEntry(url, interaction.user.id);
+    if (status === 'processing') {
+      return await interaction.editReply({
+        content: message || updateMessages.alreadyProcessing
+      });
+    } else if (status === 'done' && queueEntry.result) {
+      // Return cached result (simulate embed)
+      await processRecommendationJob({
+        url,
+        user: { id: interaction.user.id, username: interaction.user.username },
+        manualFields: {},
+        additionalTags,
+        notes,
+        notify: async (embed) => {
+          await interaction.editReply({
+            content: null,
+            embeds: [embed]
+          });
         }
-        return await interaction.editReply({
-          content: 'That fic is already being processed! You’ll get a notification when it’s ready.'
-        });
-      } else if (queueEntry.status === 'done' && queueEntry.result) {
-        // Return cached result (simulate embed)
-        await processRecommendationJob({
-          url,
-          user: { id: interaction.user.id, username: interaction.user.username },
-          manualFields: {},
-          additionalTags,
-          notes,
-          notify: async (embed) => {
-            await interaction.editReply({
-              content: null,
-              embeds: [embed]
-            });
-          }
-        });
-        return;
-      } else if (queueEntry.status === 'error') {
-        return await interaction.editReply({
-          content: `There was an error parsing this fic previously: ${queueEntry.error_message || 'Unknown error.'} You can try again later.`
+      });
+      return;
+    } else if (status === 'error') {
+      return await interaction.editReply({
+        content: message || updateMessages.errorPreviously
+      });
+    } else if (status === 'created') {
+      // Optionally, update notes/additional_tags if provided (for new entry only)
+      if (notes || (additionalTags && additionalTags.length > 0)) {
+        await queueEntry.update({
+          notes: notes || '',
+          additional_tags: JSON.stringify(additionalTags)
         });
       }
+      return await interaction.editReply({
+        content: updateMessages.addedToQueue
+      });
+    } else {
+      // Fallback for any other status
+      return await interaction.editReply({
+        content: message || updateMessages.alreadyInQueue
+      });
     }
-    // If no entry, create a new pending job and add user as subscriber
-    queueEntry = await ParseQueue.create({
-      fic_url: url,
-      status: 'pending',
-      requested_by: interaction.user.id,
-      notes: notes || '',
-      additional_tags: JSON.stringify(additionalTags)
-    });
-    await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
-    return await interaction.editReply({
-      content: 'Your fic has been added to the parsing queue! I’ll notify you when it’s ready.'
-    });
   } catch (error) {
     try {
       await interaction.editReply({

@@ -2,7 +2,7 @@
 // Utility to parse AO3 share HTML export
 
 function parseAo3ShareHtml(html) {
-    // Extract URL, title, author, word count, fandom, rating, warnings, relationships, characters, tags, summary
+    const updateMessages = require('../../../commands/recHandlers/updateMessages');
     const result = {};
     let errors = [];
     // More robust: allow for extra whitespace and missing <strong> tags
@@ -14,7 +14,7 @@ function parseAo3ShareHtml(html) {
         result.authorUrl = urlTitleMatch[4];
         result.author = urlTitleMatch[5];
     } else {
-        errors.push('Could not find work URL, title, author, or word count. Make sure you pasted the full AO3 share HTML.');
+        errors.push(updateMessages.needIdentifier);
     }
     // Chapters
     const chaptersMatch = html.match(/Chapters: ([^<]+)<br \/>/);
@@ -41,10 +41,10 @@ function parseAo3ShareHtml(html) {
     const summaryMatch = html.match(/Summary: <p>([\s\S]+)<\/p>/);
     if (summaryMatch) result.summary = summaryMatch[1].replace(/<br \/>/g, '\n').trim();
     // Required fields check
-    if (!result.url) errors.push('Missing work URL.');
-    if (!result.title) errors.push('Missing title.');
-    if (!result.author) errors.push('Missing author.');
-    if (!result.wordCount) errors.push('Missing word count.');
+    if (!result.url) errors.push(updateMessages.needIdentifier);
+    if (!result.title) errors.push(updateMessages.needIdentifier);
+    if (!result.author) errors.push(updateMessages.needIdentifier);
+    if (!result.wordCount) errors.push(updateMessages.needIdentifier);
     if (errors.length > 0) {
         const err = new Error('AO3 share HTML parse error: ' + errors.join(' '));
         err.parseErrors = errors;

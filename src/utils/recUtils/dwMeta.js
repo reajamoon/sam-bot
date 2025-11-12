@@ -3,6 +3,7 @@
  * @module dwMeta
  */
 const { fetchHTML } = require('./fetchHtmlUtil');
+const updateMessages = require('../../commands/recHandlers/updateMessages');
 
 /**
  * Fetches metadata from Dreamwidth
@@ -14,7 +15,7 @@ async function fetchDreamwidthMetadata(url, includeRawHtml = false) {
     try {
         const html = await fetchHTML(url);
         if (!html) {
-            return createFallbackMetadata(url, 'dreamwidth', 'Could not fetch content from Dreamwidth');
+            return createFallbackMetadata(url, 'dreamwidth', updateMessages.connectionError);
         }
 
         const metadata = { url: url };
@@ -111,7 +112,7 @@ async function fetchDreamwidthMetadata(url, includeRawHtml = false) {
                 authors: ['Unknown Author'],
                 url: url,
                 error: '404_not_found',
-                summary: 'This Dreamwidth post appears to have been deleted or moved. The link is no longer working.',
+                summary: updateMessages.notFound404,
                 is404: true
             };
         } else if (error.message === 'HTTP_403_FORBIDDEN') {
@@ -120,7 +121,7 @@ async function fetchDreamwidthMetadata(url, includeRawHtml = false) {
                 authors: ['Unknown Author'],
                 url: url,
                 error: 'Access denied',
-                summary: 'This Dreamwidth post is private or restricted. You might need to be logged in or have special permissions to view it.',
+                summary: updateMessages.forbidden403,
                 is403: true
             };
         } else if (error.message.startsWith('HTTP_')) {
@@ -129,13 +130,13 @@ async function fetchDreamwidthMetadata(url, includeRawHtml = false) {
                 authors: ['Unknown Author'],
                 url: url,
                 error: error.message,
-                summary: 'There was a problem connecting to this Dreamwidth post. The site might be down or experiencing issues.',
+                summary: updateMessages.connectionError,
                 isHttpError: true
             };
         }
 
         console.error('Error parsing Dreamwidth metadata:', error);
-        return createFallbackMetadata(url, 'dreamwidth', 'Could not parse Dreamwidth content');
+    return createFallbackMetadata(url, 'dreamwidth', updateMessages.genericError);
     }
 }
 

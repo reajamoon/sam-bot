@@ -2,7 +2,9 @@
  * Tumblr metadata fetcher and parser
  * @module tumblrMeta
  */
+
 const { fetchHTML } = require('./fetchHtmlUtil');
+const updateMessages = require('../../commands/recHandlers/updateMessages');
 
 /**
  * Fetches metadata from Tumblr
@@ -14,7 +16,7 @@ async function fetchTumblrMetadata(url, includeRawHtml = false) {
     try {
         let html = await fetchHTML(url);
         if (!html) {
-            return createFallbackMetadata(url, 'tumblr', 'Could not fetch content from Tumblr');
+            return createFallbackMetadata(url, 'tumblr', updateMessages.connectionError);
         }
 
         // Check for Tumblr's various protection measures
@@ -27,10 +29,10 @@ async function fetchTumblrMetadata(url, includeRawHtml = false) {
                     // Use browserHtml for parsing
                     html = browserHtml;
                 } else {
-                    return createFallbackMetadata(url, 'tumblr', 'Tumblr requires JavaScript or has protection enabled');
+                    return createFallbackMetadata(url, 'tumblr', updateMessages.siteProtection);
                 }
             } catch (e) {
-                return createFallbackMetadata(url, 'tumblr', 'Tumblr requires JavaScript or has protection enabled');
+                return createFallbackMetadata(url, 'tumblr', updateMessages.siteProtection);
             }
         }
 
@@ -166,7 +168,7 @@ async function fetchTumblrMetadata(url, includeRawHtml = false) {
                 authors: ['Unknown Author'],
                 url: url,
                 error: '404_not_found',
-                summary: 'This Tumblr post appears to have been deleted or the blog was deactivated. The link is no longer working.',
+                summary: updateMessages.notFound404,
                 is404: true
             };
         } else if (error.message === 'HTTP_403_FORBIDDEN') {
@@ -175,7 +177,7 @@ async function fetchTumblrMetadata(url, includeRawHtml = false) {
                 authors: ['Unknown Author'],
                 url: url,
                 error: 'Access denied',
-                summary: 'This Tumblr post is from a private blog or has restricted access. You might need special permissions to view it.',
+                summary: updateMessages.forbidden403,
                 is403: true
             };
         } else if (error.message.startsWith('HTTP_')) {
@@ -184,13 +186,13 @@ async function fetchTumblrMetadata(url, includeRawHtml = false) {
                 authors: ['Unknown Author'],
                 url: url,
                 error: error.message,
-                summary: 'There was a problem connecting to this Tumblr post. The site might be down or experiencing issues.',
+                summary: updateMessages.connectionError,
                 isHttpError: true
             };
         }
 
-        console.error('Error parsing Tumblr metadata:', error);
-        return createFallbackMetadata(url, 'tumblr', 'Could not parse Tumblr content');
+    console.error('Error parsing Tumblr metadata:', error);
+    return createFallbackMetadata(url, 'tumblr', updateMessages.genericError);
     }
 }
 

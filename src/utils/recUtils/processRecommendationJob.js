@@ -1,3 +1,4 @@
+const updateMessages = require('../../commands/recHandlers/updateMessages');
 // processRecommendationJob.js
 // Shared utility for creating/updating recommendations (used by command handlers and queue worker)
 
@@ -50,11 +51,11 @@ async function processRecommendationJob({
       if (metadata && metadata.url) metadata.url = normalizeAO3Url(metadata.url);
     } catch (err) {
       console.error('[processRecommendationJob] Error fetching metadata:', err);
-      return { error: 'Could not fetch details from that URL.' };
+  return { error: updateMessages.genericError };
     }
     if (!metadata) {
       console.error('[processRecommendationJob] Metadata fetch returned null for URL:', url);
-      return { error: 'Could not fetch details from that URL.' };
+      return { error: updateMessages.genericError };
     }
     if (metadata.error && metadata.error === 'Site protection detected') {
       return { error: 'Site protection detected. Manual entry required.' };
@@ -97,7 +98,7 @@ async function processRecommendationJob({
       user,
       url
     });
-    return { error: 'Missing required fields for recommendation.' };
+  return { error: updateMessages.genericError };
   }
 
   let recommendation;
@@ -153,7 +154,7 @@ async function processRecommendationJob({
           updateFields,
           error: err,
         });
-        return { error: 'Failed to update recommendation. Please try again or contact an admin.' };
+  return { error: updateMessages.genericError };
       }
     }
     recommendation = existingRec;
@@ -192,7 +193,7 @@ async function processRecommendationJob({
         metadata,
         error: err,
       });
-      return { error: 'Failed to create recommendation. Please try again or contact an admin.' };
+  return { error: updateMessages.genericError };
     }
   }
 
