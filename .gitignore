@@ -121,3 +121,4 @@ sqlite3.exe
 ecosystem.config.js
 *.csv
 *.html
+.eslintrc.json

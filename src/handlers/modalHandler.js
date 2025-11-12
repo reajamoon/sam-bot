@@ -3,6 +3,7 @@ const { handleBioModal } = require('./modals/bioModal');
 const { handleTimezoneModal } = require('./modals/timezoneModal');
 const { handlePronounsModal } = require('./modals/pronounsModal');
 const { handleRegionModal } = require('./modals/regionModal');
+const { handleAo3ShareModal } = require('./modals/ao3ShareModal');
 const logger = require('../utils/logger');
 
 /**
@@ -37,7 +38,12 @@ async function handleModal(interaction) {
             const originalMessageId = customId.startsWith('region_modal_') ? customId.split('region_modal_')[1] : null;
             return await handleRegionModal(interaction, originalMessageId);
         }
-        else {
+        else if (customId === 'ao3share_modal') {
+            return await handleAo3ShareModal(interaction);
+        } else if (customId === 'ao3share_confirm_modal') {
+            const { handleAo3ShareConfirmModal } = require('./modals/ao3ShareConfirmModal');
+            return await handleAo3ShareConfirmModal(interaction);
+        } else {
             logger.warn(`Unhandled modal interaction: ${customId}`);
             const { InteractionFlags } = require('discord.js');
             const EPHEMERAL_FLAG = typeof InteractionFlags !== 'undefined' && InteractionFlags.Ephemeral ? InteractionFlags.Ephemeral : 64;

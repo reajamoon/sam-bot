@@ -2,7 +2,7 @@
 module.exports = {
   apps: [
     {
-      name: 'fic-queue-worker',
+      name: 'jack',
       script: './queueWorker.js',
       instances: 1,
       autorestart: true,

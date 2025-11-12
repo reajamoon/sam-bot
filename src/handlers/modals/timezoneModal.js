@@ -19,7 +19,8 @@ async function handleTimezoneModal(interaction, originalMessageId = null) {
 
     // Only deferReply if not ephemeral context
     if (!isEphemeralContext) {
-        await interaction.deferReply({ ephemeral: true });
+    const { MessageFlags } = require('discord.js');
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     }
     const timezoneInput = interaction.fields.getTextInputValue('timezone_input').trim();
     logger.info(`Timezone Modal: timezoneInput = "${timezoneInput}"`);

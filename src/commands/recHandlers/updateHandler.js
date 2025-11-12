@@ -24,12 +24,25 @@ function validateAttachment(newAttachment, willBeDeleted) {
 
 async function handleUpdateRecommendation(interaction) {
     try {
+        console.log('[rec update] Handler called', {
+            user: interaction.user?.id,
+            id: interaction.options.getInteger('id'),
+            find_url: interaction.options.getString('find_url'),
+            find_ao3_id: interaction.options.getInteger('find_ao3_id'),
+            options: interaction.options.data
+        });
         await interaction.deferReply();
 
         const normalizeAO3Url = require('../../utils/recUtils/normalizeAO3Url');
         const recId = interaction.options.getInteger('id');
         const findUrl = interaction.options.getString('find_url');
         const findAo3Id = interaction.options.getInteger('find_ao3_id');
+        if (!recId && !findUrl && !findAo3Id) {
+            await interaction.editReply({
+                content: 'You need to provide at least one identifier: `id`, `find_url`, or `find_ao3_id`.'
+            });
+            return;
+        }
         let newUrl = interaction.options.getString('new_url');
         if (newUrl) newUrl = normalizeAO3Url(newUrl);
         const newTitle = interaction.options.getString('title');
@@ -40,8 +53,10 @@ async function handleUpdateRecommendation(interaction) {
         const newWordCount = interaction.options.getInteger('wordcount');
         const newDeleted = interaction.options.getBoolean('deleted');
         const newAttachment = interaction.options.getAttachment('attachment');
-        const newTags = interaction.options.getString('tags')?.split(',').map(tag => tag.trim()).filter(tag => tag) || null;
-        const newNotes = interaction.options.getString('notes');
+    const newTags = interaction.options.getString('tags')?.split(',').map(tag => tag.trim()).filter(tag => tag) || null;
+    const newNotes = interaction.options.getString('notes');
+    // Support append mode for additional tags
+    const appendAdditional = interaction.options.getBoolean('append');
 
         const recommendation = await findRecommendationByIdOrUrl(interaction, recId, findUrl, findAo3Id);
         if (!recommendation) {
@@ -50,22 +65,14 @@ async function handleUpdateRecommendation(interaction) {
             });
             return;
         }
-
-        const isOwner = recommendation.recommendedBy === interaction.user.id;
-        const isAdmin = interaction.member.permissions.has('ManageMessages');
-        if (!isOwner && !isAdmin) {
-            await interaction.editReply({
-                content: `That recommendation was added by ${recommendation.recommendedByUsername}. You can only update your own recommendations unless you're a moderator.`
-            });
-            return;
-        }
-
         let urlToUse = newUrl || recommendation.url;
         urlToUse = normalizeAO3Url(urlToUse);
 
         // --- Fic Parsing Queue Logic ---
         const { ParseQueue, ParseQueueSubscriber } = require('../../models');
-        if (newUrl || (!newUrl && !newTags && !newNotes && !newTitle && !newAuthor && !newSummary && !newRating && !newStatus && !newWordCount)) {
+        // Always use the queue for any update that requires a metadata fetch
+        const needsMetadataFetch = newUrl || (!newTitle && !newAuthor && !newSummary && !newRating && !newStatus && !newWordCount);
+        if (needsMetadataFetch) {
             let queueEntry = await ParseQueue.findOne({ where: { fic_url: urlToUse } });
             if (queueEntry) {
                 if (queueEntry.status === 'pending' || queueEntry.status === 'processing') {
@@ -102,12 +109,135 @@ async function handleUpdateRecommendation(interaction) {
                     return;
                 }
             }
-            queueEntry = await ParseQueue.create({
-                fic_url: urlToUse,
-                status: 'pending',
-                requested_by: interaction.user.id
-            });
+            // Edge case: Only mark as instant_candidate if there are no other pending/processing jobs
+            const activeJobs = await ParseQueue.count({ where: { status: ['pending', 'processing'] } });
+            const isInstant = activeJobs === 0;
+            try {
+                queueEntry = await ParseQueue.create({
+                    fic_url: urlToUse,
+                    status: 'pending',
+                    requested_by: interaction.user.id,
+                    instant_candidate: isInstant
+                });
+            } catch (err) {
+                // Handle race condition: duplicate key error (Sequelize or raw pg)
+                if ((err && err.code === '23505') || (err && err.name === 'SequelizeUniqueConstraintError')) {
+                    // Find the now-existing queue entry
+                    queueEntry = await ParseQueue.findOne({ where: { fic_url: urlToUse } });
+                    if (queueEntry) {
+                        if (queueEntry.status === 'pending' || queueEntry.status === 'processing') {
+                            const existingSub = await ParseQueueSubscriber.findOne({ where: { queue_id: queueEntry.id, user_id: interaction.user.id } });
+                            if (!existingSub) {
+                                await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
+                            }
+                            await interaction.editReply({
+                                content: 'That fic is already being processed! You’ll get a notification when it’s ready.'
+                            });
+                            return;
+                        } else if (queueEntry.status === 'done' && queueEntry.result) {
+                            // Return friendly duplicate message with details, robust fallback
+                            let rec = null;
+                            try {
+                                rec = await findRecommendationByIdOrUrl(interaction, recId, urlToUse, null);
+                            } catch {}
+                            let addedBy = rec && rec.recommendedByUsername ? rec.recommendedByUsername : 'someone';
+                            let addedAt = rec && rec.createdAt ? new Date(rec.createdAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : null;
+                            let title = rec && rec.title ? rec.title : 'This fic';
+                            let msg = `${title} was already added by ${addedBy}${addedAt ? ` on ${addedAt}` : ''}, but hey! Great minds think alike, right?`;
+                            if (!rec) msg = 'This fic was already added to the library! Great minds think alike, right?';
+                            await interaction.editReply({
+                                content: msg
+                            });
+                            return;
+                        } else if (queueEntry.status === 'error') {
+                            await interaction.editReply({
+                                content: `There was an error parsing this fic previously: ${queueEntry.error_message || 'Unknown error.'} You can try again later.`
+                            });
+                            return;
+                        } else {
+                            // Fallback for any other status
+                            await interaction.editReply({
+                                content: 'This fic is already in the queue. You’ll get a notification when it’s ready!'
+                            });
+                            return;
+                        }
+                    }
+                }
+                throw err;
+            }
             await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
+            // Poll for instant completion (duration matches suppression threshold in config)
+            const { Config } = require('../../models');
+            let pollTimeout = 3000; // default 3 seconds
+            try {
+                const thresholdConfig = await Config.findOne({ where: { key: 'instant_queue_suppress_threshold_ms' } });
+                if (thresholdConfig && !isNaN(Number(thresholdConfig.value))) {
+                    pollTimeout = Number(thresholdConfig.value);
+                }
+            } catch {}
+            const pollInterval = 200;
+            const start = Date.now();
+            let foundDone = false;
+            let resultEmbed = null;
+            while (Date.now() - start < pollTimeout) {
+                // Refetch the queue entry
+                const updatedQueue = await ParseQueue.findOne({ where: { id: queueEntry.id } });
+                if (updatedQueue && updatedQueue.status === 'done' && updatedQueue.result) {
+                    // Fetch the updated recommendation for embed
+                    const updatedRec = await findRecommendationByIdOrUrl(interaction, recId, urlToUse, null);
+                    if (updatedRec) {
+                        const result = await processRecommendationJob({
+                            url: urlToUse,
+                            user: { id: interaction.user.id, username: interaction.user.username },
+                            manualFields: {},
+                            additionalTags: newTags || [],
+                            notes: newNotes || '',
+                            isUpdate: true,
+                            existingRec: updatedRec,
+                            notify: async (embed) => {
+                                resultEmbed = embed;
+                            }
+                        });
+                        if (!resultEmbed && result && result.embed) {
+                            resultEmbed = result.embed;
+                        }
+                    }
+                    foundDone = true;
+                    break;
+                }
+                await new Promise(res => setTimeout(res, pollInterval));
+            }
+            if (foundDone && resultEmbed) {
+                await interaction.editReply({
+                    content: 'That fic was already updated! Here’s the latest info:',
+                    embeds: [resultEmbed]
+                });
+                return;
+            }
+            // Final fallback: check if the job is now done in the DB (worker may have been too fast)
+            const finalQueue = await ParseQueue.findOne({ where: { id: queueEntry.id, status: 'done' } });
+            if (finalQueue && finalQueue.result) {
+                const updatedRec = await findRecommendationByIdOrUrl(interaction, recId, urlToUse, null);
+                if (updatedRec) {
+                    const result = await processRecommendationJob({
+                        url: urlToUse,
+                        user: { id: interaction.user.id, username: interaction.user.username },
+                        manualFields: {},
+                        additionalTags: newTags || [],
+                        notes: newNotes || '',
+                        isUpdate: true,
+                        existingRec: updatedRec
+                    });
+                    if (result && result.embed) {
+                        await interaction.editReply({
+                            content: 'That fic was already updated! Here’s the latest info:',
+                            embeds: [result.embed]
+                        });
+                        return;
+                    }
+                }
+            }
+            // If still not found, fallback to queue message
             await interaction.editReply({
                 content: 'Your fic has been added to the parsing queue! I’ll notify you when it’s ready.'
             });
@@ -115,6 +245,13 @@ async function handleUpdateRecommendation(interaction) {
         }
 
         // If not queueing, update the recommendation directly
+        // For additional tags, support append or replace
+        let additionalTagsToSend = newTags || [];
+        if (appendAdditional && newTags && newTags.length > 0) {
+            let oldAdditional = [];
+            try { oldAdditional = JSON.parse(recommendation.additionalTags || '[]'); } catch { oldAdditional = []; }
+            additionalTagsToSend = Array.from(new Set([...oldAdditional, ...newTags]));
+        }
         await processRecommendationJob({
             url: urlToUse,
             user: { id: interaction.user.id, username: interaction.user.username },
@@ -126,7 +263,7 @@ async function handleUpdateRecommendation(interaction) {
                 wordCount: newWordCount,
                 status: newStatus
             },
-            additionalTags: newTags || [],
+            additionalTags: additionalTagsToSend,
             notes: newNotes || '',
             isUpdate: true,
             existingRec: recommendation,

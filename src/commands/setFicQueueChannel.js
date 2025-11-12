@@ -9,7 +9,8 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   async execute(interaction) {
     if (!interaction.guildId) {
-      return interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+  const { MessageFlags } = require('discord.js');
+  return interaction.reply({ content: 'This command can only be used in a server.', flags: MessageFlags.Ephemeral });
     }
     const channelId = interaction.channelId;
     await Config.upsert({ key: 'fic_queue_channel', value: channelId });

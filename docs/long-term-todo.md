@@ -3,6 +3,8 @@
 ---
 
 ## Core Features
+ - [ ] Unify `/rec update <id>` to use a single identifier field (ID, URL, AO3 ID, etc.) with internal logic to resolve the type. Simplifies the command and improves user experience.
+- [ ] Fic club features
 - [ ] Add regular backup/export for recommendations
 - [x] Implement data migration scripts for schema changes
 - [ ] Optimize database queries for large library

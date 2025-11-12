@@ -31,15 +31,37 @@ module.exports = {
         .setDescription('Manage fanfiction recommendations')
         .addSubcommand(subcommand =>
             subcommand
-                .setName('add')
-                .setDescription('Add a new fanfiction recommendation')
+                .setName('notifytag')
+                .setDescription('Control whether you are tagged in fic queue notifications')
                 .addStringOption(option =>
-                    option.setName('url')
-                        .setDescription('URL of the fanfiction')
+                    option.setName('mode')
+                        .setDescription('on = tag me, off = do not tag me')
+                        .setRequired(true)
+                        .addChoices(
+                            { name: 'on', value: 'on' },
+                            { name: 'off', value: 'off' }
+                        )
+                )
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('queue')
+                .setDescription('View the current fic metadata parsing queue'))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('update')
+                .setDescription('Update an existing recommendation with fresh metadata')
+                .addIntegerOption(option =>
+                    option.setName('id')
+                        .setDescription('ID of the recommendation to update')
                         .setRequired(true))
                 .addStringOption(option =>
-                    option.setName('title')
-                        .setDescription('Story title (required if auto-parsing fails)')
+                    option.setName('find_url')
+                        .setDescription('URL of the recommendation to update')
+                        .setRequired(false))
+                .addIntegerOption(option =>
+                    option.setName('find_ao3_id')
+                        .setDescription('AO3 Work ID to find (just the number)')
                         .setRequired(false))
                 .addStringOption(option =>
                     option.setName('author')
@@ -75,74 +97,6 @@ module.exports = {
                         .setRequired(false)))
         .addSubcommand(subcommand =>
             subcommand
-                .setName('update')
-                .setDescription('Update an existing recommendation with fresh metadata')
-                .addIntegerOption(option =>
-                    option.setName('id')
-                        .setDescription('ID of the recommendation to update')
-                        .setRequired(false))
-                .addStringOption(option =>
-                    option.setName('find_url')
-                        .setDescription('URL of the recommendation to update')
-                        .setRequired(false))
-                .addIntegerOption(option =>
-                    option.setName('find_ao3_id')
-                        .setDescription('AO3 Work ID to find (just the number)')
-                        .setRequired(false))
-                .addStringOption(option =>
-                    option.setName('new_url')
-                        .setDescription('New URL (optional, will re-fetch metadata if URL changed)')
-                        .setRequired(false))
-                .addStringOption(option =>
-                    option.setName('title')
-                        .setDescription('Update the story title')
-                        .setRequired(false))
-                .addStringOption(option =>
-                    option.setName('author')
-                        .setDescription('Update the author name')
-                        .setRequired(false))
-                .addStringOption(option =>
-                    option.setName('summary')
-                        .setDescription('Update the story summary')
-                        .setRequired(false))
-                .addStringOption(option =>
-                    option.setName('rating')
-                        .setDescription('Update the story rating')
-                        .setRequired(false))
-                .addStringOption(option =>
-                    option.setName('status')
-                        .setDescription('Update the story status')
-                        .setRequired(false)
-                        .addChoices(
-                            { name: 'Complete', value: 'Complete' },
-                            { name: 'Work in Progress', value: 'Work in Progress' },
-                            { name: 'Ongoing', value: 'Ongoing' },
-                            { name: 'Hiatus', value: 'Hiatus' },
-                            { name: 'Abandoned', value: 'Abandoned' },
-                            { name: 'Unknown', value: 'Unknown' }
-                        ))
-                .addBooleanOption(option =>
-                    option.setName('deleted')
-                        .setDescription('Mark if the story has been deleted from the original site')
-                        .setRequired(false))
-                .addAttachmentOption(option =>
-                    option.setName('attachment')
-                        .setDescription('File attachment for deleted fics (ONLY with express author permission)')
-                        .setRequired(false))
-                .addIntegerOption(option =>
-                    option.setName('wordcount')
-                        .setDescription('Update the word count')
-                        .setRequired(false))
-                .addStringOption(option =>
-                    option.setName('tags')
-                        .setDescription('Update additional tags (comma-separated)')
-                        .setRequired(false))
-                .addStringOption(option =>
-                    option.setName('notes')
-                        .setDescription('Update personal notes about this fic')
-                        .setRequired(false)))
-        .addSubcommand(subcommand =>
-            subcommand
                 .setName('remove')
                 .setDescription('Remove a fanfiction recommendation')
                 .addIntegerOption(option =>
@@ -164,7 +118,23 @@ module.exports = {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('search')
-                .setDescription('Search for recommendations by title, author, or tags')),
+                .setDescription('Search for recommendations by title, author, or tags'))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('add_ao3share')
+                .setDescription('Add a new fanfiction recommendation by pasting AO3 share HTML'))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('resetqueue')
+                .setDescription('Reset stuck fic metadata jobs (mods/admins only)'))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('clearqueue')
+                .setDescription('Remove all queue jobs for a fic URL (mods/admins only)')
+                .addStringOption(option =>
+                    option.setName('url')
+                        .setDescription('Fic URL to clear from the queue')
+                        .setRequired(true))),
 
     /**
      * Main entry for all /rec subcommands. Routes to the appropriate handler.
@@ -181,8 +151,14 @@ module.exports = {
 
         const subcommand = interaction.options.getSubcommand();
 
+        const handleQueue = require('./recHandlers/queueHandler');
+        const handleResetQueue = require('./recHandlers/resetQueueHandler');
+        const handleRecNotifyTag = require('./recHandlers/recNotifyTag');
         try {
             switch (subcommand) {
+                case 'notifytag':
+                    await handleRecNotifyTag(interaction);
+                    break;
                 case 'add':
                     await handleAddRecommendation(interaction);
                     break;
@@ -201,6 +177,31 @@ module.exports = {
                 case 'update':
                     await handleUpdateRecommendation(interaction);
                     break;
+                case 'queue':
+                    await handleQueue(interaction);
+                    break;
+                    case 'resetqueue':
+                        await handleResetQueue(interaction);
+                        break;
+                case 'clearqueue': {
+                    const handleClearQueue = require('./recHandlers/clearQueueHandler');
+                    await handleClearQueue(interaction);
+                    break;
+                }
+                case 'add_ao3share': {
+                    const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
+                    const modal = new ModalBuilder()
+                        .setCustomId('ao3share_modal')
+                        .setTitle('Paste AO3 Share HTML');
+                    const htmlInput = new TextInputBuilder()
+                        .setCustomId('ao3share_html')
+                        .setLabel('Paste the AO3 share HTML here')
+                        .setStyle(TextInputStyle.Paragraph)
+                        .setRequired(true);
+                    modal.addComponents(new ActionRowBuilder().addComponents(htmlInput));
+                    await interaction.showModal(modal);
+                    break;
+                }
                 case 'help':
                     await handleHelp(interaction);
                     break;
