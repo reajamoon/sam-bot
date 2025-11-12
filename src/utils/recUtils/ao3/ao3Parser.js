@@ -14,11 +14,15 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
         metadata.archiveWarnings = [];
         if (warningsBlockMatch) {
             const warningsBlock = warningsBlockMatch[1];
+            console.log('[AO3 PARSER][DEBUG] Found <dd class="warning tags"> block:', warningsBlock);
             const warningTagRegex = /<a[^>]*class="tag"[^>]*>([^<]+)<\/a>/g;
             let m;
             while ((m = warningTagRegex.exec(warningsBlock)) !== null) {
+                console.log('[AO3 PARSER][DEBUG] Matched warning tag:', m[1]);
                 metadata.archiveWarnings.push(m[1].trim());
             }
+        } else {
+            console.log('[AO3 PARSER][DEBUG] No <dd class="warning tags"> block found in metaBlock for', url);
         }
         // Debug log
         console.log('[AO3 PARSER] archiveWarnings for', url, ':', metadata.archiveWarnings);
