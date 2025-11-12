@@ -5,6 +5,32 @@
  * @returns {Object} - Normalized metadata object
  */
 function normalizeMetadata(metadata, source) {
+    // Normalize rating to AO3 canonical names for non-AO3 sources
+    if (normalized.rating && typeof normalized.rating === 'string') {
+        const ratingMap = {
+            'k': 'General Audiences',
+            'k+': 'Teen And Up Audiences',
+            't': 'Teen And Up Audiences',
+            'm': 'Mature',
+            'ma': 'Explicit',
+            'explicit': 'Explicit',
+            'mature': 'Mature',
+            'teen': 'Teen And Up Audiences',
+            'teen and up': 'Teen And Up Audiences',
+            'teen and up audiences': 'Teen And Up Audiences',
+            'general': 'General Audiences',
+            'general audiences': 'General Audiences',
+            'g': 'General Audiences',
+            'not rated': 'Not Rated',
+            'unrated': 'Not Rated',
+            'n/a': 'Not Rated',
+            'none': 'Not Rated'
+        };
+        const key = normalized.rating.trim().toLowerCase();
+        if (ratingMap[key]) {
+            normalized.rating = ratingMap[key];
+        }
+    }
     const normalized = { ...metadata };
     if (source === 'wattpad') {
         // Wattpad normalization

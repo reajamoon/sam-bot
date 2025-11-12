@@ -1,13 +1,37 @@
 const { EmbedBuilder } = require('discord.js');
 const quickLinkCheck = require('./quickLinkCheck');
 
+// Map AO3 normalized rating names to custom emoji
+const ratingEmojis = {
+    'general audiences': '<:ratinggeneral:1133762158077935749>',
+    'teen and up audiences': '<:ratingteen:1133762194174136390>',
+    'mature': '<:ratingmature:1133762226738700390>',
+    'explicit': '<:ratingexplicit:1133762272087506965>'
+};
+
 // Builds the embed for a rec. Checks if the link works, adds warnings if needed.
 async function createRecommendationEmbed(rec) {
+    // Map fic ratings to embed colors
+    const ratingColors = {
+        'general audiences': 0x43a047,      // Green
+        'teen and up audiences': 0xffeb3b, // Yellow
+        'mature': 0xff9800,                // Orange
+        'explicit': 0xd32f2f,              // Red
+        'not rated': 0x757575,             // Grey
+        'unrated': 0x757575
+    };
+    let color = 0x9C27B0; // Default (purple)
+    if (rec.rating && typeof rec.rating === 'string') {
+        const key = rec.rating.trim().toLowerCase();
+        if (ratingColors[key]) {
+            color = ratingColors[key];
+        }
+    }
     const embed = new EmbedBuilder()
         .setTitle(`📖 ${rec.title}`)
         .setDescription(`**By:** ${(rec.authors && Array.isArray(rec.authors)) ? rec.authors.join(', ') : (rec.author || 'Unknown Author')}`)
         .setURL(rec.url)
-        .setColor(0x9C27B0)
+        .setColor(color)
         .setTimestamp()
         .setFooter({
             text: `From the Profound Bond Library • Recommended by ${rec.recommendedByUsername} • ID: ${rec.id}`
@@ -40,7 +64,16 @@ async function createRecommendationEmbed(rec) {
         inline: false
     });
     const fields = [];
-    if (rec.rating) fields.push({ name: 'Rating', value: rec.rating, inline: true });
+    if (rec.rating) {
+        let ratingValue = rec.rating;
+        if (typeof rec.rating === 'string') {
+            const key = rec.rating.trim().toLowerCase();
+            if (ratingEmojis[key]) {
+                ratingValue = `${ratingEmojis[key]} ${rec.rating}`;
+            }
+        }
+        fields.push({ name: 'Rating', value: ratingValue, inline: true });
+    }
     if (rec.wordCount) fields.push({ name: 'Words', value: rec.wordCount.toLocaleString(), inline: true });
     if (rec.chapters) fields.push({ name: 'Chapters', value: rec.chapters, inline: true });
     if (rec.status) {
