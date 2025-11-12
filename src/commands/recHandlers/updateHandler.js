@@ -120,50 +120,53 @@ async function handleUpdateRecommendation(interaction) {
                                     || (typeof newWordCount === 'number' && !isNaN(newWordCount))
                                     || (Array.isArray(newTags) && newTags.length > 0)
                                     || (typeof newNotes === 'string' && newNotes.trim().length > 0);
-                if ((queueEntry.status === 'pending' || queueEntry.status === 'processing') && !manualFieldsRequested) {
-                    const existingSub = await ParseQueueSubscriber.findOne({ where: { queue_id: queueEntry.id, user_id: interaction.user.id } });
-                    if (!existingSub) {
-                        await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
-                    }
-                    await interaction.editReply({
-                        content: 'That fic is already being processed! You’ll get a notification when it’s ready.'
-                    });
-                    return;
-                } else if ((queueEntry.status === 'pending' || queueEntry.status === 'processing') && manualFieldsRequested) {
-                    // Allow manual field update instantly, even if in queue
-                    let resultEmbed = null;
-                    await processRecommendationJob({
-                        url: urlToUse,
-                        user: { id: interaction.user.id, username: interaction.user.username },
-                        manualFields: {
-                            title: newTitle,
-                            author: newAuthor,
-                            summary: newSummary,
-                            rating: newRating,
-                            wordCount: newWordCount,
-                            status: newStatus,
-                            notes: newNotes || ''
-                        },
-                        additionalTags: newTags || [],
-                        notes: newNotes || '',
-                        isUpdate: true,
-                        existingRec: recommendation,
-                        notify: async (embed) => {
-                            resultEmbed = embed;
-                        }
-                    });
-                    if (resultEmbed) {
-                        await interaction.editReply({
-                            content: 'This fic was just updated! Here’s the latest info.',
-                            embeds: [resultEmbed]
-                        });
-                    } else {
-                        await interaction.editReply({
-                            content: 'This fic was just updated! (No embed was generated.)'
-                        });
-                    }
-                    return;
-                } else if (queueEntry.status === 'done' && queueEntry.result) {
+if (queueEntry.status === 'pending' || queueEntry.status === 'processing') {
+    if (manualFieldsRequested) {
+        // Allow manual field update instantly, even if in queue
+        let resultEmbed = null;
+        await processRecommendationJob({
+            url: urlToUse,
+            user: { id: interaction.user.id, username: interaction.user.username },
+            manualFields: {
+                title: newTitle,
+                author: newAuthor,
+                summary: newSummary,
+                rating: newRating,
+                wordCount: newWordCount,
+                status: newStatus,
+                notes: newNotes || ''
+            },
+            additionalTags: newTags || [],
+            notes: newNotes || '',
+            isUpdate: true,
+            existingRec: recommendation,
+            notify: async (embed) => {
+                resultEmbed = embed;
+            }
+        });
+        if (resultEmbed) {
+            await interaction.editReply({
+                content: 'This fic was just updated! Here’s the latest info.',
+                embeds: [resultEmbed]
+            });
+        } else {
+            await interaction.editReply({
+                content: 'This fic was just updated! (No embed was generated.)'
+            });
+        }
+        return;
+    } else {
+        // Only block if no manual fields are present
+        const existingSub = await ParseQueueSubscriber.findOne({ where: { queue_id: queueEntry.id, user_id: interaction.user.id } });
+        if (!existingSub) {
+            await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
+        }
+        await interaction.editReply({
+            content: 'That fic is already being processed! You’ll get a notification when it’s ready.'
+        });
+        return;
+    }
+} else if (queueEntry.status === 'done' && queueEntry.result) {
                     // Allow manual field updates to bypass cooldown
                     const manualFieldsRequested = newTitle || newAuthor || newSummary || newRating || newStatus || newWordCount || (newTags && newTags.length > 0) || newNotes;
                     const updatedRec = await findRecommendationByIdOrUrl(interaction, recId, urlToUse, null);
