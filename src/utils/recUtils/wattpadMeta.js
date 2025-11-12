@@ -123,10 +123,12 @@ async function fetchWattpadMetadata(url, includeRawHtml = false) {
             }
         }
 
-        // Default values
-        metadata.rating = 'Not Rated'; // Wattpad doesn't use traditional ratings
-        metadata.language = metadata.language || 'English';
-        metadata.status = metadata.status || 'Unknown';
+    // Default values
+    metadata.rating = 'Not Rated'; // Wattpad doesn't use traditional ratings
+    metadata.language = metadata.language || 'English';
+    metadata.status = metadata.status || 'Unknown';
+    // Always set archiveWarnings to an array
+    if (!Array.isArray(metadata.archiveWarnings)) metadata.archiveWarnings = [];
 
         if (includeRawHtml) metadata.rawHtml = html;
     // Remove legacy 'author' field if present

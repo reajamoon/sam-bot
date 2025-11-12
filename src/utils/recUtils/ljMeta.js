@@ -91,8 +91,10 @@ async function fetchLiveJournalMetadata(url, includeRawHtml = false) {
         metadata.language = 'English';
 
         if (includeRawHtml) metadata.rawHtml = html;
-    // Remove legacy 'author' field if present
-    if (metadata.author) delete metadata.author;
+        // Remove legacy 'author' field if present
+        if (metadata.author) delete metadata.author;
+        // Always set archiveWarnings to an array
+        if (!Array.isArray(metadata.archiveWarnings)) metadata.archiveWarnings = [];
     return metadata;
     } catch (error) {
         // Handle HTTP errors from fetchHTML
