@@ -105,7 +105,8 @@ async function handleUpdateRecommendation(interaction) {
                                 summary: newSummary,
                                 rating: newRating,
                                 wordCount: newWordCount,
-                                status: newStatus
+                                status: newStatus,
+                                notes: newNotes || ''
                             },
                             additionalTags: newTags || [],
                             notes: newNotes || '',
