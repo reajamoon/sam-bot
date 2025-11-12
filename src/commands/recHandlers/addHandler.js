@@ -41,6 +41,17 @@ async function handleAddRecommendation(interaction) {
     const existingRec = await Recommendation.findOne({ where: { url } });
     if (existingRec) {
       const addedDate = existingRec.createdAt ? `<t:${Math.floor(new Date(existingRec.createdAt).getTime()/1000)}:F>` : '';
+      // Sassiest message for user 638765542739673089 if they try to add their own rec again
+      if (interaction.user.id === existingRec.recommendedBy) {
+        if (interaction.user.id === '638765542739673089') {
+          return await interaction.editReply({
+            content: `Alright, overachiever—*${existingRec.title}* is already in the library${addedDate ? `, since ${addedDate}` : ''}. I swear, I’m not lying to you. (But if you want to recommend it a third time, I’ll start keeping score.)`
+          });
+        }
+        return await interaction.editReply({
+          content: `Dude. You already added *${existingRec.title}* to the library${addedDate ? `, on ${addedDate}` : ''}. I know you’re excited, but even I can’t recommend the same fic twice. (Nice try though.)`
+        });
+      }
       return await interaction.editReply({
         content: `*${existingRec.title}* was already added to the library by **${existingRec.recommendedByUsername}**${addedDate ? `, on ${addedDate}` : ''}! Great minds think alike though.`
       });
