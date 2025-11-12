@@ -31,6 +31,20 @@ async function handleUpdateRecommendation(interaction) {
             find_ao3_id: interaction.options.getInteger('find_ao3_id'),
             options: interaction.options.data
         });
+
+        // Debug: log all incoming option values for troubleshooting
+        const debugFields = {
+            newTitle: interaction.options.getString('title'),
+            newAuthor: interaction.options.getString('author'),
+            newSummary: interaction.options.getString('summary'),
+            newRating: interaction.options.getString('rating'),
+            newStatus: interaction.options.getString('status'),
+            newWordCount: interaction.options.getInteger('wordcount'),
+            newTags: interaction.options.getString('tags'),
+            newNotes: interaction.options.getString('notes'),
+            appendAdditional: interaction.options.getBoolean('append')
+        };
+        console.log('[rec update] Option values:', debugFields);
         await interaction.deferReply();
 
         const normalizeAO3Url = require('../../utils/recUtils/normalizeAO3Url');
