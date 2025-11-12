@@ -45,6 +45,43 @@ module.exports = {
         )
         .addSubcommand(subcommand =>
             subcommand
+                .setName('add')
+                .setDescription('Add a new fanfiction recommendation to the library')
+                .addStringOption(option =>
+                    option.setName('url')
+                        .setDescription('Fanfiction URL (AO3, FFNet, Wattpad, etc.)')
+                        .setRequired(true))
+                .addStringOption(option =>
+                    option.setName('title')
+                        .setDescription('Title (optional, for manual entry)')
+                        .setRequired(false))
+                .addStringOption(option =>
+                    option.setName('author')
+                        .setDescription('Author (optional, for manual entry)')
+                        .setRequired(false))
+                .addStringOption(option =>
+                    option.setName('summary')
+                        .setDescription('Summary (optional, for manual entry)')
+                        .setRequired(false))
+                .addIntegerOption(option =>
+                    option.setName('wordcount')
+                        .setDescription('Word count (optional, for manual entry)')
+                        .setRequired(false))
+                .addStringOption(option =>
+                    option.setName('rating')
+                        .setDescription('Rating (optional, for manual entry)')
+                        .setRequired(false))
+                .addStringOption(option =>
+                    option.setName('tags')
+                        .setDescription('Additional tags (comma-separated, optional)')
+                        .setRequired(false))
+                .addStringOption(option =>
+                    option.setName('notes')
+                        .setDescription('Personal notes (optional)')
+                        .setRequired(false))
+        )
+        .addSubcommand(subcommand =>
+            subcommand
                 .setName('queue')
                 .setDescription('View the current fic metadata parsing queue'))
         .addSubcommand(subcommand =>
