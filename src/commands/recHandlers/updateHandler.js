@@ -110,7 +110,8 @@ async function handleUpdateRecommendation(interaction) {
         } else {
             updateMode = 'fetchOnlyOrCooldown'; // Only ID/URL provided
         }
-        if (needsMetadataFetch) {
+        // --- Main update logic by updateMode ---
+        if (updateMode === 'fetch' || updateMode === 'manualAndFetch' || updateMode === 'fetchOnlyOrCooldown') {
             let queueEntry = await ParseQueue.findOne({ where: { fic_url: urlToUse } });
             if (queueEntry) {
                                 // Robustly detect any manual field update (not just truthy, but non-empty)
