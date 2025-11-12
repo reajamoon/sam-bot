@@ -33,6 +33,7 @@ async function processRecommendationJob({
   let metadata;
   url = normalizeAO3Url(url);
   const bypassManual = manualFields.title && manualFields.author;
+  const normalizeMetadata = require('./normalizeMetadata');
   if (bypassManual) {
     metadata = {
       title: manualFields.title,
@@ -51,7 +52,7 @@ async function processRecommendationJob({
       if (metadata && metadata.url) metadata.url = normalizeAO3Url(metadata.url);
     } catch (err) {
       console.error('[processRecommendationJob] Error fetching metadata:', err);
-  return { error: updateMessages.genericError };
+      return { error: updateMessages.genericError };
     }
     if (!metadata) {
       console.error('[processRecommendationJob] Metadata fetch returned null for URL:', url);
@@ -75,20 +76,13 @@ async function processRecommendationJob({
     if (manualFields.summary) metadata.summary = manualFields.summary;
     if (manualFields.wordCount) metadata.wordCount = manualFields.wordCount;
     if (manualFields.rating) metadata.rating = manualFields.rating;
-    // Standardize: always use archiveWarnings (array)
-    if (Array.isArray(metadata.archiveWarnings)) {
-      // already correct
-    } else if (typeof metadata.archiveWarnings === 'string') {
-      metadata.archiveWarnings = [metadata.archiveWarnings];
-    } else if (Array.isArray(metadata.archiveWarning)) {
-      metadata.archiveWarnings = metadata.archiveWarning;
-    } else if (typeof metadata.archiveWarning === 'string') {
-      metadata.archiveWarnings = [metadata.archiveWarning];
-    } else if (metadata.archiveWarning) {
-      metadata.archiveWarnings = [String(metadata.archiveWarning)];
-    } else {
-      metadata.archiveWarnings = [];
-    }
+    // Normalize all metadata fields before saving
+    metadata = normalizeMetadata(metadata, (url.includes('archiveofourown.org') ? 'ao3' :
+      url.includes('fanfiction.net') ? 'ffnet' :
+      url.includes('wattpad.com') ? 'wattpad' :
+      url.includes('livejournal.com') ? 'livejournal' :
+      url.includes('dreamwidth.org') ? 'dreamwidth' :
+      url.includes('tumblr.com') ? 'tumblr' : 'other'));
   }
 
   // Ensure required fields are present and valid
