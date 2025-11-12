@@ -186,7 +186,7 @@ async function handleUpdateRecommendation(interaction) {
                     // Fetch the updated recommendation for embed
                     const updatedRec = await findRecommendationByIdOrUrl(interaction, recId, urlToUse, null);
                     if (updatedRec) {
-                        await processRecommendationJob({
+                        const result = await processRecommendationJob({
                             url: urlToUse,
                             user: { id: interaction.user.id, username: interaction.user.username },
                             manualFields: {},
@@ -198,15 +198,18 @@ async function handleUpdateRecommendation(interaction) {
                                 resultEmbed = embed;
                             }
                         });
-                        foundDone = true;
-                        break;
+                        if (!resultEmbed && result && result.embed) {
+                            resultEmbed = result.embed;
+                        }
                     }
+                    foundDone = true;
+                    break;
                 }
                 await new Promise(res => setTimeout(res, pollInterval));
             }
             if (foundDone && resultEmbed) {
                 await interaction.editReply({
-                    content: 'Here’s the updated fic info (processed instantly):',
+                    content: 'That fic was already updated! Here’s the latest info:',
                     embeds: [resultEmbed]
                 });
             } else {

@@ -4,7 +4,8 @@ const { ParseQueue } = require('../../models');
 const { EmbedBuilder } = require('discord.js');
 
 module.exports = async function handleQueue(interaction) {
-  await interaction.deferReply({ ephemeral: true });
+  const { MessageFlags } = require('discord.js');
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   // Get all jobs that are pending or processing, ordered oldest first
   const jobs = await ParseQueue.findAll({
     where: { status: ['pending', 'processing'] },

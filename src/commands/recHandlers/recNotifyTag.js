@@ -7,7 +7,7 @@ module.exports = async function handleRecNotifyTag(interaction) {
   if (!['on', 'off'].includes(mode)) {
     await interaction.reply({
       content: 'Please specify `on` or `off` to control whether you are tagged in fic queue notifications.',
-      ephemeral: true
+  flags: require('discord.js').MessageFlags.Ephemeral
     });
     return;
   }
@@ -22,6 +22,6 @@ module.exports = async function handleRecNotifyTag(interaction) {
     content: mode === 'on'
       ? 'You will now be tagged in fic queue notifications.'
       : 'You will no longer be tagged in fic queue notifications.',
-    ephemeral: true
+  flags: require('discord.js').MessageFlags.Ephemeral
   });
 };

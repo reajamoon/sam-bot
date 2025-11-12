@@ -3,7 +3,8 @@ const { InteractionFlags } = require('discord.js');
 const { ParseQueue } = require('../../models');
 
 module.exports = async function handleClearQueue(interaction) {
-  await interaction.deferReply({ ephemeral: true });
+  const { MessageFlags } = require('discord.js');
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   // Allow only admins or mods
   if (!interaction.member.permissions.has('ManageGuild') && !interaction.member.permissions.has('ManageMessages')) {
     await interaction.editReply({ content: 'You need the Manage Server or Manage Messages permission to use this command.' });
