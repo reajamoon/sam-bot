@@ -5,6 +5,7 @@
  * @returns {Object} - Normalized metadata object
  */
 function normalizeMetadata(metadata, source) {
+    const normalized = { ...metadata };
     // Normalize rating to AO3 canonical names for non-AO3 sources
     if (normalized.rating && typeof normalized.rating === 'string') {
         const ratingMap = {
@@ -31,7 +32,12 @@ function normalizeMetadata(metadata, source) {
             normalized.rating = ratingMap[key];
         }
     }
-    const normalized = { ...metadata };
+
+    // Normalize warnings: always use archiveWarning for major content warnings
+    if (normalized.warnings && !normalized.archiveWarning) {
+        normalized.archiveWarning = normalized.warnings;
+        delete normalized.warnings;
+    }
     if (source === 'wattpad') {
         // Wattpad normalization
         if (normalized.votes !== undefined) {

@@ -75,7 +75,12 @@ module.exports = (sequelize) => {
             type: DataTypes.TEXT,
             allowNull: true
         },
-        // Normalized AO3-style fields
+            archive_warnings: {
+                type: DataTypes.TEXT, // Store as JSON string array
+                allowNull: true,
+                defaultValue: '[]',
+                field: 'archive_warnings'
+            },
         kudos: {
             type: DataTypes.INTEGER,
             allowNull: true
