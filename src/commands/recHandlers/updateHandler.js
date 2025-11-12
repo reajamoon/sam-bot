@@ -51,12 +51,24 @@ async function handleUpdateRecommendation(interaction) {
         const recId = interaction.options.getInteger('id');
         const findUrl = interaction.options.getString('find_url');
         const findAo3Id = interaction.options.getInteger('find_ao3_id');
-        if (!recId && !findUrl && !findAo3Id) {
+        // Only one identifier should be set
+        let idArg = null, urlArg = null, ao3Arg = null;
+        const provided = [recId, findUrl, findAo3Id].filter(v => v !== null && v !== undefined);
+        if (provided.length === 0) {
             await interaction.editReply({
                 content: 'You need to provide at least one identifier: `id`, `find_url`, or `find_ao3_id`.'
             });
             return;
         }
+        if (provided.length > 1) {
+            await interaction.editReply({
+                content: 'Please provide only one identifier: either `id`, `find_url`, or `find_ao3_id`.'
+            });
+            return;
+        }
+        if (recId !== null && recId !== undefined) idArg = recId;
+        else if (findUrl !== null && findUrl !== undefined) urlArg = findUrl;
+        else if (findAo3Id !== null && findAo3Id !== undefined) ao3Arg = findAo3Id;
         let newUrl = interaction.options.getString('new_url');
         if (newUrl) newUrl = normalizeAO3Url(newUrl);
         const newTitle = interaction.options.getString('title');
@@ -78,7 +90,7 @@ async function handleUpdateRecommendation(interaction) {
     // Support append mode for additional tags
     const appendAdditional = interaction.options.getBoolean('append');
 
-        const recommendation = await findRecommendationByIdOrUrl(interaction, recId, findUrl, findAo3Id);
+    const recommendation = await findRecommendationByIdOrUrl(interaction, idArg, urlArg, ao3Arg);
         if (!recommendation) {
             await interaction.editReply({
                 content: `I couldn't find a recommendation with ID ${recId} in our library. Use \`/rec stats\` to see what's available.`
