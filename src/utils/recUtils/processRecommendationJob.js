@@ -97,6 +97,7 @@ async function processRecommendationJob({
 
   let recommendation;
   if (isUpdate && existingRec) {
+    console.log('[PROCESS JOB] archiveWarnings before DB update:', metadata.archiveWarnings);
     // Merge tags: combine existing tags, new tags, and deduplicate
     let oldTags = [];
     try { oldTags = JSON.parse(existingRec.tags || '[]'); } catch { oldTags = []; }
@@ -192,6 +193,7 @@ async function processRecommendationJob({
   }
 
   // Always use the actual Recommendation instance for embed generation
+  console.log('[PROCESS JOB] archive_warnings in Recommendation instance:', recommendation.archive_warnings);
   const embed = await createRecommendationEmbed(recommendation);
   if (typeof notify === 'function') {
     await notify(embed, recommendation, metadata);

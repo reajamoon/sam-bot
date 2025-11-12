@@ -46,6 +46,7 @@ function normalizeMetadata(metadata, source) {
     }
     // Remove any legacy archiveWarning field
     if (normalized.archiveWarning) delete normalized.archiveWarning;
+    console.log('[NORMALIZE] archiveWarnings after normalization:', normalized.archiveWarnings);
     if (source === 'wattpad') {
         // Wattpad normalization
         if (normalized.votes !== undefined) {
