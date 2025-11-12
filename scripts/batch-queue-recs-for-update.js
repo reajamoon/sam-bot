@@ -13,7 +13,12 @@ if (!config) {
 }
 let sequelize;
 if (config.use_env_variable) {
-  sequelize = new Sequelize(process.env[config.use_env_variable], {
+  const dbUrl = process.env[config.use_env_variable];
+  if (!dbUrl) {
+    console.error(`Environment variable '${config.use_env_variable}' is not set. Please set it to your database connection string.`);
+    process.exit(1);
+  }
+  sequelize = new Sequelize(dbUrl, {
     dialect: config.dialect,
     logging: config.logging,
     pool: config.pool
