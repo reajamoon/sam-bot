@@ -11,6 +11,17 @@ const ratingEmojis = {
 
 // Builds the embed for a rec. Checks if the link works, adds warnings if needed.
 async function createRecommendationEmbed(rec) {
+    // Archive warning emoji and logic
+    const majorWarningEmoji = '<:warn_yes:1142772202379415622>';
+    const maybeWarningEmoji = '<:warn_maybe:1142772269156933733>';
+    const majorWarningsList = [
+        'Graphic Depictions of Violence',
+        'Major Character Death',
+        'Rape/Non-Con',
+        'Underage',
+        'Underage Sex'
+    ];
+
     // Map fic ratings to embed colors
     const ratingColors = {
         'general audiences': 0x43a047,      // Green
@@ -85,6 +96,40 @@ async function createRecommendationEmbed(rec) {
     }
     if (fields.length > 0) {
         embed.addFields(fields);
+    }
+
+    // Add Major Content Warnings field if present and not 'No Archive Warnings Apply'
+    let warnings = Array.isArray(rec.archiveWarnings) ? rec.archiveWarnings : [];
+    // Remove empty/falsey and trim
+    warnings = warnings.map(w => (typeof w === 'string' ? w.trim() : '')).filter(Boolean);
+    // Remove duplicates
+    warnings = [...new Set(warnings)];
+    // Remove 'No Archive Warnings Apply' if present
+    const filtered = warnings.filter(w => w.toLowerCase() !== 'no archive warnings apply');
+    if (filtered.length > 0) {
+        let fieldValue = '';
+        // If only 'Creator Chose Not To Use Archive Warnings'
+        if (
+            filtered.length === 1 &&
+            filtered[0].toLowerCase() === 'creator chose not to use archive warnings'
+        ) {
+            fieldValue = `${maybeWarningEmoji} Creator Chose Not To Use Archive Warnings`;
+        } else {
+            // If any major warning is present, use major emoji and list all
+            const hasMajor = filtered.some(w =>
+                majorWarningsList.some(mw => w.toLowerCase().includes(mw.toLowerCase()))
+            );
+            if (hasMajor) {
+                fieldValue = `${majorWarningEmoji} ${filtered.join(', ')}`;
+            } else {
+                // Fallback: just join and show (shouldn't happen, but for completeness)
+                fieldValue = filtered.join(', ');
+            }
+        }
+        embed.addFields({
+            name: 'Major Content Warnings',
+            value: fieldValue
+        });
     }
     const allTags = rec.getParsedTags();
     if (allTags.length > 0) {

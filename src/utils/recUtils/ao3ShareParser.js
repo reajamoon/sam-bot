@@ -27,7 +27,7 @@ function parseAo3ShareHtml(html) {
     if (ratingMatch) result.rating = ratingMatch[1];
     // Warnings
     const warningsMatch = html.match(/Warnings: ([^<]+)<br \/>/);
-    if (warningsMatch) result.warnings = warningsMatch[1];
+    if (warningsMatch) result.archiveWarning = warningsMatch[1];
     // Relationships
     const relMatch = html.match(/Relationships: ([^<]+)<br \/>/);
     if (relMatch) result.relationships = relMatch[1].split(',').map(s => s.trim());

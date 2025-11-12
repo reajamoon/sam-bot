@@ -41,7 +41,8 @@ async function processRecommendationJob({
       rating: manualFields.rating || 'Not Rated',
       language: 'English',
       wordCount: manualFields.wordCount,
-      url
+      url,
+      archiveWarnings: []
     };
   } else {
     try {
@@ -73,6 +74,20 @@ async function processRecommendationJob({
     if (manualFields.summary) metadata.summary = manualFields.summary;
     if (manualFields.wordCount) metadata.wordCount = manualFields.wordCount;
     if (manualFields.rating) metadata.rating = manualFields.rating;
+    // Standardize: always use archiveWarnings (array)
+    if (Array.isArray(metadata.archiveWarnings)) {
+      // already correct
+    } else if (typeof metadata.archiveWarnings === 'string') {
+      metadata.archiveWarnings = [metadata.archiveWarnings];
+    } else if (Array.isArray(metadata.archiveWarning)) {
+      metadata.archiveWarnings = metadata.archiveWarning;
+    } else if (typeof metadata.archiveWarning === 'string') {
+      metadata.archiveWarnings = [metadata.archiveWarning];
+    } else if (metadata.archiveWarning) {
+      metadata.archiveWarnings = [String(metadata.archiveWarning)];
+    } else {
+      metadata.archiveWarnings = [];
+    }
   }
 
   // Ensure required fields are present and valid
@@ -124,6 +139,10 @@ async function processRecommendationJob({
     if (existingRec.comments !== metadata.comments) updateFields.comments = metadata.comments;
     if (existingRec.category !== metadata.category) updateFields.category = metadata.category;
 
+    // Archive warnings update
+    if (Array.isArray(metadata.archiveWarnings)) {
+      updateFields.archive_warnings = JSON.stringify(metadata.archiveWarnings);
+    }
     if (Object.keys(updateFields).length > 0) {
       try {
         await existingRec.update(updateFields);
@@ -158,6 +177,7 @@ async function processRecommendationJob({
         recommendedByUsername: user.username,
         additionalTags: JSON.stringify(Array.isArray(additionalTags) ? additionalTags : []),
         notes: notes,
+        archive_warnings: JSON.stringify(Array.isArray(metadata.archiveWarnings) ? metadata.archiveWarnings : []),
         kudos: metadata.kudos,
         hits: metadata.hits,
         bookmarks: metadata.bookmarks,

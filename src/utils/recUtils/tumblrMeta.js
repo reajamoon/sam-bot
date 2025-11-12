@@ -91,6 +91,7 @@ async function fetchTumblrMetadata(url, includeRawHtml = false) {
             }
         }
 
+
         // AO3 Link Detection - check if post contains AO3 links
         // You may want to import and use detectAO3LinksInHtml here if needed
 
@@ -101,7 +102,7 @@ async function fetchTumblrMetadata(url, includeRawHtml = false) {
                 summaryMatch = html.match(/<article[^>]*>(.*?)<\/article>/s);
             }
             if (!summaryMatch) {
-                summaryMatch = html.match(/<div[^>]*class="[^"]*text[^"]*"[^>]*>(.*?)<\/div>/s);
+                summaryMatch = html.match(/<div[^>]*class="[^\"]*text[^\"]*"[^>]*>(.*?)<\/div>/s);
             }
 
             if (summaryMatch) {
