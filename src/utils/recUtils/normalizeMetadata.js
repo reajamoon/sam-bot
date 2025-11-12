@@ -46,6 +46,12 @@ function normalizeMetadata(metadata, source) {
     }
     // Remove any legacy archiveWarning field
     if (normalized.archiveWarning) delete normalized.archiveWarning;
+    // Guarantee archiveWarnings is always a non-empty array, defaulting to AO3's standard only if empty or matches that value
+    const ao3None = 'no archive warnings apply';
+    if (!Array.isArray(normalized.archiveWarnings) || normalized.archiveWarnings.length === 0 ||
+        (normalized.archiveWarnings.length === 1 && normalized.archiveWarnings[0] && normalized.archiveWarnings[0].trim().toLowerCase() === ao3None)) {
+        normalized.archiveWarnings = ['No Archive Warnings Apply'];
+    }
     console.log('[NORMALIZE] archiveWarnings after normalization:', normalized.archiveWarnings);
     if (source === 'wattpad') {
         // Wattpad normalization

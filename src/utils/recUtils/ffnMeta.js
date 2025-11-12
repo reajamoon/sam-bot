@@ -68,7 +68,9 @@ async function fetchFFNetMetadata(url, includeRawHtml = false) {
     }
 
     try {
-        const metadata = { url: url };
+    const metadata = { url: url };
+    // Always set archiveWarnings to an empty array unless found
+    metadata.archiveWarnings = [];
 
         // Multiple patterns for title - FFNet has changed their HTML structure over time
         let titleMatch = html.match(/<b class='xcontrast_txt'>([^<]+)/);
@@ -171,9 +173,11 @@ async function fetchFFNetMetadata(url, includeRawHtml = false) {
 
         console.log('FFNet final metadata:', JSON.stringify(metadata, null, 2));
         if (includeRawHtml) metadata.rawHtml = html;
-        // Remove legacy 'author' field if present
-        if (metadata.author) delete metadata.author;
-        return normalizeMetadata(metadata, 'ffnet');
+    // Remove legacy 'author' field if present
+    if (metadata.author) delete metadata.author;
+    // Ensure archiveWarnings is always an array
+    if (!Array.isArray(metadata.archiveWarnings)) metadata.archiveWarnings = [];
+    return normalizeMetadata(metadata, 'ffnet');
     } catch (error) {
         console.error('Error parsing FFNet metadata:', error);
         return null;
