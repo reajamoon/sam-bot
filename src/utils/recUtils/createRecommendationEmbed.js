@@ -99,7 +99,7 @@ async function createRecommendationEmbed(rec) {
     }
 
     // Add Major Content Warnings field if present and not 'No Archive Warnings Apply'
-    const warnings = typeof rec.getArchiveWarnings === 'function' ? rec.getArchiveWarnings() : [];
+    let warnings = typeof rec.getArchiveWarnings === 'function' ? rec.getArchiveWarnings() : [];
     // Remove empty/falsey and trim
     warnings = warnings.map(w => (typeof w === 'string' ? w.trim() : '')).filter(Boolean);
     // Remove duplicates
