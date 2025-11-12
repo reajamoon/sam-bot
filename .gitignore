@@ -119,3 +119,6 @@ sqlite3.exe
 ecosystem.config.js
 *.csv
 *.html
+.prettierrc
+.gitignore
+.eslintrc.json
