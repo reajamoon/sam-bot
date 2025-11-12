@@ -9,20 +9,28 @@ function isAnonymousAO3Fic(html) {
 }
 
 function parseAO3Metadata(html, url, includeRawHtml = false) {
+        // Try to find meta block, but don't fail if not found
+        const metaBlockMatch = html.match(/<dl class="work meta group">([\s\S]*?)<\/dl>/);
+        const metaBlock = metaBlockMatch ? metaBlockMatch[0] : '';
+
         // Archive Warnings (extract all <a class="tag"> inside <dd class="warning tags">)
-        const warningsBlockMatch = metaBlock.match(/<dd class="warning tags">([\s\S]*?)<\/dd>/i);
         metadata.archiveWarnings = [];
-        if (warningsBlockMatch) {
-            const warningsBlock = warningsBlockMatch[1];
-            console.log('[AO3 PARSER][DEBUG] Found <dd class="warning tags"> block:', warningsBlock);
-            const warningTagRegex = /<a[^>]*class="tag"[^>]*>([^<]+)<\/a>/g;
-            let m;
-            while ((m = warningTagRegex.exec(warningsBlock)) !== null) {
-                console.log('[AO3 PARSER][DEBUG] Matched warning tag:', m[1]);
-                metadata.archiveWarnings.push(m[1].trim());
+        if (metaBlock) {
+            const warningsBlockMatch = metaBlock.match(/<dd class="warning tags">([\s\S]*?)<\/dd>/i);
+            if (warningsBlockMatch) {
+                const warningsBlock = warningsBlockMatch[1];
+                console.log('[AO3 PARSER][DEBUG] Found <dd class="warning tags"> block:', warningsBlock);
+                const warningTagRegex = /<a[^>]*class="tag"[^>]*>([^<]+)<\/a>/g;
+                let m;
+                while ((m = warningTagRegex.exec(warningsBlock)) !== null) {
+                    console.log('[AO3 PARSER][DEBUG] Matched warning tag:', m[1]);
+                    metadata.archiveWarnings.push(m[1].trim());
+                }
+            } else {
+                console.log('[AO3 PARSER][DEBUG] No <dd class="warning tags"> block found in metaBlock for', url);
             }
         } else {
-            console.log('[AO3 PARSER][DEBUG] No <dd class="warning tags"> block found in metaBlock for', url);
+            console.log('[AO3 PARSER][DEBUG] No metaBlock found in AO3 HTML for', url);
         }
         // Debug log
         console.log('[AO3 PARSER] archiveWarnings for', url, ':', metadata.archiveWarnings);
