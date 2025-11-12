@@ -212,11 +212,35 @@ async function handleUpdateRecommendation(interaction) {
                     content: 'That fic was already updated! Here’s the latest info:',
                     embeds: [resultEmbed]
                 });
-            } else {
-                await interaction.editReply({
-                    content: 'Your fic has been added to the parsing queue! I’ll notify you when it’s ready.'
-                });
+                return;
             }
+            // Final fallback: check if the job is now done in the DB (worker may have been too fast)
+            const finalQueue = await ParseQueue.findOne({ where: { id: queueEntry.id, status: 'done' } });
+            if (finalQueue && finalQueue.result) {
+                const updatedRec = await findRecommendationByIdOrUrl(interaction, recId, urlToUse, null);
+                if (updatedRec) {
+                    const result = await processRecommendationJob({
+                        url: urlToUse,
+                        user: { id: interaction.user.id, username: interaction.user.username },
+                        manualFields: {},
+                        additionalTags: newTags || [],
+                        notes: newNotes || '',
+                        isUpdate: true,
+                        existingRec: updatedRec
+                    });
+                    if (result && result.embed) {
+                        await interaction.editReply({
+                            content: 'That fic was already updated! Here’s the latest info:',
+                            embeds: [result.embed]
+                        });
+                        return;
+                    }
+                }
+            }
+            // If still not found, fallback to queue message
+            await interaction.editReply({
+                content: 'Your fic has been added to the parsing queue! I’ll notify you when it’s ready.'
+            });
             return;
         }
 
