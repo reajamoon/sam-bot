@@ -191,27 +191,8 @@ async function processRecommendationJob({
     }
   }
 
-  // Build recForEmbed
-  const recForEmbed = {
-    ...metadata,
-    authors: metadata.authors || (metadata.author ? [metadata.author] : ['Unknown Author']),
-    url,
-    id: recommendation.id,
-    recommendedByUsername: user.username,
-    notes,
-    getParsedTags: function() {
-      if (Array.isArray(additionalTags) && additionalTags.length > 0) return additionalTags;
-      if (Array.isArray(this.tags)) return this.tags;
-      if (typeof this.tags === 'string') {
-        try {
-          const parsed = JSON.parse(this.tags);
-          if (Array.isArray(parsed)) return parsed;
-        } catch {}
-      }
-      return [];
-    }
-  };
-  const embed = await createRecommendationEmbed(recForEmbed);
+  // Always use the actual Recommendation instance for embed generation
+  const embed = await createRecommendationEmbed(recommendation);
   if (typeof notify === 'function') {
     await notify(embed, recommendation, metadata);
   }
