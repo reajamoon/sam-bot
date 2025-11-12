@@ -1,15 +1,16 @@
+// Helper to get mention string for subscribers who want to be tagged
+async function getTagMentions(subscribers, User) {
+  if (!subscribers.length) return '';
+  const userIds = subscribers.map(sub => sub.user_id);
+  const users = await User.findAll({ where: { discordId: userIds } });
+  const tagSet = new Set(users.filter(u => u.queueNotifyTag !== false).map(u => u.discordId));
+  return subscribers
+    .filter(sub => tagSet.has(sub.user_id))
+    .map(sub => `<@${sub.user_id}>`).join(' ');
+}
+
 // Periodic cleanup of old queue jobs
 async function cleanupOldQueueJobs() {
-  // Helper to get mention string for subscribers who want to be tagged
-  async function getTagMentions(subscribers, User) {
-    if (!subscribers.length) return '';
-    const userIds = subscribers.map(sub => sub.user_id);
-    const users = await User.findAll({ where: { discordId: userIds } });
-    const tagSet = new Set(users.filter(u => u.queueNotifyTag !== false).map(u => u.discordId));
-    return subscribers
-      .filter(sub => tagSet.has(sub.user_id))
-      .map(sub => `<@${sub.user_id}>`).join(' ');
-  }
   const { Op } = require('sequelize');
   const now = new Date();
   // Remove 'done' jobs older than 3 hours
