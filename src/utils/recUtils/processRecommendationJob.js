@@ -53,9 +53,25 @@ async function processRecommendationJob({
       if (metadata && metadata.metadata && typeof metadata.metadata === 'object') {
         metadata = metadata.metadata;
       }
-      // Restore rating to top-level if present in stats (AO3 parser moves it)
-      if (metadata && metadata.stats && metadata.stats.rating && !metadata.rating) {
-        metadata.rating = metadata.stats.rating;
+      // Restore all relevant stats fields to top-level if present in stats (AO3 parser moves them)
+      if (metadata && metadata.stats) {
+        const statsMap = {
+          rating: 'rating',
+          words: 'wordCount',
+          chapters: 'chapters',
+          status: 'status',
+          published: 'publishedDate',
+          updated: 'updatedDate',
+          kudos: 'kudos',
+          hits: 'hits',
+          bookmarks: 'bookmarks',
+          comments: 'comments',
+        };
+        for (const [statsKey, metaKey] of Object.entries(statsMap)) {
+          if (metadata.stats[statsKey] !== undefined && metadata[metaKey] === undefined) {
+            metadata[metaKey] = metadata.stats[statsKey];
+          }
+        }
       }
       if (metadata && metadata.url) metadata.url = normalizeAO3Url(metadata.url);
     } catch (err) {
