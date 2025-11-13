@@ -33,7 +33,6 @@ exports[`AO3 Parser Integration parses AO3 HTML fixture: work1_anonlocked.html 1
       "Pining",
       "Case Fic",
     ],
-    "notes": "Notes: (See the end of the work for notes and other works inspired by this one.)",
     "relationship_tags": [
       "Castiel/Dean Winchester",
     ],
@@ -44,76 +43,12 @@ exports[`AO3 Parser Integration parses AO3 HTML fixture: work1_anonlocked.html 1
       "comments": 124,
       "hits": 48043,
       "kudos": 4031,
-      "published": "2013",
+      "published": "2013-06-01",
       "words": 11393,
     },
     "summary": "Castiel is captured by a djinn. Dean goes slightly crazy, and Cas discovers a thing or two about himself.",
     "title": "only if for a night",
-    "unknownFields": {
-      "add_to_collections": "",
-      "notes": "The creator's summary is added automatically. Plain text with limited HTML ? <details> <summary>Work/Series Details</summary> only if for a night by Anonymous<br /> Published: 2013-06-01<br /> Work/Series ID: 826303<details> <summary>Relationship Tags:</summary> • <a href="/tags/Castiel*s*Dean%20Winchester/works" rel="nofollow">Castiel/Dean Winchester</a></details> <details> <summary>Work/Series Summary:</summary> <blockquote> Castiel is captured by a djinn. Dean goes slightly crazy, and Cas discovers a thing or two about himself.</blockquote> </details> (Approximate) Last Read: 2024/02/26</details> Cas POV djinn dream fic. Very well done. Djinn dream is one of my fave spn tropes and mishcollin did an amazing job with this. Beautifully bitter sweet. 5000 characters left",
-      "your_tags": "The creator's tags are added automatically. Comma separated, 150 characters per tag",
-    },
-    "unknownStats": {
-      "add_to_collections": "",
-      "archive_warnings": "No Archive Warnings Apply",
-      "category_tags": "M/M",
-      "character_tags": "CastielDean WinchesterSam WinchesterDjinn - Character",
-      "collections": "The Destiel Fan Survey Favs Collection Anonymous",
-      "fandom_tags": "Supernatural",
-      "freeform_tags": "Fallen CastielDomesticDreamscapesDjinni & GeniesPiningCase Fic",
-      "language": "English",
-      "notes": "The creator's summary is added automatically.
-              Plain text with limited HTML ?
-            
-            <details>
-  <summary>Work/Series Details</summary>
-
-only if for a night by Anonymous<br />
-Published: 2013-06-01<br />
-Work/Series ID: 826303<details>
-    <summary>Relationship Tags:</summary>
-
-• <a href="/tags/Castiel*s*Dean%20Winchester/works" rel="nofollow">Castiel/Dean Winchester</a></details>
-  <details>
-    <summary>Work/Series Summary:</summary>
-    <blockquote>
-
-Castiel is captured by a djinn. Dean goes slightly crazy and Cas discovers a thing or two about himself.</blockquote>
-  </details>
-
-(Approximate) Last Read: 2024/02/26</details>
-
-Cas POV djinn dream fic. Very well done. Djinn dream is one of my fave spn tropes and mishcollin did an amazing job with this. Beautifully bitter sweet.
-            5000 characters left",
-      "rating": "Mature",
-      "relationship_tags": "Castiel/Dean Winchester",
-      "stats": "Published:2013-06-01Words:11393Chapters:1/1Comments:124Kudos:4031Bookmarks:618Hits:48043",
-      "your_tags": "The creator's tags are added automatically.
-              
-            
-            
-              Comma separated 150 characters per tag",
-    },
     "url": "test://dummy.url",
-    "warnings": [
-      "Unknown meta field: 'notes' found in meta block.",
-      "Unknown meta field: 'your_tags' found in meta block.",
-      "Unknown meta field: 'add_to_collections' found in meta block.",
-      "Unknown stats field: 'rating' in stats block.",
-      "Unknown stats field: 'archive_warnings' in stats block.",
-      "Unknown stats field: 'category_tags' in stats block.",
-      "Unknown stats field: 'fandom_tags' in stats block.",
-      "Unknown stats field: 'relationship_tags' in stats block.",
-      "Unknown stats field: 'character_tags' in stats block.",
-      "Unknown stats field: 'freeform_tags' in stats block.",
-      "Unknown stats field: 'language' in stats block.",
-      "Unknown stats field: 'collections' in stats block.",
-      "Unknown stats field: 'stats' in stats block.",
-      "Unknown stats field: 'notes' in stats block.",
-      "Unknown stats field: 'your_tags' in stats block.",
-      "Unknown stats field: 'add_to_collections' in stats block.",
-    ],
   },
 }
 `;
@@ -161,7 +96,6 @@ exports[`AO3 Parser Integration parses AO3 HTML fixture: work2_easymode.html 1`]
       "Getting Together",
       "Communication",
     ],
-    "notes": "Notes: Translation into 中文-普通话 國語 available: any port in a storm(中文翻译) by echo_tai, Peggy_Gaugh (See the end of the work for notes.)",
     "relationship_tags": [
       "Castiel/Dean Winchester",
     ],
@@ -172,78 +106,12 @@ exports[`AO3 Parser Integration parses AO3 HTML fixture: work2_easymode.html 1`]
       "comments": 389,
       "hits": 93251,
       "kudos": 5143,
-      "published": "2014",
+      "published": "2014-11-18",
       "words": 52738,
     },
     "summary": "The angels have fallen, leaving Castiel graceless and Dean with, well, more of other people’s problems. When a string of couples goes missing on the east coast, Dean and Cas decide to investigate—and find themselves trapped and hunted on a couples’ counseling cruise. Although battling monsters at sea is dangerous enough, sorting through emotional baggage proves to be far more deadly. (And, in which Cas embarks to find his missing grace and Dean is put out. Not necessarily in that order.)Art by anobviousaside.",
     "title": "any port in a storm",
-    "unknownFields": {
-      "add_to_collections": "",
-      "notes": "The creator's summary is added automatically. Plain text with limited HTML ? <details> <summary>Work/Series Details</summary> any port in a storm by microcomets<br /> Published: 2014-11-18<br /> Work/Series ID: 2637794<details> <summary>Relationship Tags:</summary> • <a href="/tags/Castiel*s*Dean%20Winchester/works" rel="nofollow">Castiel/Dean Winchester</a></details> <details> <summary>Work/Series Summary:</summary> <blockquote> The angels have fallen, leaving Castiel graceless and Dean with, well, more of other people’s problems. When a string of couples goes missing on the east coast, Dean and Cas decide to investigate—and find themselves trapped and hunted on a couples’ counseling cruise. Although battling monsters at sea is dangerous enough, sorting through emotional baggage proves to be far more deadly. (And, in which Cas embarks to find his missing grace and Dean is put out. Not necessarily in that order.) Art by <a href="https://www.anobviousaside.tumblr.com" rel="nofollow">anobviousaside.</a></blockquote> </details> (Approximate) Last Read: 2024/02/25</details> This is one of the best stories I have read in this fandom, hell, in any fandom really. Fantastic in so many ways. Characterizations are flawless. This author writes my favorite characterization of Cas, straight up. Having a fic where fake boyfriend Destiel literally are forced to hash out their shit in therapy and it is still true to character?? Damn. That's some talent. This will forever be a fave of mine. Even the OCs were perfect. 5000 characters left",
-      "your_tags": "The creator's tags are added automatically. Comma separated, 150 characters per tag",
-    },
-    "unknownStats": {
-      "add_to_collections": "",
-      "archive_warnings": "No Archive Warnings Apply",
-      "category_tags": "M/M",
-      "character_tags": "CastielDean WinchesterSam WinchesterKevin TranOriginal Female Character(s)Original Male Character(s)Metatron (Supernatural)",
-      "collections": "Top Notch and A+ Destiel The Destiel Fan Survey Favs Collection ProfoundBond Fic Club",
-      "fandom_tags": "Supernatural",
-      "freeform_tags": "Dean/Cas Big Bang Challenge 2014DCBB 2014Mutual PiningCastiel/Dean Winchester Mutual PiningCouples cruiseCase FicConfessionsGetting TogetherCommunication",
-      "language": "English",
-      "notes": "The creator's summary is added automatically.
-              Plain text with limited HTML ?
-            
-            <details>
-  <summary>Work/Series Details</summary>
-
-any port in a storm by microcomets<br />
-Published: 2014-11-18<br />
-Work/Series ID: 2637794<details>
-    <summary>Relationship Tags:</summary>
-
-• <a href="/tags/Castiel*s*Dean%20Winchester/works" rel="nofollow">Castiel/Dean Winchester</a></details>
-  <details>
-    <summary>Work/Series Summary:</summary>
-    <blockquote>
-
-The angels have fallen leaving Castiel graceless and Dean with well more of other people’s problems. When a string of couples goes missing on the east coast Dean and Cas decide to investigate—and find themselves trapped and hunted on a couples’ counseling cruise. Although battling monsters at sea is dangerous enough sorting through emotional baggage proves to be far more deadly. (And in which Cas embarks to find his missing grace and Dean is put out. Not necessarily in that order.)
-
-Art by <a href="https://www.anobviousaside.tumblr.com" rel="nofollow">anobviousaside.</a></blockquote>
-  </details>
-
-(Approximate) Last Read: 2024/02/25</details>
-
-This is one of the best stories I have read in this fandom hell in any fandom really. Fantastic in so many ways. Characterizations are flawless. This author writes my favorite characterization of Cas straight up. Having a fic where fake boyfriend Destiel literally are forced to hash out their shit in therapy and it is still true to character?? Damn. That's some talent. This will forever be a fave of mine. Even the OCs were perfect.
-            5000 characters left",
-      "rating": "Mature",
-      "relationship_tags": "Castiel/Dean Winchester",
-      "stats": "Published:2014-11-18Words:52738Chapters:1/1Comments:389Kudos:5143Bookmarks:1704Hits:93251",
-      "your_tags": "The creator's tags are added automatically.
-              
-            
-            
-              Comma separated 150 characters per tag",
-    },
     "url": "test://dummy.url",
-    "warnings": [
-      "Unknown meta field: 'notes' found in meta block.",
-      "Unknown meta field: 'your_tags' found in meta block.",
-      "Unknown meta field: 'add_to_collections' found in meta block.",
-      "Unknown stats field: 'rating' in stats block.",
-      "Unknown stats field: 'archive_warnings' in stats block.",
-      "Unknown stats field: 'category_tags' in stats block.",
-      "Unknown stats field: 'fandom_tags' in stats block.",
-      "Unknown stats field: 'relationship_tags' in stats block.",
-      "Unknown stats field: 'character_tags' in stats block.",
-      "Unknown stats field: 'freeform_tags' in stats block.",
-      "Unknown stats field: 'language' in stats block.",
-      "Unknown stats field: 'collections' in stats block.",
-      "Unknown stats field: 'stats' in stats block.",
-      "Unknown stats field: 'notes' in stats block.",
-      "Unknown stats field: 'your_tags' in stats block.",
-      "Unknown stats field: 'add_to_collections' in stats block.",
-    ],
   },
 }
 `;
@@ -308,7 +176,6 @@ exports[`AO3 Parser Integration parses AO3 HTML fixture: work3_warningsexplicit.
       "Technically includes major char death",
       "But it doesn't stick because SPN",
     ],
-    "notes": "Notes: (See the end of the work for notes and other works inspired by this one.)",
     "relationship_tags": [
       "Dean/Cas",
     ],
@@ -317,79 +184,14 @@ exports[`AO3 Parser Integration parses AO3 HTML fixture: work3_warningsexplicit.
       "bookmarks": 952,
       "chapters": "3",
       "comments": 335,
-      "completed": "2013",
       "hits": 61161,
       "kudos": 2772,
-      "published": "2013",
+      "published": "2013-10-03",
       "words": 78107,
     },
     "summary": "Cas never expected to live through Dean's last plan. Now, he's not only alive, he's in the past--before Dean went to Hell, before he made the deal at all. Can a fallen angel and a couple of hunters change the future by altering the past?",
     "title": "Every Man's Got A Right",
-    "unknownFields": {
-      "add_to_collections": "",
-      "notes": "The creator's summary is added automatically. Plain text with limited HTML ? <details> <summary>Work/Series Details</summary> Every Man's Got A Right by MollyC<br /> Completed: 2013-10-03<br /> Work/Series ID: 981795<details> <summary>Relationship Tags:</summary> • <a href="/tags/Dean*s*Cas/works" rel="nofollow">Dean/Cas</a></details> <details> <summary>Work/Series Summary:</summary> <blockquote> Cas never expected to live through Dean's last plan. Now, he's not only alive, he's in the past--before Dean went to Hell, before he made the deal at all. Can a fallen angel and a couple of hunters change the future by altering the past?</blockquote> </details> (Approximate) Last Read: 2024/02/23</details> This was EXCEPTIONAL. I didn't know it was going to be end!Cas or 1st person Cas!POV going in, but holy shit did the author make that work sooooo well. It's bitter sweet and wonderful. It's broken and ugly and beautiful. What a well written fic. I loved Cas's voice in this. 5000 characters left",
-      "your_tags": "The creator's tags are added automatically. Comma separated, 150 characters per tag",
-    },
-    "unknownStats": {
-      "add_to_collections": "",
-      "archive_warnings": "Graphic Depictions Of Violence",
-      "category_tags": "M/M",
-      "character_tags": "Dean WinchesterSam Winchester2014!Cas - CharacterCastielJimmy NovakGabrielCrowley (Supernatural)AlistairMadisonMolly MacnamaraCrossroads DemonBobby SingerFather ReynoldsEllen HarvelleJohn WinchesterAzazelFather Gregory",
-      "collections": 2014,
-      "fandom_tags": "Supernatural",
-      "freeform_tags": "canon AU5.04 The EndSeason 2 spoilersSeason 5 Spoilers2.09 CroatoancaseficSexTime TravelPOV First PersonHellTortureAUDCBB13Technically includes major char deathBut it doesn't stick because SPN",
-      "language": "English",
-      "notes": "The creator's summary is added automatically.
-              Plain text with limited HTML ?
-            
-            <details>
-  <summary>Work/Series Details</summary>
-
-Every Man's Got A Right by MollyC<br />
-Completed: 2013-10-03<br />
-Work/Series ID: 981795<details>
-    <summary>Relationship Tags:</summary>
-
-• <a href="/tags/Dean*s*Cas/works" rel="nofollow">Dean/Cas</a></details>
-  <details>
-    <summary>Work/Series Summary:</summary>
-    <blockquote>
-
-Cas never expected to live through Dean's last plan. Now he's not only alive he's in the past--before Dean went to Hell before he made the deal at all. Can a fallen angel and a couple of hunters change the future by altering the past?</blockquote>
-  </details>
-
-(Approximate) Last Read: 2024/02/23</details>
-
-This was EXCEPTIONAL. I didn't know it was going to be end!Cas or 1st person Cas!POV going in but holy shit did the author make that work sooooo well. It's bitter sweet and wonderful. It's broken and ugly and beautiful. What a well written fic. I loved Cas's voice in this.
-            5000 characters left",
-      "rating": "Explicit",
-      "relationship_tags": "Dean/Cas",
-      "stats": "Published:2013-10-03Completed:2013-10-03Words:78107Chapters:3/3Comments:335Kudos:2772Bookmarks:952Hits:61161",
-      "your_tags": "The creator's tags are added automatically.
-              
-            
-            
-              Comma separated 150 characters per tag",
-    },
     "url": "test://dummy.url",
-    "warnings": [
-      "Unknown meta field: 'notes' found in meta block.",
-      "Unknown meta field: 'your_tags' found in meta block.",
-      "Unknown meta field: 'add_to_collections' found in meta block.",
-      "Unknown stats field: 'rating' in stats block.",
-      "Unknown stats field: 'archive_warnings' in stats block.",
-      "Unknown stats field: 'category_tags' in stats block.",
-      "Unknown stats field: 'fandom_tags' in stats block.",
-      "Unknown stats field: 'relationship_tags' in stats block.",
-      "Unknown stats field: 'character_tags' in stats block.",
-      "Unknown stats field: 'freeform_tags' in stats block.",
-      "Unknown stats field: 'language' in stats block.",
-      "Unknown stats field: 'collections' in stats block.",
-      "Unknown stats field: 'stats' in stats block.",
-      "Unknown stats field: 'notes' in stats block.",
-      "Unknown stats field: 'your_tags' in stats block.",
-      "Unknown stats field: 'add_to_collections' in stats block.",
-    ],
   },
 }
 `;
@@ -422,7 +224,6 @@ exports[`AO3 Parser Integration parses AO3 HTML fixture: work4_regularlocked.htm
       "Witches",
       "Temporary Amnesia",
     ],
-    "notes": "Notes: (See the end of the chapter for notes.)",
     "relationship_tags": [
       "Castiel/Dean Winchester",
     ],
@@ -431,77 +232,14 @@ exports[`AO3 Parser Integration parses AO3 HTML fixture: work4_regularlocked.htm
       "bookmarks": 330,
       "chapters": "3",
       "comments": 91,
-      "completed": "2013",
       "hits": 18914,
       "kudos": 1864,
-      "published": "2013",
+      "published": "2013-09-01",
       "words": 12188,
     },
     "summary": "Dean wakes up with a wedding ring and without a clue where he is.",
     "title": "what happens in vegas",
-    "unknownFields": {
-      "add_to_collections": "",
-      "notes": "The creator's summary is added automatically. Plain text with limited HTML ? <details> <summary>Work/Series Details</summary> what happens in vegas by microcomets<br /> Completed: 2013-09-03<br /> Work/Series ID: 949901<details> <summary>Relationship Tags:</summary> • <a href="/tags/Castiel*s*Dean%20Winchester/works" rel="nofollow">Castiel/Dean Winchester</a></details> <details> <summary>Work/Series Summary:</summary> <blockquote> Dean wakes up with a wedding ring and without a clue where he is.</blockquote> </details> (Approximate) Last Read: 2024/03/05</details> I think if you went through my bookmarks and found every des fic I've said "was my favorite of a_specific_trope" it was probably written by mishcollins. They're the grandmaster of the perfectly tones and characterized destiel trope fic. No matter how fluffy or corny they manage to write the boys perfectly. A+ every time. This is wonderful. 5000 characters left",
-      "your_tags": "The creator's tags are added automatically. Comma separated, 150 characters per tag",
-    },
-    "unknownStats": {
-      "add_to_collections": "",
-      "archive_warnings": "No Archive Warnings Apply",
-      "category_tags": "M/M",
-      "character_tags": "CastielDean WinchesterSam Winchester",
-      "fandom_tags": "Supernatural",
-      "freeform_tags": "HumorAccidental MarriageLas VegasCase FicWitchesTemporary Amnesia",
-      "language": "English",
-      "notes": "The creator's summary is added automatically.
-              Plain text with limited HTML ?
-            
-            <details>
-  <summary>Work/Series Details</summary>
-
-what happens in vegas by microcomets<br />
-Completed: 2013-09-03<br />
-Work/Series ID: 949901<details>
-    <summary>Relationship Tags:</summary>
-
-• <a href="/tags/Castiel*s*Dean%20Winchester/works" rel="nofollow">Castiel/Dean Winchester</a></details>
-  <details>
-    <summary>Work/Series Summary:</summary>
-    <blockquote>
-
-Dean wakes up with a wedding ring and without a clue where he is.</blockquote>
-  </details>
-
-(Approximate) Last Read: 2024/03/05</details>
-
-I think if you went through my bookmarks and found every des fic I've said "was my favorite of a_specific_trope" it was probably written by mishcollins. They're the grandmaster of the perfectly tones and characterized destiel trope fic. No matter how fluffy or corny they manage to write the boys perfectly. A+ every time. This is wonderful.
-            5000 characters left",
-      "rating": "Teen And Up Audiences",
-      "relationship_tags": "Castiel/Dean Winchester",
-      "stats": "Published:2013-09-01Completed:2013-09-03Words:12188Chapters:3/3Comments:91Kudos:1864Bookmarks:330Hits:18914",
-      "your_tags": "The creator's tags are added automatically.
-              
-            
-            
-              Comma separated 150 characters per tag",
-    },
     "url": "test://dummy.url",
-    "warnings": [
-      "Unknown meta field: 'notes' found in meta block.",
-      "Unknown meta field: 'your_tags' found in meta block.",
-      "Unknown meta field: 'add_to_collections' found in meta block.",
-      "Unknown stats field: 'rating' in stats block.",
-      "Unknown stats field: 'archive_warnings' in stats block.",
-      "Unknown stats field: 'category_tags' in stats block.",
-      "Unknown stats field: 'fandom_tags' in stats block.",
-      "Unknown stats field: 'relationship_tags' in stats block.",
-      "Unknown stats field: 'character_tags' in stats block.",
-      "Unknown stats field: 'freeform_tags' in stats block.",
-      "Unknown stats field: 'language' in stats block.",
-      "Unknown stats field: 'stats' in stats block.",
-      "Unknown stats field: 'notes' in stats block.",
-      "Unknown stats field: 'your_tags' in stats block.",
-      "Unknown stats field: 'add_to_collections' in stats block.",
-    ],
   },
 }
 `;
@@ -536,7 +274,6 @@ exports[`AO3 Parser Integration parses AO3 HTML fixture: work5_regularexplicit.h
       "Angst and Humor",
       "Ghosts",
     ],
-    "notes": "This is set post-Season 13, and also post-Michael, although Dean's possession is referenced throughout. Thank to Ash for the once-over, and to Kira, Bexy, and Laren for being the best cheerleaders anyone could ask for. Warnings for (less than) canon-typical violence. Rebloggable @ Tumblr",
     "relationship_tags": [
       "Castiel/Dean Winchester",
     ],
@@ -547,78 +284,12 @@ exports[`AO3 Parser Integration parses AO3 HTML fixture: work5_regularexplicit.h
       "comments": 225,
       "hits": 30038,
       "kudos": 3080,
-      "published": "2018",
+      "published": "2018-05-26",
       "words": 22012,
     },
     "summary": ""Goddamned ghosts," Dean snaps, stabbing his shovel into the dirt. "Goddamned Heaven."(or: the one with the Ghost Apocalypse)",
     "title": "Rest in Pieces",
-    "unknownFields": {
-      "add_to_collections": "",
-      "notes": "The creator's summary is added automatically. Plain text with limited HTML ? <details> <summary>Work/Series Details</summary> Rest in Pieces by xylodemon<br /> Published: 2018-05-26<br /> Work/Series ID: 14756006<details> <summary>Relationship Tags:</summary> • <a href="/tags/Castiel*s*Dean%20Winchester/works" rel="nofollow">Castiel/Dean Winchester</a></details> <details> <summary>Work/Series Summary:</summary> <blockquote> "Goddamned ghosts," Dean snaps, stabbing his shovel into the dirt. "Goddamned Heaven." (or: the one with the Ghost Apocalypse)</blockquote> </details> (Approximate) Last Read: 2024/03/08</details> Fantastic. Loved the case. Xylo's characterizations are some of the best. 5000 characters left",
-      "your_tags": "The creator's tags are added automatically. Comma separated, 150 characters per tag",
-    },
-    "unknownStats": {
-      "add_to_collections": "",
-      "archive_warnings": "No Archive Warnings Apply",
-      "category_tags": "M/M",
-      "character_tags": "Dean WinchesterCastiel (Supernatural)",
-      "collections": "The Destiel Fan Survey Favs Collection SPN Best Works",
-      "fandom_tags": "Supernatural",
-      "freeform_tags": "Case FicGetting TogetherPost-Season/Series 13Angst and HumorGhosts",
-      "language": "English",
-      "notes": "The creator's summary is added automatically.
-              Plain text with limited HTML ?
-            
-            <details>
-  <summary>Work/Series Details</summary>
-
-Rest in Pieces by xylodemon<br />
-Published: 2018-05-26<br />
-Work/Series ID: 14756006<details>
-    <summary>Relationship Tags:</summary>
-
-• <a href="/tags/Castiel*s*Dean%20Winchester/works" rel="nofollow">Castiel/Dean Winchester</a></details>
-  <details>
-    <summary>Work/Series Summary:</summary>
-    <blockquote>
-
-"Goddamned ghosts" Dean snaps stabbing his shovel into the dirt. "Goddamned Heaven."
-
-(or: the one with the Ghost Apocalypse)</blockquote>
-  </details>
-
-(Approximate) Last Read: 2024/03/08</details>
-
-Fantastic. Loved the case. Xylo's characterizations are some of the best.
-            5000 characters left",
-      "rating": "Explicit",
-      "relationship_tags": "Castiel/Dean Winchester",
-      "stats": "Published:2018-05-26Words:22012Chapters:1/1Comments:225Kudos:3080Bookmarks:659Hits:30038",
-      "your_tags": "The creator's tags are added automatically.
-              
-            
-            
-              Comma separated 150 characters per tag",
-    },
     "url": "test://dummy.url",
-    "warnings": [
-      "Unknown meta field: 'notes' found in meta block.",
-      "Unknown meta field: 'your_tags' found in meta block.",
-      "Unknown meta field: 'add_to_collections' found in meta block.",
-      "Unknown stats field: 'rating' in stats block.",
-      "Unknown stats field: 'archive_warnings' in stats block.",
-      "Unknown stats field: 'category_tags' in stats block.",
-      "Unknown stats field: 'fandom_tags' in stats block.",
-      "Unknown stats field: 'relationship_tags' in stats block.",
-      "Unknown stats field: 'character_tags' in stats block.",
-      "Unknown stats field: 'freeform_tags' in stats block.",
-      "Unknown stats field: 'language' in stats block.",
-      "Unknown stats field: 'collections' in stats block.",
-      "Unknown stats field: 'stats' in stats block.",
-      "Unknown stats field: 'notes' in stats block.",
-      "Unknown stats field: 'your_tags' in stats block.",
-      "Unknown stats field: 'add_to_collections' in stats block.",
-    ],
   },
 }
 `;
@@ -654,52 +325,12 @@ exports[`AO3 Parser Integration parses AO3 HTML fixture: work6_orphanwithname.ht
       "comments": 9,
       "hits": 3039,
       "kudos": 87,
-      "published": "2025",
+      "published": "2025-04-01",
       "words": 830,
     },
     "summary": "With a magical, self-sustaining supply of pigeons and a penchant for the dramatic, Socks is going to need all the snacks they can get to survive the bizarre world around them. The only thing they can count on is that things will only get weirder from here.",
     "title": "Testing (for breaks in reality)",
-    "unknownFields": {
-      "add_to_collections": "",
-      "notes": "The creator's summary is added automatically. Plain text with limited HTML ? 5000 characters left",
-      "your_tags": "The creator's tags are added automatically. Comma separated, 150 characters per tag",
-    },
-    "unknownStats": {
-      "add_to_collections": "",
-      "archive_warnings": "No Archive Warnings Apply",
-      "character_tags": "Tony StarkPigeons - Charactersocks - Character",
-      "fandom_tags": "Original Work",
-      "freeform_tags": "Round Robinwhat happens when you can only see the last twenty percent of what came beforeall roads lead to surreality",
-      "language": "English",
-      "notes": "The creator's summary is added automatically.
-              Plain text with limited HTML ?
-            
-            
-            5000 characters left",
-      "rating": "General Audiences",
-      "stats": "Published:2025-04-01Words:830Chapters:1/1Comments:9Kudos:87Bookmarks:5Hits:3039",
-      "your_tags": "The creator's tags are added automatically.
-              
-            
-            
-              Comma separated 150 characters per tag",
-    },
     "url": "test://dummy.url",
-    "warnings": [
-      "Unknown meta field: 'notes' found in meta block.",
-      "Unknown meta field: 'your_tags' found in meta block.",
-      "Unknown meta field: 'add_to_collections' found in meta block.",
-      "Unknown stats field: 'rating' in stats block.",
-      "Unknown stats field: 'archive_warnings' in stats block.",
-      "Unknown stats field: 'fandom_tags' in stats block.",
-      "Unknown stats field: 'character_tags' in stats block.",
-      "Unknown stats field: 'freeform_tags' in stats block.",
-      "Unknown stats field: 'language' in stats block.",
-      "Unknown stats field: 'stats' in stats block.",
-      "Unknown stats field: 'notes' in stats block.",
-      "Unknown stats field: 'your_tags' in stats block.",
-      "Unknown stats field: 'add_to_collections' in stats block.",
-    ],
   },
 }
 `;
@@ -723,56 +354,18 @@ exports[`AO3 Parser Integration parses AO3 HTML fixture: work7_multipleauthors.h
       "Testing",
     ],
     "freeform_tags": [],
-    "notes": "test block",
     "relationship_tags": [],
     "required_tags": [],
     "stats": {
       "chapters": "1",
       "hits": 76,
       "kudos": 5,
-      "published": "2016",
-      "updated": "2016",
+      "published": "2016-05-19",
       "words": 6,
     },
     "summary": "test block",
     "title": "1623",
-    "unknownFields": {
-      "add_to_collections": "",
-      "notes": "The creator's summary is added automatically. Plain text with limited HTML ? 5000 characters left",
-      "your_tags": "The creator's tags are added automatically. Comma separated, 150 characters per tag",
-    },
-    "unknownStats": {
-      "add_to_collections": "",
-      "archive_warnings": "Creator Chose Not To Use Archive Warnings",
-      "fandom_tags": "Testing",
-      "language": "English",
-      "notes": "The creator's summary is added automatically.
-              Plain text with limited HTML ?
-            
-            
-            5000 characters left",
-      "rating": "Not Rated",
-      "stats": "Published:2016-05-19Updated:2016-05-19Words:6Chapters:1/?Kudos:5Hits:76",
-      "your_tags": "The creator's tags are added automatically.
-              
-            
-            
-              Comma separated 150 characters per tag",
-    },
     "url": "test://dummy.url",
-    "warnings": [
-      "Unknown meta field: 'notes' found in meta block.",
-      "Unknown meta field: 'your_tags' found in meta block.",
-      "Unknown meta field: 'add_to_collections' found in meta block.",
-      "Unknown stats field: 'rating' in stats block.",
-      "Unknown stats field: 'archive_warnings' in stats block.",
-      "Unknown stats field: 'fandom_tags' in stats block.",
-      "Unknown stats field: 'language' in stats block.",
-      "Unknown stats field: 'stats' in stats block.",
-      "Unknown stats field: 'notes' in stats block.",
-      "Unknown stats field: 'your_tags' in stats block.",
-      "Unknown stats field: 'add_to_collections' in stats block.",
-    ],
   },
 }
 `;
@@ -811,56 +404,12 @@ exports[`AO3 Parser Integration parses AO3 HTML fixture: work8_lockedorphan.html
     "stats": {
       "chapters": "1",
       "hits": 4,
-      "published": "2025",
+      "published": "2025-11-13",
       "words": 1025,
     },
     "summary": "STCR-266 isn't like the other Storches. She feels things other than anger.",
     "title": "Bad Dreams",
-    "unknownFields": {
-      "add_to_collections": "",
-      "notes": "The creator's summary is added automatically. Plain text with limited HTML ? 5000 characters left",
-      "your_tags": "The creator's tags are added automatically. Comma separated, 150 characters per tag",
-    },
-    "unknownStats": {
-      "add_to_collections": "",
-      "archive_warnings": "Graphic Depictions Of Violence",
-      "category_tags": "F/M",
-      "character_tags": "Gestalt(s) (SIGNALIS)Original Gestalt(s) (SIGNALIS)Storch | STCR Unit(s)Original Replika Unit(s) (SIGNALIS)",
-      "fandom_tags": "SIGNALIS (Video Game)",
-      "freeform_tags": "Fluff and AngstNightmaresGiantsGentle Storch",
-      "language": "English",
-      "notes": "The creator's summary is added automatically.
-              Plain text with limited HTML ?
-            
-            
-            5000 characters left",
-      "rating": "Not Rated",
-      "relationship_tags": "Gestalt(s)/Storch | STCR Unit(s)",
-      "stats": "Published:2025-11-13Words:1025Chapters:1/1Hits:4",
-      "your_tags": "The creator's tags are added automatically.
-              
-            
-            
-              Comma separated 150 characters per tag",
-    },
     "url": "test://dummy.url",
-    "warnings": [
-      "Unknown meta field: 'notes' found in meta block.",
-      "Unknown meta field: 'your_tags' found in meta block.",
-      "Unknown meta field: 'add_to_collections' found in meta block.",
-      "Unknown stats field: 'rating' in stats block.",
-      "Unknown stats field: 'archive_warnings' in stats block.",
-      "Unknown stats field: 'category_tags' in stats block.",
-      "Unknown stats field: 'fandom_tags' in stats block.",
-      "Unknown stats field: 'relationship_tags' in stats block.",
-      "Unknown stats field: 'character_tags' in stats block.",
-      "Unknown stats field: 'freeform_tags' in stats block.",
-      "Unknown stats field: 'language' in stats block.",
-      "Unknown stats field: 'stats' in stats block.",
-      "Unknown stats field: 'notes' in stats block.",
-      "Unknown stats field: 'your_tags' in stats block.",
-      "Unknown stats field: 'add_to_collections' in stats block.",
-    ],
   },
 }
 `;
@@ -897,7 +446,6 @@ exports[`AO3 Parser Integration parses AO3 HTML fixture: work9_regularorphan.htm
       "Alternate Universe",
       "Hurt/Comfort",
     ],
-    "notes": "Today's World Kindness Day. Let's always be kind to each other, online and real-life :)",
     "relationship_tags": [
       "Kim Heechul/Kim Kanghoon | Yesung",
       "Kim Kanghoon | Yesung/Park Jungsoo | Leeteuk",
@@ -909,56 +457,12 @@ exports[`AO3 Parser Integration parses AO3 HTML fixture: work9_regularorphan.htm
       "chapters": "1",
       "hits": 14,
       "kudos": 1,
-      "published": "2025",
+      "published": "2025-11-13",
       "words": 1282,
     },
     "summary": "Yesung found comfort and himself again, since an unexpected encounter with a stranger.",
     "title": "When the world falls sideways",
-    "unknownFields": {
-      "add_to_collections": "",
-      "notes": "The creator's summary is added automatically. Plain text with limited HTML ? 5000 characters left",
-      "your_tags": "The creator's tags are added automatically. Comma separated, 150 characters per tag",
-    },
-    "unknownStats": {
-      "add_to_collections": "",
-      "archive_warnings": "Creator Chose Not To Use Archive Warnings",
-      "category_tags": "M/M",
-      "character_tags": "Kim Kanghoon | YesungKim Heechul (Super Junior)Park Jungsoo | Leeteuk",
-      "fandom_tags": "Super Junior",
-      "freeform_tags": "FriendshipFound FamilyFluffHappy EndingGrowing Old TogetherSlice of LifeWeddingsStrangers to FriendsAlternate UniverseHurt/Comfort",
-      "language": "English",
-      "notes": "The creator's summary is added automatically.
-              Plain text with limited HTML ?
-            
-            
-            5000 characters left",
-      "rating": "Teen And Up Audiences",
-      "relationship_tags": "Kim Heechul/Kim Kanghoon | YesungKim Kanghoon | Yesung/Park Jungsoo | LeeteukKim Heechul/Park Jungsoo | LeeteukKim Heechul/Kim Kanghoon | Yesung/Park Jungsoo | Leeteuk",
-      "stats": "Published:2025-11-13Words:1282Chapters:1/1Kudos:1Hits:14",
-      "your_tags": "The creator's tags are added automatically.
-              
-            
-            
-              Comma separated 150 characters per tag",
-    },
     "url": "test://dummy.url",
-    "warnings": [
-      "Unknown meta field: 'notes' found in meta block.",
-      "Unknown meta field: 'your_tags' found in meta block.",
-      "Unknown meta field: 'add_to_collections' found in meta block.",
-      "Unknown stats field: 'rating' in stats block.",
-      "Unknown stats field: 'archive_warnings' in stats block.",
-      "Unknown stats field: 'category_tags' in stats block.",
-      "Unknown stats field: 'fandom_tags' in stats block.",
-      "Unknown stats field: 'relationship_tags' in stats block.",
-      "Unknown stats field: 'character_tags' in stats block.",
-      "Unknown stats field: 'freeform_tags' in stats block.",
-      "Unknown stats field: 'language' in stats block.",
-      "Unknown stats field: 'stats' in stats block.",
-      "Unknown stats field: 'notes' in stats block.",
-      "Unknown stats field: 'your_tags' in stats block.",
-      "Unknown stats field: 'add_to_collections' in stats block.",
-    ],
   },
 }
 `;

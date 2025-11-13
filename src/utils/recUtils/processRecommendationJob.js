@@ -96,8 +96,8 @@ async function processRecommendationJob({
     }
     // Allow manual override of individual fields
     if (manualFields.title) metadata.title = manualFields.title;
-  if (manualFields.authors) metadata.authors = manualFields.authors;
-  else if (manualFields.author) metadata.authors = [manualFields.author];
+    if (manualFields.authors) metadata.authors = manualFields.authors;
+    else if (manualFields.author) metadata.authors = [manualFields.author];
     if (manualFields.summary) metadata.summary = manualFields.summary;
     if (manualFields.wordCount) metadata.wordCount = manualFields.wordCount;
     if (manualFields.rating) metadata.rating = manualFields.rating;
@@ -108,6 +108,15 @@ async function processRecommendationJob({
       url.includes('livejournal.com') ? 'livejournal' :
       url.includes('dreamwidth.org') ? 'dreamwidth' :
       url.includes('tumblr.com') ? 'tumblr' : 'other'));
+
+    // Prefer manualFields.notes over AO3 metadata.notes
+    if (manualFields.notes && manualFields.notes.trim()) {
+      notes = manualFields.notes.trim();
+    } else if (metadata.notes && metadata.notes.trim()) {
+      notes = metadata.notes.trim();
+    } else {
+      notes = '';
+    }
   }
 
   // Ensure required fields are present and valid
@@ -157,7 +166,13 @@ async function processRecommendationJob({
     if (existingRec.publishedDate !== metadata.publishedDate) updateFields.publishedDate = metadata.publishedDate;
     if (existingRec.updatedDate !== metadata.updatedDate) updateFields.updatedDate = metadata.updatedDate;
     if (JSON.stringify(oldAdditional) !== JSON.stringify(mergedAdditional)) updateFields.additionalTags = JSON.stringify(mergedAdditional);
-    if (existingRec.notes !== notes) updateFields.notes = notes;
+    // Only overwrite notes if the new value is non-empty and different, or if the existing value is empty
+    if (
+      (notes && notes.trim() && existingRec.notes !== notes) ||
+      (!existingRec.notes && notes !== undefined)
+    ) {
+      updateFields.notes = notes;
+    }
     if (existingRec.kudos !== metadata.kudos) updateFields.kudos = metadata.kudos;
     if (existingRec.hits !== metadata.hits) updateFields.hits = metadata.hits;
     if (existingRec.bookmarks !== metadata.bookmarks) updateFields.bookmarks = metadata.bookmarks;

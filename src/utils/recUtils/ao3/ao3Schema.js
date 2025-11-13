@@ -18,7 +18,6 @@ const AO3Schema = z.object({
   authors: z.array(z.string()),
   url: z.string().url().optional().nullable(),
   summary: z.string().optional(),
-  notes: z.string().optional(),
   fandom_tags: z.array(z.string()).optional(),
   archive_warnings: z.array(z.string()).optional(),
   relationship_tags: z.array(z.string()).optional(),

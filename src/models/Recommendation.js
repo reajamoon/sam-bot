@@ -82,6 +82,10 @@ module.exports = (sequelize) => {
             type: DataTypes.TEXT,
             allowNull: true
         },
+        authorNotes: {
+            type: DataTypes.TEXT,
+            allowNull: true
+        },
         archive_warnings: {
             type: DataTypes.JSONB, // Store as array
             allowNull: true,

@@ -171,20 +171,7 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
         if (collections.length > 0) {
             metadata.collections = collections;
         }
-        // Notes block: extract only the main user-facing notes as plain text
-        const notesBlock = $('div.notes.module').first();
-        if (notesBlock && notesBlock.length > 0) {
-            // Prefer the <blockquote class="userstuff"> if present
-            const userstuff = notesBlock.find('blockquote.userstuff').first();
-            let notesText = '';
-            if (userstuff && userstuff.length > 0) {
-                notesText = userstuff.text().replace(/\s+/g, ' ').trim();
-            } else {
-                // Fallback: get all text from notesBlock, strip whitespace
-                notesText = notesBlock.text().replace(/\s+/g, ' ').trim();
-            }
-            if (notesText) metadata.notes = decodeHtmlEntities(notesText);
-        }
+        // AO3 author notes are not parsed or included
         // Summary block: handle like meta/stats, with warnings
         const summaryBlock = $('div.summary.module blockquote.userstuff').first();
         if (summaryBlock && summaryBlock.length > 0) {
