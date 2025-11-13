@@ -11,6 +11,8 @@ const ratingEmojis = {
 
 // Builds the embed for a rec. Checks if the link works, adds warnings if needed.
 async function createRecommendationEmbed(rec) {
+    // DEBUG: Log the rec object to inspect rating presence
+    console.log('[DEBUG] createRecommendationEmbed rec:', JSON.stringify(rec, null, 2));
     // Archive warning emoji and logic
     const majorWarningEmoji = '<:warn_yes:1142772202379415622>';
     const maybeWarningEmoji = '<:warn_maybe:1142772269156933733>';
