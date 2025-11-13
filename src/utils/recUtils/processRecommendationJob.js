@@ -115,12 +115,14 @@ async function processRecommendationJob({
     const updateFields = {};
     if (existingRec.url !== url) updateFields.url = url;
     if (existingRec.title !== metadata.title) updateFields.title = metadata.title;
-  // Always update authors array
-  let newAuthors = metadata.authors || (metadata.author ? [metadata.author] : ['Unknown Author']);
-  if (JSON.stringify(existingRec.authors) !== JSON.stringify(newAuthors)) updateFields.authors = JSON.stringify(newAuthors);
-  // For legacy support, update author field to first author
-  const newAuthor = newAuthors[0] || 'Unknown Author';
-  if (existingRec.author !== newAuthor) updateFields.author = newAuthor;
+    // Always update authors array
+    let newAuthors = metadata.authors || (metadata.author ? [metadata.author] : ['Unknown Author']);
+    // Compare arrays by value
+    const authorsChanged = !Array.isArray(existingRec.authors) || existingRec.authors.length !== newAuthors.length || existingRec.authors.some((a, i) => a !== newAuthors[i]);
+    if (authorsChanged) updateFields.authors = newAuthors;
+    // For legacy support, update author field to first author
+    const newAuthor = newAuthors[0] || 'Unknown Author';
+    if (existingRec.author !== newAuthor) updateFields.author = newAuthor;
     if (existingRec.summary !== metadata.summary) updateFields.summary = metadata.summary;
     if (JSON.stringify(oldTags) !== JSON.stringify(mergedTags)) updateFields.tags = JSON.stringify(mergedTags);
     if (existingRec.rating !== metadata.rating) updateFields.rating = metadata.rating;
@@ -162,10 +164,10 @@ async function processRecommendationJob({
       recommendation = await Recommendation.create({
         url,
         title: metadata.title,
-  // Deprecated: author (for legacy)
-  author: (metadata.authors && metadata.authors[0]) || metadata.author || 'Unknown Author',
-  // Canonical: authors array
-  authors: JSON.stringify(metadata.authors || (metadata.author ? [metadata.author] : ['Unknown Author'])),
+        // Deprecated: author (for legacy)
+        author: (metadata.authors && metadata.authors[0]) || metadata.author || 'Unknown Author',
+        // Canonical: authors array
+        authors: metadata.authors || (metadata.author ? [metadata.author] : ['Unknown Author']),
         summary: metadata.summary,
         tags: JSON.stringify(Array.isArray(metadata.tags) ? metadata.tags : []),
         rating: metadata.rating,

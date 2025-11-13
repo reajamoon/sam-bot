@@ -1,25 +1,25 @@
 // Migration: Add authors array field to recommendations and migrate existing author data
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    // 1. Add the new authors field (TEXT, JSON array)
+    // 1. Add the new authors field (JSONB array)
     await queryInterface.addColumn('recommendations', 'authors', {
-      type: Sequelize.TEXT,
+      type: Sequelize.JSONB,
       allowNull: true,
       defaultValue: null,
     });
-    // 2. Migrate existing author data to authors array
+    // 2. Migrate existing author data to authors array (as JSONB)
     await queryInterface.sequelize.query(`
       UPDATE recommendations
       SET authors =
         CASE
           WHEN author IS NOT NULL AND author != ''
-            THEN json('[' || quote_literal(author) || ']')
+            THEN jsonb_build_array(author)
           ELSE NULL
         END
     `);
   },
   down: async (queryInterface, Sequelize) => {
-    // Remove the authors field
-    await queryInterface.removeColumn('recommendations', 'authors');
+  // Remove the authors field
+  await queryInterface.removeColumn('recommendations', 'authors');
   }
 };

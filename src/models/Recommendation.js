@@ -21,9 +21,9 @@ module.exports = (sequelize) => {
             type: DataTypes.STRING,
             allowNull: true
         },
-        // Authors array (JSON string)
+        // Authors array (native JSONB)
         authors: {
-            type: DataTypes.TEXT, // JSON array of author names
+            type: DataTypes.JSONB, // Array of author names
             allowNull: true,
             defaultValue: null
         },
@@ -32,9 +32,9 @@ module.exports = (sequelize) => {
             allowNull: true
         },
         tags: {
-            type: DataTypes.TEXT, // Store as JSON string
+            type: DataTypes.JSONB, // Array of tags
             allowNull: true,
-            defaultValue: '[]'
+            defaultValue: []
         },
         rating: {
             type: DataTypes.STRING,
@@ -74,20 +74,20 @@ module.exports = (sequelize) => {
             allowNull: false
         },
         additionalTags: {
-            type: DataTypes.TEXT, // User-added custom tags
+            type: DataTypes.JSONB, // User-added custom tags
             allowNull: true,
-            defaultValue: '[]'
+            defaultValue: []
         },
         notes: {
             type: DataTypes.TEXT,
             allowNull: true
         },
-            archive_warnings: {
-                type: DataTypes.TEXT, // Store as JSON string array
-                allowNull: true,
-                defaultValue: '[]',
-                field: 'archive_warnings'
-            },
+        archive_warnings: {
+            type: DataTypes.JSONB, // Store as array
+            allowNull: true,
+            defaultValue: [],
+            field: 'archive_warnings'
+        },
         kudos: {
             type: DataTypes.INTEGER,
             allowNull: true
@@ -133,36 +133,22 @@ module.exports = (sequelize) => {
 
     // Instance methods
     Recommendation.prototype.getParsedTags = function() {
-        try {
-            const siteTags = JSON.parse(this.tags || '[]');
-            const userTags = JSON.parse(this.additionalTags || '[]');
-            return [...siteTags, ...userTags];
-        } catch (error) {
-            return [];
-        }
+        const siteTags = Array.isArray(this.tags) ? this.tags : [];
+        const userTags = Array.isArray(this.additionalTags) ? this.additionalTags : [];
+        return [...siteTags, ...userTags];
     };
 
     Recommendation.prototype.getArchiveWarnings = function() {
-        try {
-            if (Array.isArray(this.archiveWarnings)) return this.archiveWarnings;
-            if (Array.isArray(this.archive_warnings)) return this.archive_warnings;
-            if (typeof this.archive_warnings === 'string') {
-                const parsed = JSON.parse(this.archive_warnings);
-                if (Array.isArray(parsed)) return parsed;
-            }
-        } catch (error) {}
+        if (Array.isArray(this.archiveWarnings)) return this.archiveWarnings;
+        if (Array.isArray(this.archive_warnings)) return this.archive_warnings;
         return [];
     };
 
     Recommendation.prototype.addUserTag = function(tag) {
-        try {
-            const userTags = JSON.parse(this.additionalTags || '[]');
-            if (!userTags.includes(tag)) {
-                userTags.push(tag);
-                this.additionalTags = JSON.stringify(userTags);
-            }
-        } catch (error) {
-            this.additionalTags = JSON.stringify([tag]);
+        let userTags = Array.isArray(this.additionalTags) ? this.additionalTags : [];
+        if (!userTags.includes(tag)) {
+            userTags.push(tag);
+            this.additionalTags = userTags;
         }
     };
 
