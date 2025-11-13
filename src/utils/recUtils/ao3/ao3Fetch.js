@@ -1,3 +1,4 @@
+const updateMessages = require('../../../commands/recHandlers/updateMessages');
 // ao3Fetch.js
 // AO3 login/fallback fetch logic
 
@@ -18,6 +19,13 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
     let loggedIn = false;
     let retried = false;
     ao3Url = url;
+    const fs = require('fs');
+    const path = require('path');
+    const LOG_FAILED_HTML = true;
+    const FAILED_HTML_DIR = path.join(process.cwd(), 'logs', 'ao3_failed_html');
+    if (LOG_FAILED_HTML && !fs.existsSync(FAILED_HTML_DIR)) {
+        fs.mkdirSync(FAILED_HTML_DIR, { recursive: true });
+    }
     async function doLoginAndFetch() {
         const loginResult = await getLoggedInAO3Page();
         browser = loginResult.browser;
@@ -37,9 +45,28 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
             }
             // Bypass 'stay logged in' interstitial if present
             await bypassStayLoggedInInterstitial(page, ao3Url);
+            // AO3-specific: detect rate-limiting or CAPTCHA/anti-bot pages (title and error containers only)
+            const pageTitle = await page.title();
+            const errorText = await page.evaluate(() => {
+                const selectors = ['.error', '.notice', 'h1', 'h2', '#main .wrapper h1', '#main .wrapper h2'];
+                let found = '';
+                for (const sel of selectors) {
+                    const el = document.querySelector(sel);
+                    if (el && el.textContent) found += el.textContent + '\n';
+                }
+                return found;
+            });
+            const rateLimitMatch =
+                (pageTitle && /rate limit|too many requests|prove you are human|unusual traffic|captcha/i.test(pageTitle)) ||
+                (errorText && /rate limit|too many requests|prove you are human|unusual traffic|captcha/i.test(errorText));
+            if (rateLimitMatch) {
+                console.warn('[AO3] Rate limit or CAPTCHA detected during fetch (title or error container).');
+                await page.close();
+                html = null;
+                return false;
+            }
             html = await page.content();
             // Extra check: ensure not still on login/interstitial page
-            const pageTitle = await page.title();
             if (
                 html.includes('<form id="loginform"') ||
                 /New\s*Session/i.test(pageTitle) ||
@@ -58,9 +85,10 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
     }
 
     let ok = await doLoginAndFetch();
-    if (!ok) {
-        // If we failed, delete cookies and try again once
-        const fs = require('fs');
+    let attempts = 1;
+    let maxAttempts = 2;
+    while ((!ok || !html) && attempts < maxAttempts) {
+        // If we failed, delete cookies and try again
         const COOKIES_PATH = 'ao3_cookies.json';
         if (fs.existsSync(COOKIES_PATH)) {
             console.warn('[AO3] Detected login/interstitial page. Deleting cookies and retrying login.');
@@ -68,16 +96,29 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
         }
         retried = true;
         ok = await doLoginAndFetch();
+        attempts++;
     }
     if (ok && html) {
         return parseAO3Metadata(html, ao3Url, includeRawHtml);
+    }
+    // Log failed HTML for debugging
+    if (LOG_FAILED_HTML && html) {
+        try {
+            const safeUrl = ao3Url.replace(/[^a-zA-Z0-9]/g, '_').slice(-60);
+            const fname = `fail_${Date.now()}_${safeUrl}.html`;
+            const fpath = path.join(FAILED_HTML_DIR, fname);
+            fs.writeFileSync(fpath, html, 'utf8');
+            console.warn(`[AO3] Saved failed HTML to ${fpath}`);
+        } catch (err) {
+            console.warn('[AO3] Failed to save failed HTML:', err);
+        }
     }
     return {
         title: 'Unknown Title',
         author: 'Unknown Author',
         url: ao3Url,
         error: 'AO3 session or login required',
-        summary: 'AO3 is still requiring a login or new session after login attempt. Please wait a few minutes and try again.'
+        summary: updateMessages.loginMessage
     };
 }
 

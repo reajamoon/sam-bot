@@ -45,32 +45,9 @@ async function debugLoginAndFetchWork(workUrl) {
 // Utility for logging in to AO3 with Puppeteer and returning a logged-in page
 
 
-const puppeteer = require('puppeteer');
-let sharedBrowser = null;
+const { getSharedBrowser, logBrowserEvent } = require('./ao3BrowserManager');
 
-async function getSharedBrowser() {
-    if (sharedBrowser && sharedBrowser.process() && sharedBrowser.isConnected()) {
-        return sharedBrowser;
-    }
-    sharedBrowser = await puppeteer.launch({
-        headless: process.env.AO3_HEADLESS === 'false' ? false : true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-    return sharedBrowser;
-}
 
-// Graceful shutdown for shared browser
-function setupBrowserShutdown() {
-    const shutdown = async () => {
-        if (sharedBrowser) {
-            try { await sharedBrowser.close(); } catch {}
-        }
-        process.exit(0);
-    };
-    process.on('SIGINT', shutdown);
-    process.on('SIGTERM', shutdown);
-}
-setupBrowserShutdown();
 
 /**
  * Logs in to AO3 and returns a logged-in Puppeteer page.
@@ -88,12 +65,37 @@ async function getLoggedInAO3Page() {
     const headless = process.env.AO3_HEADLESS === 'false' ? false : true;
     const fs = require('fs');
     const COOKIES_PATH = 'ao3_cookies.json';
+    // Configurable timeouts (ms)
+    const NAV_TIMEOUT = parseInt(process.env.AO3_NAV_TIMEOUT, 10) || 60000;
+    const LOGIN_RETRY_MAX = parseInt(process.env.AO3_LOGIN_RETRY_MAX, 10) || 3;
+    const LOGIN_RETRY_BASE_DELAY = parseInt(process.env.AO3_LOGIN_RETRY_BASE_DELAY, 10) || 5000;
     if (!username || !password) {
         throw new Error('AO3_USERNAME or AO3_PASSWORD is missing from environment.');
     }
-    const browser = await getSharedBrowser();
-    const page = await browser.newPage();
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:118.0) Gecko/20100101 Firefox/118.0');
+    let browser;
+    try {
+        browser = await getSharedBrowser();
+    } catch (err) {
+        logBrowserEvent('Failed to get shared browser: ' + err.message);
+        throw err;
+    }
+    let page;
+    try {
+        page = await browser.newPage();
+    } catch (err) {
+        logBrowserEvent('Error creating new page: ' + err.message);
+        // If browser is disconnected, force restart on next use
+        if (err.message && (err.message.includes('Target closed') || err.message.includes('browser has disconnected'))) {
+            logBrowserEvent('Detected browser/page error, will restart browser.');
+            try { await browser.close(); logBrowserEvent('Browser closed after page error.'); } catch {}
+            sharedBrowser = null;
+            sharedBrowserUseCount = 0;
+        }
+        throw err;
+    }
+    // Use the current browser session's user-agent for all pages
+    const { getCurrentUserAgent } = require('./ao3BrowserManager');
+    await page.setUserAgent(getCurrentUserAgent());
     await page.setExtraHTTPHeaders({
         'Accept-Language': 'en-US,en;q=0.5',
         'Upgrade-Insecure-Requests': '1',
@@ -102,33 +104,75 @@ async function getLoggedInAO3Page() {
 
     if (fs.existsSync(COOKIES_PATH)) {
         try {
-            console.log('[AO3] Loading cookies from file...');
+            logBrowserEvent('[AO3] Attempting to load cookies from file...');
             const cookies = JSON.parse(fs.readFileSync(COOKIES_PATH, 'utf8'));
             await page.goto('https://archiveofourown.org/', { waitUntil: 'domcontentloaded' });
             await page.setCookie(...cookies);
             await page.reload({ waitUntil: 'domcontentloaded' });
             const content = await page.content();
             if (content.includes('Log Out') || content.includes('My Dashboard')) {
-                console.log('[AO3] Successfully logged in with cookies.');
+                logBrowserEvent('[AO3] Successfully logged in with cookies. No fresh login needed.');
                 return { browser, page, loggedInWithCookies: true };
             } else {
                 // Not logged in, cookies are bad/expired
-                console.warn('[AO3] Cookies invalid or expired. Deleting cookies and forcing fresh login.');
+                logBrowserEvent('[AO3] Cookies invalid or expired. Deleting cookies and forcing fresh login.');
                 fs.unlinkSync(COOKIES_PATH);
             }
         } catch (err) {
-            console.warn('[AO3] Failed to load cookies, will attempt fresh login.', err);
+            logBrowserEvent('[AO3] Failed to load cookies, will attempt fresh login. ' + (err && err.message ? err.message : ''));
             try { fs.unlinkSync(COOKIES_PATH); } catch {}
         }
     }
+    logBrowserEvent('[AO3] Performing fresh login (no valid cookies found).');
     // Go to login page
     console.log('[AO3] Navigating to login page...');
-    await page.goto(AO3_LOGIN_URL, { waitUntil: 'domcontentloaded' });
+    // Try navigating to login page with exponential backoff and multiple retries
+    const gotoLogin = async () => {
+        let attempt = 0;
+        let lastErr = null;
+        while (attempt < LOGIN_RETRY_MAX) {
+            try {
+                await page.goto(AO3_LOGIN_URL, { waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT });
+                return;
+            } catch (err) {
+                lastErr = err;
+                if (err.name === 'TimeoutError' || (err.message && err.message.includes('timeout'))) {
+                    const delay = LOGIN_RETRY_BASE_DELAY * Math.pow(2, attempt); // exponential backoff
+                    console.warn(`[AO3] Login page navigation timed out (attempt ${attempt + 1}/${LOGIN_RETRY_MAX}), retrying after ${Math.round(delay/1000)}s...`);
+                    await new Promise(res => setTimeout(res, delay));
+                } else {
+                    throw err;
+                }
+            }
+            attempt++;
+        }
+        throw lastErr || new Error('AO3 login navigation failed after retries');
+    };
+    await gotoLogin();
     try {
-        let pageContent = await page.content();
+        // AO3-specific: detect rate-limiting or CAPTCHA/anti-bot pages (title and error containers only)
+        const pageTitle = await page.title();
+        const errorText = await page.evaluate(() => {
+            // Check for AO3 error/notice/captcha containers
+            const selectors = ['.error', '.notice', 'h1', 'h2', '#main .wrapper h1', '#main .wrapper h2'];
+            let found = '';
+            for (const sel of selectors) {
+                const el = document.querySelector(sel);
+                if (el && el.textContent) found += el.textContent + '\n';
+            }
+            return found;
+        });
+        const rateLimitMatch =
+            (pageTitle && /rate limit|too many requests|prove you are human|unusual traffic|captcha/i.test(pageTitle)) ||
+            (errorText && /rate limit|too many requests|prove you are human|unusual traffic|captcha/i.test(errorText));
+        if (rateLimitMatch) {
+            logBrowserEvent('[AO3] Rate limit or CAPTCHA detected during login (title or error container).');
+            throw new Error('AO3 rate limit or CAPTCHA detected. Please wait and try again later.');
+        }
         // detect 'New Session' title in <head>
         if (await isNewSessionTitle(page)) {
-            await page.goto(AO3_LOGIN_URL, { waitUntil: 'domcontentloaded' });
+            // Retry navigation to login page if 'New Session' interstitial
+            await gotoLogin();
             pageContent = await page.content();
         }
         // Try main login form first
@@ -169,9 +213,25 @@ async function getLoggedInAO3Page() {
                 }
             }
         }
-        // After login, check for error messages
-        const postLoginContent = await page.content();
-        if (!(postLoginContent.includes('Incorrect username or password') || postLoginContent.includes('error'))) {
+        // After login, check for error messages and AO3-specific blocks (title and error containers only)
+        const postLoginTitle = await page.title();
+        const postLoginErrorText = await page.evaluate(() => {
+            const selectors = ['.error', '.notice', 'h1', 'h2', '#main .wrapper h1', '#main .wrapper h2'];
+            let found = '';
+            for (const sel of selectors) {
+                const el = document.querySelector(sel);
+                if (el && el.textContent) found += el.textContent + '\n';
+            }
+            return found;
+        });
+        const postLoginRateLimitMatch =
+            (postLoginTitle && /rate limit|too many requests|prove you are human|unusual traffic|captcha/i.test(postLoginTitle)) ||
+            (postLoginErrorText && /rate limit|too many requests|prove you are human|unusual traffic|captcha/i.test(postLoginErrorText));
+        if (postLoginRateLimitMatch) {
+            logBrowserEvent('[AO3] Rate limit or CAPTCHA detected after login (title or error container).');
+            throw new Error('AO3 rate limit or CAPTCHA detected. Please wait and try again later.');
+        }
+        if (!(postLoginErrorText.includes('Incorrect username or password') || postLoginErrorText.includes('error'))) {
             // Save cookies after successful login
             const cookies = await page.cookies();
             fs.writeFileSync(COOKIES_PATH, JSON.stringify(cookies, null, 2));
@@ -179,7 +239,7 @@ async function getLoggedInAO3Page() {
         }
     } catch (err) {
         console.error('[AO3] Login failed.', err);
-        throw new Error('AO3 login failed.');
+        throw new Error('AO3 login failed.' + (err && err.message ? ' ' + err.message : ''));
     }
     return { browser, page };
 }

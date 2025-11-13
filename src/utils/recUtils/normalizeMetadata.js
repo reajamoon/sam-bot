@@ -6,6 +6,53 @@
  */
 function normalizeMetadata(metadata, source) {
     const normalized = { ...metadata };
+    // Normalize rating to AO3 canonical names for non-AO3 sources
+    if (normalized.rating && typeof normalized.rating === 'string') {
+        const ratingMap = {
+            'k': 'General Audiences',
+            'k+': 'Teen And Up Audiences',
+            't': 'Teen And Up Audiences',
+            'm': 'Mature',
+            'ma': 'Explicit',
+            'explicit': 'Explicit',
+            'mature': 'Mature',
+            'teen': 'Teen And Up Audiences',
+            'teen and up': 'Teen And Up Audiences',
+            'teen and up audiences': 'Teen And Up Audiences',
+            'general': 'General Audiences',
+            'general audiences': 'General Audiences',
+            'g': 'General Audiences',
+            'not rated': 'Not Rated',
+            'unrated': 'Not Rated',
+            'n/a': 'Not Rated',
+            'none': 'Not Rated'
+        };
+        const key = normalized.rating.trim().toLowerCase();
+        if (ratingMap[key]) {
+            normalized.rating = ratingMap[key];
+        }
+    }
+
+    // Normalize warnings: always use archiveWarnings (array) for major content warnings
+    if (normalized.warnings && !normalized.archiveWarnings) {
+        if (Array.isArray(normalized.warnings)) {
+            normalized.archiveWarnings = normalized.warnings;
+        } else if (typeof normalized.warnings === 'string') {
+            normalized.archiveWarnings = normalized.warnings.split(',').map(w => w.trim()).filter(Boolean);
+        } else {
+            normalized.archiveWarnings = [String(normalized.warnings)];
+        }
+        delete normalized.warnings;
+    }
+    // Remove any legacy archiveWarning field
+    if (normalized.archiveWarning) delete normalized.archiveWarning;
+    // Guarantee archiveWarnings is always a non-empty array, defaulting to AO3's standard only if empty or matches that value
+    const ao3None = 'no archive warnings apply';
+    if (!Array.isArray(normalized.archiveWarnings) || normalized.archiveWarnings.length === 0 ||
+        (normalized.archiveWarnings.length === 1 && normalized.archiveWarnings[0] && normalized.archiveWarnings[0].trim().toLowerCase() === ao3None)) {
+        normalized.archiveWarnings = ['No Archive Warnings Apply'];
+    }
+    console.log('[NORMALIZE] archiveWarnings after normalization:', normalized.archiveWarnings);
     if (source === 'wattpad') {
         // Wattpad normalization
         if (normalized.votes !== undefined) {

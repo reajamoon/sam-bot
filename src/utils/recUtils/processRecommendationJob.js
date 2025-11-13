@@ -1,3 +1,4 @@
+const updateMessages = require('../../commands/recHandlers/updateMessages');
 // processRecommendationJob.js
 // Shared utility for creating/updating recommendations (used by command handlers and queue worker)
 
@@ -31,7 +32,8 @@ async function processRecommendationJob({
 }) {
   let metadata;
   url = normalizeAO3Url(url);
-  const bypassManual = manualFields.title && (manualFields.authors || manualFields.author);
+  const bypassManual = manualFields.title && manualFields.author;
+  const normalizeMetadata = require('./normalizeMetadata');
   if (bypassManual) {
     metadata = {
       title: manualFields.title,
@@ -41,7 +43,8 @@ async function processRecommendationJob({
       rating: manualFields.rating || 'Not Rated',
       language: 'English',
       wordCount: manualFields.wordCount,
-      url
+      url,
+      archiveWarnings: []
     };
   } else {
     try {
@@ -49,11 +52,11 @@ async function processRecommendationJob({
       if (metadata && metadata.url) metadata.url = normalizeAO3Url(metadata.url);
     } catch (err) {
       console.error('[processRecommendationJob] Error fetching metadata:', err);
-      return { error: 'Could not fetch details from that URL.' };
+      return { error: updateMessages.genericError };
     }
     if (!metadata) {
       console.error('[processRecommendationJob] Metadata fetch returned null for URL:', url);
-      return { error: 'Could not fetch details from that URL.' };
+      return { error: updateMessages.genericError };
     }
     if (metadata.error && metadata.error === 'Site protection detected') {
       return { error: 'Site protection detected. Manual entry required.' };
@@ -74,6 +77,13 @@ async function processRecommendationJob({
     if (manualFields.summary) metadata.summary = manualFields.summary;
     if (manualFields.wordCount) metadata.wordCount = manualFields.wordCount;
     if (manualFields.rating) metadata.rating = manualFields.rating;
+    // Normalize all metadata fields before saving
+    metadata = normalizeMetadata(metadata, (url.includes('archiveofourown.org') ? 'ao3' :
+      url.includes('fanfiction.net') ? 'ffnet' :
+      url.includes('wattpad.com') ? 'wattpad' :
+      url.includes('livejournal.com') ? 'livejournal' :
+      url.includes('dreamwidth.org') ? 'dreamwidth' :
+      url.includes('tumblr.com') ? 'tumblr' : 'other'));
   }
 
   // Ensure required fields are present and valid
@@ -83,11 +93,12 @@ async function processRecommendationJob({
       user,
       url
     });
-    return { error: 'Missing required fields for recommendation.' };
+  return { error: updateMessages.genericError };
   }
 
   let recommendation;
   if (isUpdate && existingRec) {
+    console.log('[PROCESS JOB] archiveWarnings before DB update:', metadata.archiveWarnings);
     // Merge tags: combine existing tags, new tags, and deduplicate
     let oldTags = [];
     try { oldTags = JSON.parse(existingRec.tags || '[]'); } catch { oldTags = []; }
@@ -119,8 +130,6 @@ async function processRecommendationJob({
     if (existingRec.language !== metadata.language) updateFields.language = metadata.language;
     if (existingRec.publishedDate !== metadata.publishedDate) updateFields.publishedDate = metadata.publishedDate;
     if (existingRec.updatedDate !== metadata.updatedDate) updateFields.updatedDate = metadata.updatedDate;
-    if (existingRec.recommendedBy !== user.id) updateFields.recommendedBy = user.id;
-    if (existingRec.recommendedByUsername !== user.username) updateFields.recommendedByUsername = user.username;
     if (JSON.stringify(oldAdditional) !== JSON.stringify(mergedAdditional)) updateFields.additionalTags = JSON.stringify(mergedAdditional);
     if (existingRec.notes !== notes) updateFields.notes = notes;
     if (existingRec.kudos !== metadata.kudos) updateFields.kudos = metadata.kudos;
@@ -129,6 +138,10 @@ async function processRecommendationJob({
     if (existingRec.comments !== metadata.comments) updateFields.comments = metadata.comments;
     if (existingRec.category !== metadata.category) updateFields.category = metadata.category;
 
+    // Archive warnings update
+    if (Array.isArray(metadata.archiveWarnings)) {
+      updateFields.archive_warnings = JSON.stringify(metadata.archiveWarnings);
+    }
     if (Object.keys(updateFields).length > 0) {
       try {
         await existingRec.update(updateFields);
@@ -139,7 +152,7 @@ async function processRecommendationJob({
           updateFields,
           error: err,
         });
-        return { error: 'Failed to update recommendation. Please try again or contact an admin.' };
+  return { error: updateMessages.genericError };
       }
     }
     recommendation = existingRec;
@@ -166,6 +179,7 @@ async function processRecommendationJob({
         recommendedByUsername: user.username,
         additionalTags: JSON.stringify(Array.isArray(additionalTags) ? additionalTags : []),
         notes: notes,
+        archive_warnings: JSON.stringify(Array.isArray(metadata.archiveWarnings) ? metadata.archiveWarnings : []),
         kudos: metadata.kudos,
         hits: metadata.hits,
         bookmarks: metadata.bookmarks,
@@ -180,31 +194,13 @@ async function processRecommendationJob({
         metadata,
         error: err,
       });
-      return { error: 'Failed to create recommendation. Please try again or contact an admin.' };
+  return { error: updateMessages.genericError };
     }
   }
 
-  // Build recForEmbed
-  const recForEmbed = {
-    ...metadata,
-  authors: metadata.authors || (metadata.author ? [metadata.author] : ['Unknown Author']),
-    url,
-    id: recommendation.id,
-    recommendedByUsername: user.username,
-    notes,
-    getParsedTags: function() {
-      if (Array.isArray(additionalTags) && additionalTags.length > 0) return additionalTags;
-      if (Array.isArray(this.tags)) return this.tags;
-      if (typeof this.tags === 'string') {
-        try {
-          const parsed = JSON.parse(this.tags);
-          if (Array.isArray(parsed)) return parsed;
-        } catch {}
-      }
-      return [];
-    }
-  };
-  const embed = await createRecommendationEmbed(recForEmbed);
+  // Always use the actual Recommendation instance for embed generation
+  console.log('[PROCESS JOB] archive_warnings in Recommendation instance:', recommendation.archive_warnings);
+  const embed = await createRecommendationEmbed(recommendation);
   if (typeof notify === 'function') {
     await notify(embed, recommendation, metadata);
   }

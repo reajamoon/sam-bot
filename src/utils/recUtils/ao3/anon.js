@@ -38,9 +38,18 @@ function parseAnonymousAO3Fic(html, url = null) {
         // Rating
         const ratingMatch = metaBlock.match(/<dd class="rating tags">[\s\S]*?<a[^>]*>([^<]+)/);
         metadata.rating = ratingMatch ? ratingMatch[1].trim() : null;
-        // Archive Warnings
-        const warningMatch = metaBlock.match(/<dd class="warning tags">[\s\S]*?<a[^>]*>([^<]+)/);
-        metadata.archiveWarning = warningMatch ? warningMatch[1].trim() : null;
+        // Archive Warnings (extract all <a class="tag"> inside <dd class="warning tags">)
+        const warningsBlockMatch = metaBlock.match(/<dd class="warning tags">([\s\S]*?)<\/dd>/i);
+        metadata.archiveWarnings = [];
+        if (warningsBlockMatch) {
+            const warningsBlock = warningsBlockMatch[1];
+            const warningTagRegex = /<a[^>]*class="tag"[^>]*>([^<]+)<\/a>/g;
+            let m;
+            while ((m = warningTagRegex.exec(warningsBlock)) !== null) {
+                metadata.archiveWarnings.push(m[1].trim());
+            }
+        }
+        console.log('[AO3 PARSER] archiveWarnings for', url, ':', metadata.archiveWarnings);
         // Category
         const categoryMatch = metaBlock.match(/<dd class="category tags">[\s\S]*?<a[^>]*>([^<]+)/);
         metadata.category = categoryMatch ? categoryMatch[1].trim() : null;

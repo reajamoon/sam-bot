@@ -1,5 +1,6 @@
 // Finds a rec by ID, URL, or AO3 work number. If you pass in more than one, expect sass.
 const { Op } = require('sequelize');
+const updateMessages = require('../../commands/recHandlers/updateMessages');
 
 /**
  * Finds a recommendation by ID, URL, or AO3 Work ID. Only one at a time, please.
@@ -20,25 +21,30 @@ async function findRecommendationByIdOrUrl(interaction, recId, recUrl, ao3Id) {
         isObject: typeof Recommendation === 'object',
         hasFindOne: Recommendation && typeof Recommendation.findOne === 'function'
     });
-    // Count how many identifiers are provided
-    const identifierCount = [recId, recUrl, ao3Id].filter(id => id !== null && id !== undefined).length;
+    // Debug: log actual values received
+    console.log('[findRecommendationByIdOrUrl] recId:', recId, 'recUrl:', recUrl, 'ao3Id:', ao3Id);
+    // Count how many identifiers are provided (robust: only count positive integers for IDs, non-empty, non-whitespace, non-placeholder string for URL)
+    const idValid = typeof recId === 'number' && Number.isInteger(recId) && recId > 0;
+    const urlValid = typeof recUrl === 'string' && recUrl.trim().length > 0 && recUrl.trim() !== '""' && recUrl.trim() !== "''";
+    const ao3Valid = typeof ao3Id === 'number' && Number.isInteger(ao3Id) && ao3Id > 0;
+    const identifierCount = [idValid, urlValid, ao3Valid].filter(Boolean).length;
     if (identifierCount === 0) {
-        throw new Error('You need to provide either an ID, URL, or AO3 Work ID to find the recommendation.');
+        throw new Error(updateMessages.needIdentifier);
     }
     if (identifierCount > 1) {
-        throw new Error('Please provide only one identifier: either an ID, URL, or AO3 Work ID.');
+        throw new Error('Please provide only one identifier: either an ID, URL, or AO3 Work ID.'); // No shared message for this, keep as is
     }
     let recommendation;
-    if (recId) {
+    if (idValid) {
         recommendation = await Recommendation.findOne({
             where: {
                 id: recId
             }
         });
         if (!recommendation) {
-            throw new Error(`I couldn't find a recommendation with ID ${recId} in our library.`);
+            throw new Error(updateMessages.notFound(recId));
         }
-    } else if (recUrl) {
+    } else if (urlValid) {
         // Normalize AO3 URLs for lookup
         const normalizedUrl = normalizeAO3Url(recUrl);
         recommendation = await Recommendation.findOne({
@@ -47,9 +53,9 @@ async function findRecommendationByIdOrUrl(interaction, recId, recUrl, ao3Id) {
             }
         });
         if (!recommendation) {
-            throw new Error(`I couldn't find a recommendation with that URL in our library. Make sure you're using the exact URL that was originally added.`);
+            throw new Error(updateMessages.notFound('that URL'));
         }
-    } else if (ao3Id) {
+    } else if (ao3Valid) {
         recommendation = await Recommendation.findOne({
             where: {
                 url: {
@@ -58,7 +64,7 @@ async function findRecommendationByIdOrUrl(interaction, recId, recUrl, ao3Id) {
             }
         });
         if (!recommendation) {
-            throw new Error(`I couldn't find an AO3 recommendation with Work ID ${ao3Id} in our library. Make sure the work ID is correct and that the fic has been added to our collection.`);
+            throw new Error(updateMessages.notFound(`AO3 Work ID ${ao3Id}`));
         }
     }
     return recommendation;

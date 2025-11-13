@@ -1,13 +1,48 @@
 const { EmbedBuilder } = require('discord.js');
 const quickLinkCheck = require('./quickLinkCheck');
 
+// Map AO3 normalized rating names to custom emoji
+const ratingEmojis = {
+    'general audiences': '<:ratinggeneral:1133762158077935749>',
+    'teen and up audiences': '<:ratingteen:1133762194174136390>',
+    'mature': '<:ratingmature:1133762226738700390>',
+    'explicit': '<:ratingexplicit:1133762272087506965>'
+};
+
 // Builds the embed for a rec. Checks if the link works, adds warnings if needed.
 async function createRecommendationEmbed(rec) {
+    // Archive warning emoji and logic
+    const majorWarningEmoji = '<:warn_yes:1142772202379415622>';
+    const maybeWarningEmoji = '<:warn_maybe:1142772269156933733>';
+    const majorWarningsList = [
+        'Graphic Depictions of Violence',
+        'Major Character Death',
+        'Rape/Non-Con',
+        'Underage',
+        'Underage Sex'
+    ];
+
+    // Map fic ratings to embed colors
+    const ratingColors = {
+        'general audiences': 0x43a047,      // Green
+        'teen and up audiences': 0xffeb3b, // Yellow
+        'mature': 0xff9800,                // Orange
+        'explicit': 0xd32f2f,              // Red
+        'not rated': 0x757575,             // Grey
+        'unrated': 0x757575
+    };
+    let color = 0x9C27B0; // Default (purple)
+    if (rec.rating && typeof rec.rating === 'string') {
+        const key = rec.rating.trim().toLowerCase();
+        if (ratingColors[key]) {
+            color = ratingColors[key];
+        }
+    }
     const embed = new EmbedBuilder()
         .setTitle(`📖 ${rec.title}`)
         .setDescription(`**By:** ${(rec.authors && Array.isArray(rec.authors)) ? rec.authors.join(', ') : (rec.author || 'Unknown Author')}`)
         .setURL(rec.url)
-        .setColor(0x9C27B0)
+        .setColor(color)
         .setTimestamp()
         .setFooter({
             text: `From the Profound Bond Library • Recommended by ${rec.recommendedByUsername} • ID: ${rec.id}`
@@ -40,7 +75,16 @@ async function createRecommendationEmbed(rec) {
         inline: false
     });
     const fields = [];
-    if (rec.rating) fields.push({ name: 'Rating', value: rec.rating, inline: true });
+    if (rec.rating) {
+        let ratingValue = rec.rating;
+        if (typeof rec.rating === 'string') {
+            const key = rec.rating.trim().toLowerCase();
+            if (ratingEmojis[key]) {
+                ratingValue = `${ratingEmojis[key]} ${rec.rating}`;
+            }
+        }
+        fields.push({ name: 'Rating', value: ratingValue, inline: true });
+    }
     if (rec.wordCount) fields.push({ name: 'Words', value: rec.wordCount.toLocaleString(), inline: true });
     if (rec.chapters) fields.push({ name: 'Chapters', value: rec.chapters, inline: true });
     if (rec.status) {
@@ -52,6 +96,40 @@ async function createRecommendationEmbed(rec) {
     }
     if (fields.length > 0) {
         embed.addFields(fields);
+    }
+
+    // Add Major Content Warnings field if present and not 'No Archive Warnings Apply'
+    let warnings = typeof rec.getArchiveWarnings === 'function' ? rec.getArchiveWarnings() : [];
+    // Remove empty/falsey and trim
+    warnings = warnings.map(w => (typeof w === 'string' ? w.trim() : '')).filter(Boolean);
+    // Remove duplicates
+    warnings = [...new Set(warnings)];
+    // Remove 'No Archive Warnings Apply' if present
+    const filtered = warnings.filter(w => w.toLowerCase() !== 'no archive warnings apply');
+    if (filtered.length > 0) {
+        let fieldValue = '';
+        // If only 'Creator Chose Not To Use Archive Warnings'
+        if (
+            filtered.length === 1 &&
+            filtered[0].toLowerCase() === 'creator chose not to use archive warnings'
+        ) {
+            fieldValue = `${maybeWarningEmoji} Creator Chose Not To Use Archive Warnings`;
+        } else {
+            // If any major warning is present, use major emoji and list all
+            const hasMajor = filtered.some(w =>
+                majorWarningsList.some(mw => w.toLowerCase().includes(mw.toLowerCase()))
+            );
+            if (hasMajor) {
+                fieldValue = `${majorWarningEmoji} ${filtered.join(', ')}`;
+            } else {
+                // Fallback: just join and show (shouldn't happen, but for completeness)
+                fieldValue = filtered.join(', ');
+            }
+        }
+        embed.addFields({
+            name: 'Major Content Warnings',
+            value: fieldValue
+        });
     }
     const allTags = rec.getParsedTags();
     if (allTags.length > 0) {

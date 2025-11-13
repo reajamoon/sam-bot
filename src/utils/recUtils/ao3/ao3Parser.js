@@ -19,6 +19,67 @@ const decodeHtmlEntities = require('../decodeHtmlEntities');
 function parseAO3Metadata(html, url, includeRawHtml = false) {
     const fs = require('fs');
     const path = require('path');
+    // Check for incomplete HTML (missing </html> or </body>)
+    let htmlIncomplete = false;
+    if (!html.includes('</html>') || !html.includes('</body>')) {
+        htmlIncomplete = true;
+        const logDir = path.join(process.cwd(), 'logs', 'ao3_failed_html');
+        if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+        const fname = `parser_incomplete_${Date.now()}_${url.replace(/[^a-zA-Z0-9]/g, '_').slice(-60)}.html`;
+        const fpath = path.join(logDir, fname);
+        try {
+            fs.writeFileSync(fpath, html, 'utf8');
+            console.warn(`[AO3 PARSER] Incomplete HTML detected for ${url}, saved to ${fpath}`);
+        } catch (err) {
+            console.warn('[AO3 PARSER] Failed to save incomplete HTML:', err);
+        }
+    }
+    // Detect AO3 search results page and treat as error
+    const searchWorksTitle = /<title>\s*Search Works \| Archive of Our Own\s*<\/title>/i;
+    if (searchWorksTitle.test(html)) {
+        const updateMessages = require('../../../commands/recHandlers/updateMessages');
+        return {
+            error: true,
+            message: 'AO3 returned a search results page instead of a fic. The link may be incorrect or AO3 redirected the request.',
+            url,
+            details: updateMessages.parseError
+        };
+    }
+
+    // Always declare metadata object at the top
+    const metadata = { url: url };
+    // Try to find meta block, but don't fail if not found
+    const metaBlockMatch = html.match(/<dl class="work meta group">([\s\S]*?)<\/dl>/);
+    const metaBlock = metaBlockMatch ? metaBlockMatch[0] : '';
+    if (!metaBlock) {
+        // Log the first 500 chars of HTML for debugging
+        const logDir = path.join(process.cwd(), 'logs', 'ao3_failed_html');
+        if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+        const fname = `parser_nometa_${Date.now()}_${url.replace(/[^a-zA-Z0-9]/g, '_').slice(-60)}.txt`;
+        const fpath = path.join(logDir, fname);
+        try {
+            fs.writeFileSync(fpath, html.slice(0, 500), 'utf8');
+            console.warn(`[AO3 PARSER] No meta block found for ${url}, first 500 chars saved to ${fpath}`);
+        } catch (err) {
+            console.warn('[AO3 PARSER] Failed to save meta block debug:', err);
+        }
+    }
+
+        // Archive Warnings (extract all <a class="tag"> inside <dd class="warning tags">)
+        metadata.archiveWarnings = [];
+        if (metaBlock) {
+            const warningsBlockMatch = metaBlock.match(/<dd class="warning tags">([\s\S]*?)<\/dd>/i);
+            if (warningsBlockMatch) {
+                const warningsBlock = warningsBlockMatch[1];
+                const warningTagRegex = /<a[^>]*class="tag"[^>]*>([^<]+)<\/a>/g;
+                let m;
+                while ((m = warningTagRegex.exec(warningsBlock)) !== null) {
+                    metadata.archiveWarnings.push(m[1].trim());
+                }
+            }
+        }
+
+    // ...existing code...
 
     try {
         if (!html) return null;
@@ -26,33 +87,36 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
         const $ = cheerio.load(html);
         // Check for AO3 'New Session' interstitial
         if (html.includes('<title>New Session') || html.includes('Please log in to continue') || html.includes('name="user_session"')) {
+            const updateMessages = require('../../../commands/recHandlers/updateMessages');
             return {
                 title: 'Unknown Title',
                 authors: ['Unknown Author'],
                 url: url,
                 error: 'AO3 session required',
-                summary: 'AO3 is requiring a login or new session. Please log in to AO3 and try again.'
+                summary: updateMessages.loginMessage
             };
         }
         // Only treat as site protection if 'cloudflare' appears in the <title> or in a known error header
         const titleMatch = html.match(/<title>([^<]*)<\/title>/i);
         if (titleMatch && /cloudflare/i.test(titleMatch[1])) {
+            const updateMessages = require('../../../commands/recHandlers/updateMessages');
             return {
                 title: 'Unknown Title',
                 authors: ['Unknown Author'],
                 url: url,
                 error: 'Site protection detected',
-                summary: 'Site protection is blocking metadata fetch.'
+                summary: updateMessages.siteProtection
             };
         }
         const headerMatch = html.match(/<h1[^>]*>([^<]*)<\/h1>/i);
         if (headerMatch && /cloudflare/i.test(headerMatch[1])) {
+            const updateMessages = require('../../../commands/recHandlers/updateMessages');
             return {
                 title: 'Unknown Title',
                 authors: ['Unknown Author'],
                 url: url,
                 error: 'Site protection detected',
-                summary: 'Site protection is blocking metadata fetch.'
+                summary: updateMessages.siteProtection
             };
         }
         const metadata = { url: url };
@@ -334,6 +398,7 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
             if (/orphan_account/i.test(html)) authorMatches.push('orphan_account');
             if (/Anonymous/i.test(html)) authorMatches.push('Anonymous');
         }
+        // If still not found, fallback to ['Unknown Author']
         metadata.authors = authorMatches.length > 0 ? authorMatches : ['Unknown Author'];
 
         // Summary

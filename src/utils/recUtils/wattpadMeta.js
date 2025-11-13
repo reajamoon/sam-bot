@@ -1,3 +1,4 @@
+const updateMessages = require('../../commands/recHandlers/updateMessages');
 /**
  * Wattpad metadata fetcher and parser
  * @module wattpadMeta
@@ -122,10 +123,12 @@ async function fetchWattpadMetadata(url, includeRawHtml = false) {
             }
         }
 
-        // Default values
-        metadata.rating = 'Not Rated'; // Wattpad doesn't use traditional ratings
-        metadata.language = metadata.language || 'English';
-        metadata.status = metadata.status || 'Unknown';
+    // Default values
+    metadata.rating = 'Not Rated'; // Wattpad doesn't use traditional ratings
+    metadata.language = metadata.language || 'English';
+    metadata.status = metadata.status || 'Unknown';
+    // Always set archiveWarnings to an array
+    if (!Array.isArray(metadata.archiveWarnings)) metadata.archiveWarnings = [];
 
         if (includeRawHtml) metadata.rawHtml = html;
     // Remove legacy 'author' field if present
@@ -135,29 +138,29 @@ async function fetchWattpadMetadata(url, includeRawHtml = false) {
         // Handle HTTP errors from fetchHTML
         if (error.message === 'HTTP_404_NOT_FOUND') {
             return {
-                title: 'Story Not Found',
+                title: updateMessages.notFound404,
                 authors: ['Unknown Author'],
                 url: url,
                 error: '404_not_found',
-                summary: 'This story appears to have been deleted or moved. The link is no longer working. You might want to check if the author has reposted it elsewhere.',
+                summary: updateMessages.notFound404,
                 is404: true
             };
         } else if (error.message === 'HTTP_403_FORBIDDEN') {
             return {
-                title: 'Access Denied',
+                title: updateMessages.forbidden403,
                 authors: ['Unknown Author'],
                 url: url,
                 error: 'Access denied',
-                summary: 'This story is restricted or requires special permissions to access. It might be private or requires account login.',
+                summary: updateMessages.forbidden403,
                 is403: true
             };
         } else if (error.message.startsWith('HTTP_')) {
             return {
-                title: 'Connection Error',
+                title: updateMessages.connectionError,
                 authors: ['Unknown Author'],
                 url: url,
                 error: error.message,
-                summary: 'There was a problem connecting to this story. The site might be down or experiencing issues.',
+                summary: updateMessages.connectionError,
                 isHttpError: true
             };
         }

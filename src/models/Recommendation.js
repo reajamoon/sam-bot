@@ -67,7 +67,7 @@ module.exports = (sequelize) => {
         },
         recommendedBy: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: false,
         },
         recommendedByUsername: {
             type: DataTypes.STRING,
@@ -82,7 +82,12 @@ module.exports = (sequelize) => {
             type: DataTypes.TEXT,
             allowNull: true
         },
-        // Normalized AO3-style fields
+            archive_warnings: {
+                type: DataTypes.TEXT, // Store as JSON string array
+                allowNull: true,
+                defaultValue: '[]',
+                field: 'archive_warnings'
+            },
         kudos: {
             type: DataTypes.INTEGER,
             allowNull: true
@@ -135,6 +140,18 @@ module.exports = (sequelize) => {
         } catch (error) {
             return [];
         }
+    };
+
+    Recommendation.prototype.getArchiveWarnings = function() {
+        try {
+            if (Array.isArray(this.archiveWarnings)) return this.archiveWarnings;
+            if (Array.isArray(this.archive_warnings)) return this.archive_warnings;
+            if (typeof this.archive_warnings === 'string') {
+                const parsed = JSON.parse(this.archive_warnings);
+                if (Array.isArray(parsed)) return parsed;
+            }
+        } catch (error) {}
+        return [];
     };
 
     Recommendation.prototype.addUserTag = function(tag) {
