@@ -1,11 +1,10 @@
 // ao3MetaGroupParser.js
 // Extracts and parses AO3 meta group block into a metadata object
 
+
 const decodeHtmlEntities = require('../decodeHtmlEntities');
-
-
-// Import shared AO3 field map
 const AO3_FIELD_MAP = require('./ao3FieldMap');
+const { parseTagList } = require('./parseTagList');
 
 /**
  * Parses all <dt>/<dd> pairs in the entire Cheerio document to extract AO3 metadata fields.
@@ -18,10 +17,13 @@ function parseMetaGroup($) {
     let lastLabel = null;
     let warnings = [];
     const unknownFields = {};
-    // Find all <dt> and <dd> pairs in the document, regardless of parent
+    // Find all <dt> and <dd> pairs in the document, but skip those inside forms or fieldsets
     const allDtDd = [];
     $('dt, dd').each((i, el) => {
-        allDtDd.push(el);
+        const $el = $(el);
+        if ($el.closest('form, fieldset').length === 0) {
+            allDtDd.push(el);
+        }
     });
     allDtDd.forEach((el) => {
         const $el = $(el);
@@ -36,8 +38,23 @@ function parseMetaGroup($) {
                 lastLabel = null;
                 return;
             }
-            if (AO3_FIELD_MAP[lastLabel]) {
-                metaFields[lastLabel] = $el;
+            const mapped = AO3_FIELD_MAP[lastLabel];
+            if (mapped) {
+                // For tag fields, use parseTagList to extract arrays
+                if ([
+                    'freeform_tags',
+                    'archive_warnings',
+                    'relationship_tags',
+                    'character_tags',
+                    'category_tags',
+                    'fandom_tags',
+                    'required_tags',
+                    'collections'
+                ].includes(mapped)) {
+                    metaFields[mapped] = parseTagList($, $el);
+                } else {
+                    metaFields[mapped] = decodeHtmlEntities($el.text().replace(/\s+/g, ' ').trim());
+                }
             } else {
                 const value = $el.text().replace(/\s+/g, ' ').trim();
                 unknownFields[lastLabel] = decodeHtmlEntities(value);
