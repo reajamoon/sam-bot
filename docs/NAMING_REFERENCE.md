@@ -314,10 +314,59 @@ const isPrivacyModeStrict = user.birthdayYearHidden === true;
 const isPrivacyModeFull = user.birthdayAgePrivacy === true;
 const isPrivacyModeAgeHidden = user.birthdayAgeOnly === true;
 ```
+---
+
+# AO3 Field Naming Reference
+
+This section documents the normalization rules and mapping for AO3 metadata field labels as used in the parser.
+
+## Field Normalization Rules
+- All field labels are converted to lowercase.
+- Leading and trailing whitespace is trimmed.
+- Spaces and certain punctuation (colons, parentheses) are replaced with underscores.
+- Multiple underscores are collapsed to a single underscore.
+- Trailing and leading underscores are removed.
+
+**Example:**
+- `Archive Warnings` → `archive_warnings`
+- `Relationship Tags` → `relationship_tags`
+- `Characters` → `characters`
+- `Category` → `category`
+- `Fandom` → `fandom`
+- `Additional Tags` → `additional_tags`
+- `Published` → `published`
+- `Word Count` → `word_count`
+
+## Pluralization Handling
+- The parser uses DOM traversal to match both singular and plural forms of AO3 field labels (e.g., `Relationship Tag` and `Relationship Tags`).
+- Both forms are normalized to the same key (e.g., `relationship_tags`).
+
+## Mapping Table (Common AO3 Fields)
+| AO3 Field Label         | Normalized Key         |
+|------------------------|-----------------------|
+| Archive Warnings       | archive_warnings      |
+| Category               | category              |
+| Categories             | category              |
+| Fandom                 | fandom                |
+| Fandoms                | fandom                |
+| Relationship           | relationship_tags     |
+| Relationships          | relationship_tags     |
+| Character              | character_tags        |
+| Characters             | character_tags        |
+| Additional Tags        | freeform_tags         |
+| Language               | language              |
+| Collections            | collections           |
+| Published              | published             |
+| Updated                | updated               |
+| Completed              | completed             |
+| Words                  | words                 |
+| Word Count             | word_count            |
+| Chapters               | chapters              |
+| Comments               | comments              |
+| Kudos                  | kudos                 |
+| Bookmarks              | bookmarks             |
+| Hits                   | hits                  |
 
 ---
 
-**IMPORTANT**: Always refer to this document when working with variable names, field names, or interaction IDs. This prevents naming inconsistencies and reduces the need for refactoring.
-
-**Last Updated**: November 1, 2025
-**Status**: Complete - covers all major systems and naming conventions
+_Last updated: 2025-11-12_

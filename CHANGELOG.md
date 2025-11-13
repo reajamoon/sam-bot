@@ -1,5 +1,19 @@
 # PB Community Changelog
 
+
+## 2025-11-12
+
+### AO3 Parser & Metadata Handling & Database Query Optimizations & some other stuff maybe?
+- AO3 parser now uses cheerio and zod to simplify scraping, good lord.
+- All tag fields are decoded for HTML entities and special characters bye amp&.
+- QueueWorker (jack) can now take a short nap if he gets tired, also batches queries :O
+- fixed /chapters/12345 allowing dupes and deleted some folks' precious early recs I'm so sorry I should have given precedence to who added first not who added without /chapters/numbers but I'm stupid and forgot
+- Sam now keeps a bag of cookie crunch cereal for Jack on hand (aka I fixed AO3 cookies not persisting)
+- Also fixed Sam trying to open extra tabs forever instead of closing them. Mood, but also don't do that.
+- Added dynamic checking of server load here and AO3 server response to back off on queue calls and increase from the standard variance (apx. 20s) if the servers seem busy to give AO3 a helping hand and also save our own server (the increased timeout depends on how hammered the servers seem but it can be anywhere from a 30s cooldown to a 3m cooldown so don't panic if your fic isn't popping immediately)
+- Also on this note: fics that have gotten a successful new rec or update cannot be refetched for fresh data from AO3's servers for 3hours now! After that time they will drop out of the queue (where they sit in done state for that time preventing new update fetches) and can be updated again, if say, you added a chapter and a bunch of tags! You can still bypass the fetch and update manually while on cooldown.
+- Errored fics (did not fetch for some reason) will give a message and drop out of the queue, not triggering a cooldown.
+- Pending/Processing fics that are stuck in the queue will automatically drop out after 15 minutes, or can be manually kicked in the ass by a mod to rerun as a batch with /rec resetqueue or kicked out of the queue one by one with /rec clearqueue <url>
 ---
 
 ## 2025-11-11

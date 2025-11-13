@@ -21,6 +21,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "cheerio": "^1.1.2",
     "country-region-data": "^3.2.0",
     "discord.js": "^14.14.1",
     "dotenv": "^16.3.1",
@@ -30,7 +31,8 @@
     "puppeteer": "^24.27.0",
     "sequelize": "^6.35.0",
     "sqlite3": "^5.1.6",
-    "winston": "^3.11.0"
+    "winston": "^3.11.0",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "eslint": "^9.39.1",

@@ -100,7 +100,7 @@ async function handleUpdateRecommendation(interaction) {
                             user: { id: interaction.user.id, username: interaction.user.username },
                             manualFields: {
                                 title: newTitle,
-                                author: newAuthor,
+                                authors: newAuthor ? [newAuthor] : undefined,
                                 summary: newSummary,
                                 rating: newRating,
                                 wordCount: newWordCount,
@@ -318,7 +318,7 @@ async function handleUpdateRecommendation(interaction) {
             user: { id: interaction.user.id, username: interaction.user.username },
             manualFields: {
                 title: newTitle,
-                author: newAuthor,
+                authors: newAuthor ? [newAuthor] : undefined,
                 summary: newSummary,
                 rating: newRating,
                 wordCount: newWordCount,
