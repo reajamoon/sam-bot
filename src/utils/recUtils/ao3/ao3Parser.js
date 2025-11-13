@@ -102,27 +102,20 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
         const metaBlockMatch = html.match(/<dl class="work meta group">([\s\S]*?)<\/dl>/);
         const metaBlock = metaBlockMatch ? metaBlockMatch[0] : '';
 
-        // Title: try <h2 class="title heading"> anywhere in HTML, never use <title> if it matches a search or site page
+        // Title: only use <h2 class="title heading"> for fic title. Never use <title> as fallback.
         let h2TitleMatch = html.match(/<h2[^>]*class="title heading"[^>]*>([\s\S]*?)<\/h2>/i);
         if (h2TitleMatch) {
             let titleText = h2TitleMatch[1].replace(/<img[^>]*>/g, '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
             metadata.title = titleText || 'Unknown Title';
         } else {
-            // Fallback: use <title> only if it is not a known AO3 site/search page
-            const fallbackTitle = html.match(/<title>([^<]*)<\/title>/i);
-            if (fallbackTitle && !/\b(Search Works|Archive of Our Own|User Profile|Bookmarks|Tags|Collections|Works)\b/i.test(fallbackTitle[1])) {
-                let t = fallbackTitle[1].replace(/\s*\[Archive of Our Own\]$/, '').trim();
-                metadata.title = t || 'Unknown Title';
-            } else {
-                // If fallback title is a known AO3 site/search page, treat as parse error
-                const updateMessages = require('../../../commands/recHandlers/updateMessages');
-                return {
-                    error: true,
-                    message: 'AO3 page did not contain a fic title. The link may be incorrect, or AO3 returned a site/search page.',
-                    url,
-                    details: updateMessages.parseError
-                };
-            }
+            // If no fic title found, treat as parse error
+            const updateMessages = require('../../../commands/recHandlers/updateMessages');
+            return {
+                error: true,
+                message: 'AO3 page did not contain a fic title. The link may be incorrect, or AO3 returned a site/search page.',
+                url,
+                details: updateMessages.parseError
+            };
         }
 
         // Handle Anonymous fics with utility
