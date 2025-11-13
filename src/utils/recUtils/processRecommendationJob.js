@@ -53,6 +53,10 @@ async function processRecommendationJob({
       if (metadata && metadata.metadata && typeof metadata.metadata === 'object') {
         metadata = metadata.metadata;
       }
+      // Restore rating to top-level if present in stats (AO3 parser moves it)
+      if (metadata && metadata.stats && metadata.stats.rating && !metadata.rating) {
+        metadata.rating = metadata.stats.rating;
+      }
       if (metadata && metadata.url) metadata.url = normalizeAO3Url(metadata.url);
     } catch (err) {
       console.error('[processRecommendationJob] Error fetching metadata:', err);
