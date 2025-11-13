@@ -126,7 +126,6 @@ async function processRecommendationJob({
     if (existingRec.publishedDate !== metadata.publishedDate) updateFields.publishedDate = metadata.publishedDate;
     if (existingRec.updatedDate !== metadata.updatedDate) updateFields.updatedDate = metadata.updatedDate;
     if (existingRec.recommendedBy !== user.id) updateFields.recommendedBy = user.id;
-    if (existingRec.recommendedByUsername !== user.username) updateFields.recommendedByUsername = user.username;
     if (JSON.stringify(oldAdditional) !== JSON.stringify(mergedAdditional)) updateFields.additionalTags = JSON.stringify(mergedAdditional);
     if (existingRec.notes !== notes) updateFields.notes = notes;
     if (existingRec.kudos !== metadata.kudos) updateFields.kudos = metadata.kudos;
@@ -170,7 +169,7 @@ async function processRecommendationJob({
         publishedDate: metadata.publishedDate,
         updatedDate: metadata.updatedDate,
         recommendedBy: user.id,
-        recommendedByUsername: user.username,
+  // recommendedByUsername is intentionally never set or updated here
         additionalTags: JSON.stringify(Array.isArray(additionalTags) ? additionalTags : []),
         notes: notes,
         archive_warnings: JSON.stringify(Array.isArray(metadata.archiveWarnings) ? metadata.archiveWarnings : []),

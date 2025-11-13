@@ -26,6 +26,10 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING, // Comma-separated Discord user IDs
       allowNull: false,
     },
+    requested_by_username: {
+      type: DataTypes.STRING, // Discord username of the recommender
+      allowNull: true,
+    },
     notes: {
       type: DataTypes.TEXT,
       allowNull: true,
