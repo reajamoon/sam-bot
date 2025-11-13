@@ -125,7 +125,6 @@ async function processRecommendationJob({
     if (existingRec.language !== metadata.language) updateFields.language = metadata.language;
     if (existingRec.publishedDate !== metadata.publishedDate) updateFields.publishedDate = metadata.publishedDate;
     if (existingRec.updatedDate !== metadata.updatedDate) updateFields.updatedDate = metadata.updatedDate;
-    if (existingRec.recommendedBy !== user.id) updateFields.recommendedBy = user.id;
     if (JSON.stringify(oldAdditional) !== JSON.stringify(mergedAdditional)) updateFields.additionalTags = JSON.stringify(mergedAdditional);
     if (existingRec.notes !== notes) updateFields.notes = notes;
     if (existingRec.kudos !== metadata.kudos) updateFields.kudos = metadata.kudos;
