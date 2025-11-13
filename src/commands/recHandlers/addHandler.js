@@ -41,7 +41,7 @@ async function handleAddRecommendation(interaction) {
     const existingRec = await Recommendation.findOne({ where: { url } });
     if (existingRec) {
       const addedDate = existingRec.createdAt ? `<t:${Math.floor(new Date(existingRec.createdAt).getTime()/1000)}:F>` : '';
-      // Sassiest message for user 638765542739673089 if they try to add their own rec again
+      // Sassiest message for user 638765542739673089 if they try to add their own rec again hehehe
       if (interaction.user.id === existingRec.recommendedBy) {
         if (interaction.user.id === '638765542739673089') {
           return await interaction.editReply({
