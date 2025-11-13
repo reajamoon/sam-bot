@@ -49,6 +49,10 @@ async function processRecommendationJob({
   } else {
     try {
       metadata = await fetchFicMetadata(url);
+      // Unwrap { metadata } if present (AO3 parser returns { metadata: ... })
+      if (metadata && metadata.metadata && typeof metadata.metadata === 'object') {
+        metadata = metadata.metadata;
+      }
       if (metadata && metadata.url) metadata.url = normalizeAO3Url(metadata.url);
     } catch (err) {
       console.error('[processRecommendationJob] Error fetching metadata:', err);
