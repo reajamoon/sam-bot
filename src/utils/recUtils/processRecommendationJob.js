@@ -168,7 +168,7 @@ async function processRecommendationJob({
         publishedDate: metadata.publishedDate,
         updatedDate: metadata.updatedDate,
         recommendedBy: user.id,
-  // recommendedByUsername is intentionally never set or updated here
+        recommendedByUsername: user.username,
         additionalTags: JSON.stringify(Array.isArray(additionalTags) ? additionalTags : []),
         notes: notes,
         archive_warnings: JSON.stringify(Array.isArray(metadata.archiveWarnings) ? metadata.archiveWarnings : []),
