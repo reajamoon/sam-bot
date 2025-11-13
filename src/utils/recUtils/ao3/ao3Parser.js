@@ -20,6 +20,23 @@ function isAnonymousAO3Fic(html) {
 }
 
 function parseAO3Metadata(html, url, includeRawHtml = false) {
+    const fs = require('fs');
+    const path = require('path');
+    // Check for incomplete HTML (missing </html> or </body>)
+    let htmlIncomplete = false;
+    if (!html.includes('</html>') || !html.includes('</body>')) {
+        htmlIncomplete = true;
+        const logDir = path.join(process.cwd(), 'logs', 'ao3_failed_html');
+        if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+        const fname = `parser_incomplete_${Date.now()}_${url.replace(/[^a-zA-Z0-9]/g, '_').slice(-60)}.html`;
+        const fpath = path.join(logDir, fname);
+        try {
+            fs.writeFileSync(fpath, html, 'utf8');
+            console.warn(`[AO3 PARSER] Incomplete HTML detected for ${url}, saved to ${fpath}`);
+        } catch (err) {
+            console.warn('[AO3 PARSER] Failed to save incomplete HTML:', err);
+        }
+    }
     // Detect AO3 search results page and treat as error
     const searchWorksTitle = /<title>\s*Search Works \| Archive of Our Own\s*<\/title>/i;
     if (searchWorksTitle.test(html)) {
@@ -37,6 +54,19 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
     // Try to find meta block, but don't fail if not found
     const metaBlockMatch = html.match(/<dl class="work meta group">([\s\S]*?)<\/dl>/);
     const metaBlock = metaBlockMatch ? metaBlockMatch[0] : '';
+    if (!metaBlock) {
+        // Log the first 500 chars of HTML for debugging
+        const logDir = path.join(process.cwd(), 'logs', 'ao3_failed_html');
+        if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+        const fname = `parser_nometa_${Date.now()}_${url.replace(/[^a-zA-Z0-9]/g, '_').slice(-60)}.txt`;
+        const fpath = path.join(logDir, fname);
+        try {
+            fs.writeFileSync(fpath, html.slice(0, 500), 'utf8');
+            console.warn(`[AO3 PARSER] No meta block found for ${url}, first 500 chars saved to ${fpath}`);
+        } catch (err) {
+            console.warn('[AO3 PARSER] Failed to save meta block debug:', err);
+        }
+    }
 
         // Archive Warnings (extract all <a class="tag"> inside <dd class="warning tags">)
         metadata.archiveWarnings = [];
@@ -44,21 +74,14 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
             const warningsBlockMatch = metaBlock.match(/<dd class="warning tags">([\s\S]*?)<\/dd>/i);
             if (warningsBlockMatch) {
                 const warningsBlock = warningsBlockMatch[1];
-                console.log('[AO3 PARSER][DEBUG] Found <dd class="warning tags"> block:', warningsBlock);
                 const warningTagRegex = /<a[^>]*class="tag"[^>]*>([^<]+)<\/a>/g;
                 let m;
                 while ((m = warningTagRegex.exec(warningsBlock)) !== null) {
-                    console.log('[AO3 PARSER][DEBUG] Matched warning tag:', m[1]);
                     metadata.archiveWarnings.push(m[1].trim());
                 }
-            } else {
-                console.log('[AO3 PARSER][DEBUG] No <dd class="warning tags"> block found in metaBlock for', url);
             }
-        } else {
-            console.log('[AO3 PARSER][DEBUG] No metaBlock found in AO3 HTML for', url);
         }
-        // Debug log
-        console.log('[AO3 PARSER] archiveWarnings for', url, ':', metadata.archiveWarnings);
+
     const fs = require('fs');
     const path = require('path');
 
@@ -217,6 +240,17 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
         // Final check
         if (metadata.title === 'Unknown Title' || !metadata.authors || metadata.authors[0] === 'Unknown Author') {
             const updateMessages = require('../../../commands/recHandlers/updateMessages');
+            // Log the full HTML for debugging
+            const logDir = path.join(process.cwd(), 'logs', 'ao3_failed_html');
+            if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+            const fname = `parser_missingfields_${Date.now()}_${url.replace(/[^a-zA-Z0-9]/g, '_').slice(-60)}.html`;
+            const fpath = path.join(logDir, fname);
+            try {
+                fs.writeFileSync(fpath, html, 'utf8');
+                console.warn(`[AO3 PARSER] Missing title/author for ${url}, saved to ${fpath}`);
+            } catch (err) {
+                console.warn('[AO3 PARSER] Failed to save missingfields HTML:', err);
+            }
             return {
                 error: true,
                 message: updateMessages.parseError,
