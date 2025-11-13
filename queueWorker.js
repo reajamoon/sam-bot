@@ -1,11 +1,8 @@
-// Helper to get mention string for subscribers who want to be tagged
-async function getTagMentions(subscribers, User) {
+// Optimized: get mention string for subscribers using a user map
+function getTagMentions(subscribers, userMap) {
   if (!subscribers.length) return '';
-  const userIds = subscribers.map(sub => sub.user_id);
-  const users = await User.findAll({ where: { discordId: userIds } });
-  const tagSet = new Set(users.filter(u => u.queueNotifyTag !== false).map(u => u.discordId));
   return subscribers
-    .filter(sub => tagSet.has(sub.user_id))
+    .filter(sub => userMap.has(sub.user_id) && userMap.get(sub.user_id).queueNotifyTag !== false)
     .map(sub => `<@${sub.user_id}>`).join(' ');
 }
 
@@ -17,44 +14,57 @@ async function cleanupOldQueueJobs() {
   const doneCutoff = new Date(now.getTime() - 3 * 60 * 60 * 1000);
   await ParseQueue.destroy({ where: { status: 'done', updated_at: { [Op.lt]: doneCutoff } } });
 
+  // Fetch config once
+  const configEntry = await Config.findOne({ where: { key: 'fic_queue_channel' } });
+  const channelId = configEntry ? configEntry.value : null;
+  let channel = null;
+  if (channelId) {
+    channel = await client.channels.fetch(channelId).catch(() => null);
+  }
+
   // Find 'pending' or 'processing' jobs older than 15 minutes
   const stuckCutoff = new Date(now.getTime() - 15 * 60 * 1000);
   const stuckJobs = await ParseQueue.findAll({ where: { status: ['pending', 'processing'], updated_at: { [Op.lt]: stuckCutoff } } });
+  const errorJobs = await ParseQueue.findAll({ where: { status: 'error' } });
+  const allJobs = [...stuckJobs, ...errorJobs];
+  if (allJobs.length === 0) return;
+
+  // Batch fetch all subscribers for these jobs
+  const allJobIds = allJobs.map(j => j.id);
+  const allSubscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: allJobIds } });
+  // Batch fetch all users for these subscribers
   const { User } = require('./src/models');
-  for (const job of stuckJobs) {
-    // Notify all subscribers (respect queueNotifyTag)
-    const subscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: job.id } });
-    const configEntry = await Config.findOne({ where: { key: 'fic_queue_channel' } });
-    if (configEntry && subscribers.length > 0) {
-      const channel = await client.channels.fetch(configEntry.value).catch(() => null);
-      if (channel && channel.isTextBased()) {
-        const mentions = await getTagMentions(subscribers, User);
-        await channel.send({
-          content: `${mentions}\nSorry, something went wrong while processing your fic parsing job for <${job.fic_url}>. Please try again.\n\n*Oh and if you want: to toggle queue notifications on|off, you just use the /rec notifytag command.*`,
-        });
-      }
-    }
-    await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
-    await job.destroy();
+  const allUserIds = [...new Set(allSubscribers.map(sub => sub.user_id))];
+  const allUsers = await User.findAll({ where: { discordId: allUserIds } });
+  const userMap = new Map(allUsers.map(u => [u.discordId, u]));
+
+  // Group subscribers by job
+  const subsByJob = {};
+  for (const sub of allSubscribers) {
+    if (!subsByJob[sub.queue_id]) subsByJob[sub.queue_id] = [];
+    subsByJob[sub.queue_id].push(sub);
   }
 
-  // Remove 'error' jobs immediately after notifying subscribers
-  const errorJobs = await ParseQueue.findAll({ where: { status: 'error' } });
-  for (const job of errorJobs) {
-    const subscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: job.id } });
-    const configEntry = await Config.findOne({ where: { key: 'fic_queue_channel' } });
-    if (configEntry && subscribers.length > 0) {
-      const channel = await client.channels.fetch(configEntry.value).catch(() => null);
-      if (channel && channel.isTextBased()) {
-        const mentions = await getTagMentions(subscribers, User);
-        await channel.send({
-          content: `${mentions}\nThere was an error parsing your fic (<${job.fic_url}>): ${job.error_message || 'Unknown error.'}\n\n*So get this, to toggle queue notifications on|off, you just use the /rec notifytag command. Simple as.*`,
-        });
+  // Notify and clean up for each job
+  for (const job of allJobs) {
+    const subscribers = subsByJob[job.id] || [];
+    if (channel && subscribers.length > 0) {
+      let content;
+      if (job.status === 'error') {
+        const mentions = getTagMentions(subscribers, userMap);
+        content = `${mentions}\nThere was an error parsing your fic (<${job.fic_url}>): ${job.error_message || 'Unknown error.'}\n\n*So get this, to toggle queue notifications on|off, you just use the /rec notifytag command. Simple as.*`;
+      } else {
+        const mentions = getTagMentions(subscribers, userMap);
+        content = `${mentions}\nSorry, something went wrong while processing your fic parsing job for <${job.fic_url}>. Please try again.\n\n*Oh and if you want: to toggle queue notifications on|off, you just use the /rec notifytag command.*`;
+      }
+      if (channel.isTextBased()) {
+        await channel.send({ content });
       }
     }
-    await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
-    await job.destroy();
   }
+  // Bulk destroy all subscribers and jobs
+  await ParseQueueSubscriber.destroy({ where: { queue_id: allJobIds } });
+  await ParseQueue.destroy({ where: { id: allJobIds } });
 }
 
 // queueWorker.js
@@ -72,6 +82,7 @@ async function processQueueJob(job) {
     // Try to get the username from the first subscriber, fallback to 'Unknown User'
     let user = { id: job.requested_by || 'queue', username: 'Unknown User' };
     const firstSub = await ParseQueueSubscriber.findOne({ where: { queue_id: job.id }, order: [['created_at', 'ASC']] });
+    let userMap = new Map();
     if (firstSub) {
       // Try to get username from User table
       const { User } = require('./src/models');
@@ -80,6 +91,7 @@ async function processQueueJob(job) {
         id: firstSub.user_id,
         username: userRecord ? userRecord.username : `User ${firstSub.user_id}`
       };
+      if (userRecord) userMap.set(userRecord.discordId, userRecord);
     }
     let additionalTags = [];
     let notes = '';
@@ -91,6 +103,13 @@ async function processQueueJob(job) {
     // Check for existing recommendation by URL
     let existingRec = await Recommendation.findOne({ where: { url: job.fic_url } });
     const isUpdate = !!existingRec;
+    // Fetch config and channel once
+    const configEntry = await Config.findOne({ where: { key: 'fic_queue_channel' } });
+    const channelId = configEntry ? configEntry.value : null;
+    let channel = null;
+    if (channelId) {
+      channel = await client.channels.fetch(channelId).catch(() => null);
+    }
     await processRecommendationJob({
       url: job.fic_url,
       user,
@@ -119,19 +138,19 @@ async function processQueueJob(job) {
         }
         // Notify all subscribers in the configured channel
         const subscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: job.id } });
-        const configEntry = await Config.findOne({ where: { key: 'fic_queue_channel' } });
-        if (!configEntry) {
-          console.warn('[QueueWorker] No fic_queue_channel configured. Skipping notification.');
-          return;
+        // Batch fetch all users for these subscribers if not already in userMap
+        const { User } = require('./src/models');
+        const userIds = [...new Set(subscribers.map(sub => sub.user_id))];
+        const missingUserIds = userIds.filter(id => !userMap.has(id));
+        if (missingUserIds.length > 0) {
+          const users = await User.findAll({ where: { discordId: missingUserIds } });
+          for (const u of users) userMap.set(u.discordId, u);
         }
-        const channelId = configEntry.value;
-        const channel = await client.channels.fetch(channelId).catch(() => null);
         if (!channel || !channel.isTextBased()) {
           console.warn(`[QueueWorker] Could not fetch or use channel ${channelId}. Skipping notification.`);
           return;
         }
-        const { User } = require('./src/models');
-        const mentions = await getTagMentions(subscribers, User);
+        const mentions = getTagMentions(subscribers, userMap);
         await channel.send({
           content: `${mentions}\nYour fic parsing job for <${job.fic_url}> is complete!\n\n*Oh yeah hey, check this out: to toggle queue notifications on|off, you just use the /rec notifytag command. Simple as.*`,
           embeds: [embedOrError.embed || embedOrError]
