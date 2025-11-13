@@ -19,6 +19,13 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
     let loggedIn = false;
     let retried = false;
     ao3Url = url;
+    const fs = require('fs');
+    const path = require('path');
+    const LOG_FAILED_HTML = true;
+    const FAILED_HTML_DIR = path.join(process.cwd(), 'logs', 'ao3_failed_html');
+    if (LOG_FAILED_HTML && !fs.existsSync(FAILED_HTML_DIR)) {
+        fs.mkdirSync(FAILED_HTML_DIR, { recursive: true });
+    }
     async function doLoginAndFetch() {
         const loginResult = await getLoggedInAO3Page();
         browser = loginResult.browser;
@@ -78,9 +85,10 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
     }
 
     let ok = await doLoginAndFetch();
-    if (!ok) {
-        // If we failed, delete cookies and try again once
-        const fs = require('fs');
+    let attempts = 1;
+    let maxAttempts = 2;
+    while ((!ok || !html) && attempts < maxAttempts) {
+        // If we failed, delete cookies and try again
         const COOKIES_PATH = 'ao3_cookies.json';
         if (fs.existsSync(COOKIES_PATH)) {
             console.warn('[AO3] Detected login/interstitial page. Deleting cookies and retrying login.');
@@ -88,9 +96,22 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
         }
         retried = true;
         ok = await doLoginAndFetch();
+        attempts++;
     }
     if (ok && html) {
         return parseAO3Metadata(html, ao3Url, includeRawHtml);
+    }
+    // Log failed HTML for debugging
+    if (LOG_FAILED_HTML && html) {
+        try {
+            const safeUrl = ao3Url.replace(/[^a-zA-Z0-9]/g, '_').slice(-60);
+            const fname = `fail_${Date.now()}_${safeUrl}.html`;
+            const fpath = path.join(FAILED_HTML_DIR, fname);
+            fs.writeFileSync(fpath, html, 'utf8');
+            console.warn(`[AO3] Saved failed HTML to ${fpath}`);
+        } catch (err) {
+            console.warn('[AO3] Failed to save failed HTML:', err);
+        }
     }
     return {
         title: 'Unknown Title',
