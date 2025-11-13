@@ -15,12 +15,22 @@ async function cleanupOldQueueJobs() {
   const now = new Date();
   // Remove 'done' jobs older than 3 hours
   const doneCutoff = new Date(now.getTime() - 3 * 60 * 60 * 1000);
-  await ParseQueue.destroy({ where: { status: 'done', updated_at: { [Op.lt]: doneCutoff } } });
+  const doneDeleted = await ParseQueue.destroy({ where: { status: 'done', updated_at: { [Op.lt]: doneCutoff } } });
+  if (doneDeleted > 0) {
+    console.log(`[QueueWorker] Cleanup: Removed ${doneDeleted} 'done' jobs older than 3 hours.`);
+  } else {
+    console.log('[QueueWorker] Cleanup: No old done jobs to remove.');
+  }
 
   // Find 'pending' or 'processing' jobs older than 15 minutes
   const stuckCutoff = new Date(now.getTime() - 15 * 60 * 1000);
   const stuckJobs = await ParseQueue.findAll({ where: { status: ['pending', 'processing'], updated_at: { [Op.lt]: stuckCutoff } } });
   const { User } = require('./src/models');
+  if (stuckJobs.length > 0) {
+    console.log(`[QueueWorker] Cleanup: Found ${stuckJobs.length} stuck 'pending' or 'processing' jobs older than 15 minutes.`);
+  } else {
+    console.log('[QueueWorker] Cleanup: No stuck pending/processing jobs to remove.');
+  }
   for (const job of stuckJobs) {
     // Notify all subscribers (respect queueNotifyTag)
     const subscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: job.id } });
@@ -36,6 +46,7 @@ async function cleanupOldQueueJobs() {
     }
     await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
     await job.destroy();
+    console.log(`[QueueWorker] Cleanup: Dropped stuck job id=${job.id} (status: ${job.status}, url: ${job.fic_url})`);
   }
 
   // Remove 'error' jobs immediately after notifying subscribers
@@ -171,8 +182,12 @@ client.once('ready', () => {
   console.log(`[QueueWorker] Discord client ready. Starting queue polling... (${now.toISOString()})`);
   pollQueue();
   // Run cleanup every 15 minutes
-  setInterval(cleanupOldQueueJobs, 15 * 60 * 1000);
+  setInterval(() => {
+    console.log('[QueueWorker] Running scheduled cleanup of old queue jobs...');
+    cleanupOldQueueJobs();
+  }, 15 * 60 * 1000);
   // Also run once at startup
+  console.log('[QueueWorker] Running initial cleanup of old queue jobs...');
   cleanupOldQueueJobs();
 });
 

@@ -16,9 +16,16 @@ module.exports = (sequelize) => {
             type: DataTypes.TEXT,
             allowNull: false
         },
+        // Deprecated: use authors array instead
         author: {
             type: DataTypes.STRING,
             allowNull: true
+        },
+        // Authors array (JSON string)
+        authors: {
+            type: DataTypes.TEXT, // JSON array of author names
+            allowNull: true,
+            defaultValue: null
         },
         summary: {
             type: DataTypes.TEXT,

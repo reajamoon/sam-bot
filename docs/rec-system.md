@@ -79,5 +79,12 @@ The rec system is fully modularized and uses a queue for all metadata fetches. H
 - **Consistency:** Unified error handling and styling
 - **Performance:** Reduced memory footprint per operation
 
+## AO3 Parser & Metadata Handling (2025-11-12)
+- AO3 parser now always outputs plain text for summary, notes, and chapter text (no HTML preserved).
+- All tag fields are decoded for HTML entities and special characters.
+- All fields except Title, Author, and Summary are optional.
+- Stats subfields (Published, Updated, Completed, Words, Chapters, Comments, Kudos, Bookmarks, Hits) are dynamically extracted; missing subfields are allowed.
+- Parser and documentation are fully in sync on these points.
+
 ---
 For help text style, see `docs/sam-voice-guidelines.md`. For technical details, see the handler and utility modules in `src/commands/rec/` and `src/utils/rec/`.
