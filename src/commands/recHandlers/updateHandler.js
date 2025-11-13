@@ -27,9 +27,7 @@ async function handleUpdateRecommendation(interaction) {
     try {
         console.log('[rec update] Handler called', {
             user: interaction.user?.id,
-            id: interaction.options.getInteger('id'),
-            find_url: interaction.options.getString('find_url'),
-            find_ao3_id: interaction.options.getInteger('find_ao3_id'),
+            identifier: interaction.options.getString('identifier'),
             options: interaction.options.data
         });
 
@@ -49,9 +47,23 @@ async function handleUpdateRecommendation(interaction) {
         await interaction.deferReply();
 
         const normalizeAO3Url = require('../../utils/recUtils/normalizeAO3Url');
-        const recId = interaction.options.getInteger('id');
-        const findUrl = interaction.options.getString('find_url');
-        const findAo3Id = interaction.options.getInteger('find_ao3_id');
+        const identifier = interaction.options.getString('identifier');
+        let recId = null, findUrl = null, findAo3Id = null;
+        if (identifier) {
+            // URL detection
+            if (/^https?:\/\//i.test(identifier)) {
+                findUrl = identifier;
+            } else if (/^\d{5,}$/.test(identifier)) {
+                // AO3 WorkId: 5+ digits
+                findAo3Id = parseInt(identifier, 10);
+            } else if (/^\d+$/.test(identifier)) {
+                // Internal fic ID: all digits
+                recId = parseInt(identifier, 10);
+            } else {
+                // fallback: try as URL
+                findUrl = identifier;
+            }
+        }
         if (!recId && !findUrl && !findAo3Id) {
             await interaction.editReply({
                 content: updateMessages.needIdentifier

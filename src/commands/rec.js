@@ -88,18 +88,10 @@ module.exports = {
             subcommand
                 .setName('update')
                 .setDescription('Update an existing recommendation with fresh metadata')
-                .addIntegerOption(option =>
-                    option.setName('id')
-                        .setDescription('ID of the recommendation to update')
-                        .setRequired(true))
                 .addStringOption(option =>
-                    option.setName('find_url')
-                        .setDescription('URL of the recommendation to update')
-                        .setRequired(false))
-                .addIntegerOption(option =>
-                    option.setName('find_ao3_id')
-                        .setDescription('AO3 Work ID to find (just the number)')
-                        .setRequired(false))
+                    option.setName('identifier')
+                        .setDescription('Fic ID, AO3 WorkId, or URL')
+                        .setRequired(true))
                 .addStringOption(option =>
                     option.setName('author')
                         .setDescription('Author name (required if auto-parsing fails)')
