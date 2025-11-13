@@ -31,7 +31,7 @@ async function handleUpdateRecommendation(interaction) {
             options: interaction.options.data
         });
 
-        // Debug: log all incoming option values for troubleshooting
+        // Debug: log all incoming option values for troubleshooting//
         const debugFields = {
             newTitle: interaction.options.getString('title'),
             newAuthor: interaction.options.getString('author'),
