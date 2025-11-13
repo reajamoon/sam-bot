@@ -123,3 +123,6 @@ ecosystem.config.js
 *.html
 .eslintrc.json
 .prettierrc
+
+# special secret sauce
+docs/ao3-parser-integrity-plan.md
