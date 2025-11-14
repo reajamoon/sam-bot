@@ -72,17 +72,20 @@ async function createRecommendationEmbed(rec) {
     if (rec.deleted) {
         linkText += ' 🗑 *Story deleted*';
         if (rec.attachmentUrl) {
-            linkText += `\n📎 [Backup Copy Available](${rec.attachmentUrl}) *(with permission)*`;
+            linkText += `\n📎 [Backup Available](${rec.attachmentUrl})`;
         }
     } else if (!isLinkWorking) {
-        linkText += ' ⚠ *Link may be broken or moved*';
+        linkText += ' ⚠';
     }
-    embed.addFields({
-        name: '🔗 Story Link',
-        value: linkText,
-        inline: false
-    });
-    const fields = [];
+    // Story Link, Rating, and Status on the same line (inline fields)
+    const linkAndMetaFields = [
+        {
+            name: '🔗 Story Link',
+            value: linkText,
+            inline: true
+        }
+    ];
+    // Rating (inline)
     if (rec.rating) {
         let ratingValue = rec.rating;
         if (typeof rec.rating === 'string') {
@@ -91,46 +94,76 @@ async function createRecommendationEmbed(rec) {
                 ratingValue = `${ratingEmojis[key]} ${rec.rating}`;
             }
         }
-        fields.push({ name: 'Rating', value: ratingValue, inline: true });
+        linkAndMetaFields.push({ name: 'Rating', value: ratingValue, inline: true });
     }
-    if (rec.wordCount) fields.push({ name: 'Words', value: rec.wordCount.toLocaleString(), inline: true });
-    if (rec.chapters) fields.push({ name: 'Chapters', value: rec.chapters, inline: true });
+    // Status (inline)
     if (rec.status) {
         let statusValue = rec.status;
         if (rec.deleted) statusValue += ' (Deleted)';
-        fields.push({ name: 'Status', value: statusValue, inline: true });
+        linkAndMetaFields.push({ name: 'Status', value: statusValue, inline: true });
     } else if (rec.deleted) {
-        fields.push({ name: 'Status', value: 'Deleted', inline: true });
+        linkAndMetaFields.push({ name: 'Status', value: 'Deleted', inline: true });
     }
-    if (fields.length > 0) {
-        embed.addFields(fields);
+    embed.addFields(linkAndMetaFields);
+
+    // --- Dynamic Published/Updated, Words, Chapters (all inline, same row) ---
+    const statsFields = [];
+    // Determine which date to show and its label
+    let dateLabel = null;
+    let dateValue = null;
+    if (rec.publishedDate && rec.updatedDate) {
+        // Compare as ISO strings if possible, fallback to string compare
+        const pub = new Date(rec.publishedDate);
+        const upd = new Date(rec.updatedDate);
+        if (!isNaN(pub) && !isNaN(upd)) {
+            if (upd > pub) {
+                dateLabel = 'Updated';
+                dateValue = rec.updatedDate;
+            } else {
+                dateLabel = 'Published';
+                dateValue = rec.publishedDate;
+            }
+        } else {
+            // Fallback: just show updated if present
+            dateLabel = 'Updated';
+            dateValue = rec.updatedDate;
+        }
+    } else if (rec.updatedDate) {
+        dateLabel = 'Updated';
+        dateValue = rec.updatedDate;
+    } else if (rec.publishedDate) {
+        dateLabel = 'Published';
+        dateValue = rec.publishedDate;
+    }
+    if (dateLabel && dateValue) {
+        statsFields.push({ name: dateLabel, value: dateValue, inline: true });
+    }
+    if (rec.chapters) statsFields.push({ name: 'Chapters', value: rec.chapters, inline: true });
+    if (rec.wordCount) statsFields.push({ name: 'Words', value: rec.wordCount.toLocaleString(), inline: true });
+    if (statsFields.length > 0) {
+        embed.addFields(statsFields);
     }
 
-    // Add Major Content Warnings field if present and not 'No Archive Warnings Apply'
+
+    // Major Content Warnings (standalone, not inline with link row)
     let warnings = typeof rec.getArchiveWarnings === 'function' ? rec.getArchiveWarnings() : [];
-    // Remove empty/falsey and trim
     warnings = warnings.map(w => (typeof w === 'string' ? w.trim() : '')).filter(Boolean);
-    // Remove duplicates
     warnings = [...new Set(warnings)];
-    // Remove 'No Archive Warnings Apply' if present
     const filtered = warnings.filter(w => w.toLowerCase() !== 'no archive warnings apply');
     if (filtered.length > 0) {
         let fieldValue = '';
-        // If only 'Creator Chose Not To Use Archive Warnings'
         if (
             filtered.length === 1 &&
             filtered[0].toLowerCase() === 'creator chose not to use archive warnings'
         ) {
             fieldValue = `${maybeWarningEmoji} Creator Chose Not To Use Archive Warnings`;
         } else {
-            // If any major warning is present, use major emoji and list all
             const hasMajor = filtered.some(w =>
                 majorWarningsList.some(mw => w.toLowerCase().includes(mw.toLowerCase()))
             );
             if (hasMajor) {
                 fieldValue = `${majorWarningEmoji} ${filtered.join(', ')}`;
             } else {
-                // Fallback: just join and show (shouldn't happen, but for completeness)
                 fieldValue = filtered.join(', ');
             }
         }
@@ -139,7 +172,7 @@ async function createRecommendationEmbed(rec) {
             value: fieldValue
         });
     }
-    // Only show freeform tags (tags field)
+    // Only show freeform tags
     const freeformTags = Array.isArray(rec.tags) ? rec.tags : [];
     if (freeformTags.length > 0) {
         embed.addFields({
@@ -149,6 +182,14 @@ async function createRecommendationEmbed(rec) {
     }
     if (rec.notes) {
         embed.addFields({ name: 'Notes', value: rec.notes });
+    }
+    // --- Row: Hits, Kudos, Bookmarks (all inline, same row) ---
+    const engagementFields = [];
+    if (rec.hits) engagementFields.push({ name: 'Hits', value: rec.hits.toLocaleString(), inline: true });
+    if (rec.kudos) engagementFields.push({ name: 'Kudos', value: rec.kudos.toLocaleString(), inline: true });
+    if (rec.bookmarks) engagementFields.push({ name: 'Bookmarks', value: rec.bookmarks.toLocaleString(), inline: true });
+    if (engagementFields.length > 0) {
+        embed.addFields(engagementFields);
     }
     return embed;
 }
