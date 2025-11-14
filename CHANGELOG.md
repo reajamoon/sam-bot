@@ -1,5 +1,15 @@
 # PB Community Changelog
 
+## 2025-11-13
+
+### Tag schemas and rec search and embed sprucing
+- AO3 tag schema and parsing improved for super duper tight normalization and compatibility - I am always fighting this fight pls
+- AO3 URL db sanitation REDUX but this time I *didn't* mess up and the 34 duplicates I removed were the newer ones, also properly enforced anti-duping this time.
+- SEARCH FEATURE!!!!!!! Search by title, author, tags, rating, and/or summary. Yes, I *did* say AND/OR.
+- Oh yes, it does support partial matches.
+- Search embeds are kinda spiffy and have working pagination. I'll probably make them cuter later and break them and fix them and break them and fix them and break them
+- refactored /rec remove to work the same as /rec update so it uses a single <identifier> and parses if it's an ID, Work ID, or URL on the back end so you don't have to worry about it.
+- general bug fixes. so many. don't look at the commits for today it's a bloodbath in there.
 
 ## 2025-11-12
 
