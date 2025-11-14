@@ -9,14 +9,17 @@ async function handleSearchRecommendations(interaction) {
         });
     }
     await interaction.deferReply();
+    const idQuery = interaction.options.getString('id');
+    const workIdQuery = interaction.options.getString('workid');
+    const urlQuery = interaction.options.getString('url');
     const titleQuery = interaction.options.getString('title');
     const authorQuery = interaction.options.getString('author');
     const tagsQuery = interaction.options.getString('tags');
     const ratingQuery = interaction.options.getString('rating');
     const summaryQuery = interaction.options.getString('summary');
-    if (!titleQuery && !authorQuery && !tagsQuery && !ratingQuery && !summaryQuery) {
+    if (!idQuery && !workIdQuery && !urlQuery && !titleQuery && !authorQuery && !tagsQuery && !ratingQuery && !summaryQuery) {
         await interaction.editReply({
-            content: 'You need to provide at least one search field (title, author, tags, rating, or summary), or try `/rec random` for a surprise!'
+            content: 'You need to provide at least one search field (ID, work ID, URL, title, author, tags, rating, or summary), or try `/rec random` for a surprise!'
         });
         return;
     }
@@ -25,6 +28,24 @@ async function handleSearchRecommendations(interaction) {
     const createSearchResultsEmbed = require('../../utils/recUtils/createSearchResultsEmbed');
     // Build AND filter for all provided fields
     const where = {};
+    if (idQuery) {
+        // Only allow exact match for ID (integer)
+        const idNum = parseInt(idQuery, 10);
+        if (!isNaN(idNum)) {
+            where.id = idNum;
+        } else {
+            await interaction.editReply({ content: 'Fic ID must be a number.' });
+            return;
+        }
+    }
+    if (workIdQuery) {
+        // Only allow exact match for AO3 work ID (must be present in url)
+        where.url = { [Op.iLike]: `%/works/${workIdQuery}` };
+    }
+    if (urlQuery) {
+        // Only allow exact match for URL
+        where.url = urlQuery.trim();
+    }
     if (titleQuery) {
         where.title = { [Op.iLike]: `%${titleQuery.trim()}%` };
     }
