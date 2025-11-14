@@ -200,9 +200,12 @@ async function pollQueue() {
       if (job) {
         // Simulate 'think time' before starting each job (0.5–2s)
         const thinkTime = 500 + Math.floor(Math.random() * 1500);
+        console.log(`[QueueWorker] Waiting think time: ${thinkTime}ms before processing job ${job.id}`);
         await new Promise(res => setTimeout(res, thinkTime));
 
+        console.log(`[QueueWorker] Starting job ${job.id} at ${new Date().toISOString()}`);
         await processQueueJob(job);
+        console.log(`[QueueWorker] Finished job ${job.id} at ${new Date().toISOString()}`);
 
         // Vary delay range (12–20s normal, 20–30s rare)
         // Use a weighted random: 75% chance 12–20s, 25% chance 20–30s
@@ -216,17 +219,23 @@ async function pollQueue() {
 
         // Rare long pause: every 10–20 jobs, pause 1–3 min
         pollQueue.jobCount = (pollQueue.jobCount || 0) + 1;
-        if (pollQueue.jobCount % (10 + Math.floor(Math.random() * 11)) === 0) {
+        const jobsPerPause = 10 + Math.floor(Math.random() * 11);
+        if (pollQueue.jobCount % jobsPerPause === 0) {
           const longPause = 60000 + Math.floor(Math.random() * 120000); // 1–3 min
-          console.log(`[QueueWorker] Taking a long pause for ${Math.round(longPause/1000)} seconds to mimic human behavior.`);
+          console.log(`[QueueWorker] Taking a long pause for ${Math.round(longPause/1000)} seconds after job ${job.id} (jobCount: ${pollQueue.jobCount}, jobsPerPause: ${jobsPerPause})`);
           await new Promise(res => setTimeout(res, longPause));
+          console.log(`[QueueWorker] Finished long pause after job ${job.id} at ${new Date().toISOString()}`);
         } else {
+          console.log(`[QueueWorker] Waiting delay: ${delayMs}ms after job ${job.id}`);
           await new Promise(res => setTimeout(res, delayMs));
+          console.log(`[QueueWorker] Finished delay after job ${job.id} at ${new Date().toISOString()}`);
         }
       } else {
         // No pending jobs, wait before polling again (randomize 4–7s)
         const idleDelay = 4000 + Math.floor(Math.random() * 3000);
+        console.log(`[QueueWorker] No pending jobs. Waiting idle delay: ${idleDelay}ms`);
         await new Promise(res => setTimeout(res, idleDelay));
+        console.log(`[QueueWorker] Finished idle delay at ${new Date().toISOString()}`);
       }
     } catch (err) {
       console.error('[QueueWorker] Polling error:', err);
