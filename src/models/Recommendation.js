@@ -36,6 +36,16 @@ module.exports = (sequelize) => {
             allowNull: true,
             defaultValue: []
         },
+        character_tags: {
+            type: DataTypes.JSONB, // Array of character tags
+            allowNull: true,
+            defaultValue: []
+        },
+        fandom_tags: {
+            type: DataTypes.JSONB, // Array of fandom tags
+            allowNull: true,
+            defaultValue: []
+        },
         rating: {
             type: DataTypes.STRING,
             allowNull: true

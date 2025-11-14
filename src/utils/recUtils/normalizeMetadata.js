@@ -1,11 +1,24 @@
-/**
- * Normalizes metadata field names to AO3 terminology
- * @param {Object} metadata - The metadata object to normalize
- * @param {string} source - The source site (e.g., 'wattpad', 'ffnet', 'tumblr')
- * @returns {Object} - Normalized metadata object
- */
+
+const AO3_FIELD_MAP = require('./ao3/ao3FieldMap');
+
 function normalizeMetadata(metadata, source) {
-    const normalized = { ...metadata };
+    const normalized = {};
+
+    // Map AO3 fields to internal fields using the field map
+    for (const [ao3Key, value] of Object.entries(metadata)) {
+        const internalKey = AO3_FIELD_MAP[ao3Key] || ao3Key;
+        if (Array.isArray(value)) {
+            normalized[internalKey] = value;
+        } else {
+            normalized[internalKey] = value;
+        }
+    }
+
+    // Guarantee all tag arrays are present and are arrays
+    normalized.tags = Array.isArray(normalized.tags) ? normalized.tags : [];
+    normalized.fandom_tags = Array.isArray(normalized.fandom_tags) ? normalized.fandom_tags : [];
+    normalized.character_tags = Array.isArray(normalized.character_tags) ? normalized.character_tags : [];
+    normalized.archive_warnings = Array.isArray(normalized.archive_warnings) ? normalized.archive_warnings : [];
 
     // --- Rating normalization (AO3 canonical names) ---
     if (normalized.rating && typeof normalized.rating === 'string') {
@@ -35,18 +48,8 @@ function normalizeMetadata(metadata, source) {
     }
 
     // --- Archive Warnings normalization ---
-    // Prefer archiveWarnings, fallback to archive_warnings, fallback to archive_warnings (snake_case)
-    let archiveWarnings = normalized.archiveWarnings || normalized.archive_warnings || normalized.archive_warnings;
-    if (!archiveWarnings && Array.isArray(normalized.archive_warnings)) archiveWarnings = normalized.archive_warnings;
-    if (!archiveWarnings && Array.isArray(normalized.archiveWarnings)) archiveWarnings = normalized.archiveWarnings;
-    if (!archiveWarnings && Array.isArray(normalized.archive_warnings)) archiveWarnings = normalized.archive_warnings;
-    if (!archiveWarnings && Array.isArray(normalized.archiveWarnings)) archiveWarnings = normalized.archiveWarnings;
-    if (!archiveWarnings && Array.isArray(normalized.archive_warnings)) archiveWarnings = normalized.archive_warnings;
-    // Fallback to warnings
-    if (!archiveWarnings && Array.isArray(normalized.warnings)) archiveWarnings = normalized.warnings;
-    // Guarantee array
+    let archiveWarnings = normalized.archiveWarnings || normalized.archive_warnings;
     if (!Array.isArray(archiveWarnings)) archiveWarnings = [];
-    // Guarantee archiveWarnings is always a non-empty array, defaulting to AO3's standard only if empty or matches that value
     const ao3None = 'no archive warnings apply';
     if (archiveWarnings.length === 0 ||
         (archiveWarnings.length === 1 && archiveWarnings[0] && archiveWarnings[0].trim().toLowerCase() === ao3None)) {
@@ -54,28 +57,6 @@ function normalizeMetadata(metadata, source) {
     }
     normalized.archiveWarnings = archiveWarnings;
     normalized.archive_warnings = archiveWarnings;
-
-    // --- Tag merging ---
-    // Merge all tag arrays into a single tags array for the model
-    const tagArrays = [
-        normalized.fandom_tags,
-        normalized.relationship_tags,
-        normalized.character_tags,
-        normalized.category_tags,
-        normalized.freeform_tags,
-        normalized.required_tags
-    ];
-    let tags = [];
-    for (const arr of tagArrays) {
-        if (Array.isArray(arr)) tags = tags.concat(arr);
-    }
-    // Remove duplicates and trim
-    tags = Array.from(new Set(tags.map(t => (typeof t === 'string' ? t.trim() : '')).filter(Boolean)));
-    normalized.tags = tags;
-
-    // --- Ensure all required fields are present ---
-    // (rating, wordCount, chapters, status, publishedDate, updatedDate, kudos, hits, bookmarks, comments, category)
-    // Already promoted by parser/schema, just ensure they exist (undefined is fine for DB)
 
     // --- Source-specific normalization ---
     if (source === 'wattpad') {
