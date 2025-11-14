@@ -20,12 +20,20 @@ async function handleSearchRecommendations(interaction) {
     const { Op } = require('sequelize');
     const createSearchResultsEmbed = require('../../utils/recUtils/createSearchResultsEmbed');
     // Case-insensitive, partial match, up to 25 results
-    const allResults = await Recommendation.findAll({
+    const allResultsRaw = await Recommendation.findAll({
         where: {
             title: { [Op.iLike]: `%${titleQuery.trim()}%` }
         },
         order: [['updatedAt', 'DESC']],
         limit: 25
+    });
+    // Deduplicate by URL (or title if URL missing)
+    const seen = new Set();
+    const allResults = allResultsRaw.filter(rec => {
+        const key = rec.url || rec.title;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
     });
     if (!allResults.length) {
         await interaction.editReply({

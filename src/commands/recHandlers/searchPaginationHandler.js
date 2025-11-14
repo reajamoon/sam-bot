@@ -21,12 +21,20 @@ async function handleSearchPagination(interaction) {
     // Clamp page
     page = Math.max(1, Math.min(page, totalPages));
     // Fetch all results for the query (up to 25)
-    const allResults = await Recommendation.findAll({
+    const allResultsRaw = await Recommendation.findAll({
         where: {
             title: { [Op.iLike]: `%${query.trim()}%` }
         },
         order: [['updatedAt', 'DESC']],
         limit: 25
+    });
+    // Deduplicate by URL (or title if URL missing)
+    const seen = new Set();
+    const allResults = allResultsRaw.filter(rec => {
+        const key = rec.url || rec.title;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
     });
     const perPage = 3;
     const recs = allResults.slice((page - 1) * perPage, page * perPage);
