@@ -63,18 +63,31 @@ async function handleSearchRecommendations(interaction) {
             if (group.includes('+')) {
                 // AND group
                 const andTags = group.split('+').map(t => t.trim()).filter(Boolean);
-                if (andTags.length) {
+                if (Array.isArray(andTags) && andTags.length > 0) {
                     tagOrClauses.push({ tags: { [Op.contains]: andTags } });
                 }
             } else if (group.length) {
                 // Single tag (OR)
-                tagOrClauses.push({ tags: { [Op.overlap]: [group] } });
+                // Ensure group is not an accidental array or empty string
+                if (typeof group === 'string' && group.trim().length > 0) {
+                    tagOrClauses.push({ tags: { [Op.overlap]: [group.trim()] } });
+                }
             }
         }
-        if (tagOrClauses.length === 1) {
-            whereClauses.push(tagOrClauses[0]);
-        } else if (tagOrClauses.length > 1) {
-            whereClauses.push({ [Op.or]: tagOrClauses });
+        // Only push valid clauses
+        const validTagOrClauses = tagOrClauses.filter(clause => {
+            if (clause.tags[Op.contains]) {
+                return Array.isArray(clause.tags[Op.contains]) && clause.tags[Op.contains].length > 0;
+            }
+            if (clause.tags[Op.overlap]) {
+                return Array.isArray(clause.tags[Op.overlap]) && clause.tags[Op.overlap].length > 0;
+            }
+            return false;
+        });
+        if (validTagOrClauses.length === 1) {
+            whereClauses.push(validTagOrClauses[0]);
+        } else if (validTagOrClauses.length > 1) {
+            whereClauses.push({ [Op.or]: validTagOrClauses });
         }
     }
     if (ratingQuery) {
