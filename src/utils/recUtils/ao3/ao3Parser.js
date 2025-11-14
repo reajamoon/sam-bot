@@ -15,26 +15,7 @@ const {
 const decodeHtmlEntities = require('../decodeHtmlEntities');
 
 function parseAO3Metadata(html, url, includeRawHtml = false) {
-    // Debug: log extracted title, authors, and summary for troubleshooting
-    try {
-        const fs = require('fs');
-        const path = require('path');
-        const debugLogDir = path.join(process.cwd(), 'logs', 'ao3_parser_debug');
-        if (!fs.existsSync(debugLogDir)) fs.mkdirSync(debugLogDir, { recursive: true });
-        const debugObj = {
-            url,
-            extractedTitle: metadata.title,
-            extractedAuthors: metadata.authors,
-            extractedSummary: metadata.summary,
-            allMetadata: metadata
-        };
-        const fname = `parser_debug_${Date.now()}_${url.replace(/[^a-zA-Z0-9]/g, '_').slice(-60)}.json`;
-        const fpath = path.join(debugLogDir, fname);
-        fs.writeFileSync(fpath, JSON.stringify(debugObj, null, 2), 'utf8');
-        console.warn(`[AO3 PARSER DEBUG] Saved parser debug info for ${url} to ${fpath}`);
-    } catch (err) {
-        console.warn('[AO3 PARSER DEBUG] Failed to save parser debug info:', err);
-    }
+    // Debug logging will be done after metadata is defined, only if metadata exists
     const fs = require('fs');
     const path = require('path');
     // Check for incomplete HTML (missing </html> or </body>)
@@ -366,6 +347,26 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
 
         // Validate with Zod schema
         const validation = AO3Schema.safeParse(metadata);
+        // Debug: log extracted title, authors, and summary for troubleshooting (only if metadata exists)
+        try {
+            const fs = require('fs');
+            const path = require('path');
+            const debugLogDir = path.join(process.cwd(), 'logs', 'ao3_parser_debug');
+            if (!fs.existsSync(debugLogDir)) fs.mkdirSync(debugLogDir, { recursive: true });
+            const debugObj = {
+                url,
+                extractedTitle: metadata.title,
+                extractedAuthors: metadata.authors,
+                extractedSummary: metadata.summary,
+                allMetadata: metadata
+            };
+            const fname = `parser_debug_${Date.now()}_${url ? url.replace(/[^a-zA-Z0-9]/g, '_').slice(-60) : 'no_url'}.json`;
+            const fpath = path.join(debugLogDir, fname);
+            fs.writeFileSync(fpath, JSON.stringify(debugObj, null, 2), 'utf8');
+            console.warn(`[AO3 PARSER DEBUG] Saved parser debug info for ${url} to ${fpath}`);
+        } catch (err) {
+            console.warn('[AO3 PARSER DEBUG] Failed to save parser debug info:', err);
+        }
         if (!validation.success) {
             return {
                 error: true,
