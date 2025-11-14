@@ -1,6 +1,8 @@
 // Utility to extract an array of tag strings from a Cheerio <dd> element
 // Usage: const tags = parseTagList($, ddElement);
 
+const decodeHtmlEntities = require('../decodeHtmlEntities');
+
 /**
  * Extracts an array of tag strings from a Cheerio <dd> element containing AO3 tags.
  * @param {CheerioStatic} $ - The Cheerio instance.
@@ -12,7 +14,7 @@ function parseTagList($, ddElem) {
     const tags = [];
     ddElem.find('a.tag').each((i, el) => {
         const tag = $(el).text().trim();
-        if (tag) tags.push(tag);
+        if (tag) tags.push(decodeHtmlEntities(tag));
     });
     return tags;
 }

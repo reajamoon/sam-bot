@@ -6,7 +6,8 @@
  */
 function normalizeMetadata(metadata, source) {
     const normalized = { ...metadata };
-    // Normalize rating to AO3 canonical names for non-AO3 sources
+
+    // --- Rating normalization (AO3 canonical names) ---
     if (normalized.rating && typeof normalized.rating === 'string') {
         const ratingMap = {
             'k': 'General Audiences',
@@ -33,28 +34,51 @@ function normalizeMetadata(metadata, source) {
         }
     }
 
-    // Normalize warnings: always use archiveWarnings (array) for major content warnings
-    if (normalized.warnings && !normalized.archiveWarnings) {
-        if (Array.isArray(normalized.warnings)) {
-            normalized.archiveWarnings = normalized.warnings;
-        } else if (typeof normalized.warnings === 'string') {
-            normalized.archiveWarnings = normalized.warnings.split(',').map(w => w.trim()).filter(Boolean);
-        } else {
-            normalized.archiveWarnings = [String(normalized.warnings)];
-        }
-        delete normalized.warnings;
-    }
-    // Remove any legacy archiveWarning field
-    if (normalized.archiveWarning) delete normalized.archiveWarning;
+    // --- Archive Warnings normalization ---
+    // Prefer archiveWarnings, fallback to archive_warnings, fallback to archive_warnings (snake_case)
+    let archiveWarnings = normalized.archiveWarnings || normalized.archive_warnings || normalized.archive_warnings;
+    if (!archiveWarnings && Array.isArray(normalized.archive_warnings)) archiveWarnings = normalized.archive_warnings;
+    if (!archiveWarnings && Array.isArray(normalized.archiveWarnings)) archiveWarnings = normalized.archiveWarnings;
+    if (!archiveWarnings && Array.isArray(normalized.archive_warnings)) archiveWarnings = normalized.archive_warnings;
+    if (!archiveWarnings && Array.isArray(normalized.archiveWarnings)) archiveWarnings = normalized.archiveWarnings;
+    if (!archiveWarnings && Array.isArray(normalized.archive_warnings)) archiveWarnings = normalized.archive_warnings;
+    // Fallback to warnings
+    if (!archiveWarnings && Array.isArray(normalized.warnings)) archiveWarnings = normalized.warnings;
+    // Guarantee array
+    if (!Array.isArray(archiveWarnings)) archiveWarnings = [];
     // Guarantee archiveWarnings is always a non-empty array, defaulting to AO3's standard only if empty or matches that value
     const ao3None = 'no archive warnings apply';
-    if (!Array.isArray(normalized.archiveWarnings) || normalized.archiveWarnings.length === 0 ||
-        (normalized.archiveWarnings.length === 1 && normalized.archiveWarnings[0] && normalized.archiveWarnings[0].trim().toLowerCase() === ao3None)) {
-        normalized.archiveWarnings = ['No Archive Warnings Apply'];
+    if (archiveWarnings.length === 0 ||
+        (archiveWarnings.length === 1 && archiveWarnings[0] && archiveWarnings[0].trim().toLowerCase() === ao3None)) {
+        archiveWarnings = ['No Archive Warnings Apply'];
     }
-    console.log('[NORMALIZE] archiveWarnings after normalization:', normalized.archiveWarnings);
+    normalized.archiveWarnings = archiveWarnings;
+    normalized.archive_warnings = archiveWarnings;
+
+    // --- Tag merging ---
+    // Merge all tag arrays into a single tags array for the model
+    const tagArrays = [
+        normalized.fandom_tags,
+        normalized.relationship_tags,
+        normalized.character_tags,
+        normalized.category_tags,
+        normalized.freeform_tags,
+        normalized.required_tags
+    ];
+    let tags = [];
+    for (const arr of tagArrays) {
+        if (Array.isArray(arr)) tags = tags.concat(arr);
+    }
+    // Remove duplicates and trim
+    tags = Array.from(new Set(tags.map(t => (typeof t === 'string' ? t.trim() : '')).filter(Boolean)));
+    normalized.tags = tags;
+
+    // --- Ensure all required fields are present ---
+    // (rating, wordCount, chapters, status, publishedDate, updatedDate, kudos, hits, bookmarks, comments, category)
+    // Already promoted by parser/schema, just ensure they exist (undefined is fine for DB)
+
+    // --- Source-specific normalization ---
     if (source === 'wattpad') {
-        // Wattpad normalization
         if (normalized.votes !== undefined) {
             normalized.kudos = normalized.votes;
             delete normalized.votes;
@@ -68,7 +92,6 @@ function normalizeMetadata(metadata, source) {
             delete normalized.parts;
         }
     } else if (source === 'ffnet') {
-        // FFNet normalization
         if (normalized.favs !== undefined) {
             normalized.bookmarks = normalized.favs;
             delete normalized.favs;
@@ -82,13 +105,13 @@ function normalizeMetadata(metadata, source) {
             delete normalized.genre;
         }
     } else if (source === 'tumblr') {
-        // Tumblr normalization
         if (normalized.notes !== undefined) {
             normalized.kudos = normalized.notes;
             delete normalized.notes;
         }
     }
     // LiveJournal and Dreamwidth don't have specific fields that need normalization
+
     return normalized;
 }
 

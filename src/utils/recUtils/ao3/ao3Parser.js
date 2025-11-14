@@ -229,70 +229,28 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
 
     // (Fandom handled above as array)
 
-        // Remove legacy/redundant top-level fields and move to stats if present
-        // (rating, wordCount, chapters, status, publishedDate, updatedDate)
-        // These should only be present in metadata.stats or as defined in the schema
-        // If stats exists, merge/override with any legacy fields
+        // --- Promote all required fields to top-level for Zod/schema alignment ---
         if (!metadata.stats) metadata.stats = {};
-        // Move rating
-        if (typeof metadata.rating === 'string') {
-            metadata.stats.rating = metadata.rating;
-            delete metadata.rating;
+        // Promote stats fields to top-level with expected names
+        if (metadata.stats.rating) metadata.rating = metadata.stats.rating;
+        if (metadata.stats.words) metadata.wordCount = metadata.stats.words;
+        if (metadata.stats.chapters) metadata.chapters = metadata.stats.chapters;
+        if (metadata.stats.status) metadata.status = metadata.stats.status;
+        if (metadata.stats.published) metadata.publishedDate = metadata.stats.published;
+        if (metadata.stats.updated) metadata.updatedDate = metadata.stats.updated;
+        if (metadata.stats.completed) metadata.completedDate = metadata.stats.completed;
+        if (metadata.stats.kudos) metadata.kudos = metadata.stats.kudos;
+        if (metadata.stats.hits) metadata.hits = metadata.stats.hits;
+        if (metadata.stats.bookmarks) metadata.bookmarks = metadata.stats.bookmarks;
+        if (metadata.stats.comments) metadata.comments = metadata.stats.comments;
+        // Promote category if present
+        if (metadata.category_tags && metadata.category_tags.length > 0) {
+            metadata.category = metadata.category_tags[0];
         }
-        // Move wordCount
-        if (typeof metadata.wordCount === 'number') {
-            metadata.stats.words = metadata.wordCount;
-            delete metadata.wordCount;
-        }
-        // Move chapters
-        if (typeof metadata.chapters === 'string') {
-            metadata.stats.chapters = metadata.chapters;
-            delete metadata.chapters;
-        }
-        // Move status
-        if (typeof metadata.status === 'string') {
-            metadata.stats.status = metadata.status;
-            delete metadata.status;
-        }
-        // Move publishedDate
-        if (typeof metadata.publishedDate === 'string') {
-            metadata.stats.published = metadata.publishedDate;
-            delete metadata.publishedDate;
-        }
-        // Move updatedDate
-        if (typeof metadata.updatedDate === 'string') {
-            metadata.stats.updated = metadata.updatedDate;
-            delete metadata.updatedDate;
-        }
-        // Move completedDate (if present)
-        if (typeof metadata.completedDate === 'string') {
-            metadata.stats.completed = metadata.completedDate;
-            delete metadata.completedDate;
-        }
-        // Move language (should remain top-level, not in stats)
-        if (typeof metadata.language === 'string') {
-            // leave as is
-        }
-
-        // Fix stats fields: ensure published/updated/completed are strings if present
-        ['published', 'updated', 'completed'].forEach((key) => {
-            if (metadata.stats[key] && typeof metadata.stats[key] !== 'string') {
-                metadata.stats[key] = String(metadata.stats[key]);
-            }
-        });
-
-        // Fix chapters: ensure chapters is a string
-        if (metadata.stats.chapters && typeof metadata.stats.chapters !== 'string') {
-            metadata.stats.chapters = String(metadata.stats.chapters);
-        }
-
-        // Fix all stats int fields: words, comments, kudos, bookmarks, hits
-        ['words', 'comments', 'kudos', 'bookmarks', 'hits'].forEach((key) => {
-            if (metadata.stats[key] && typeof metadata.stats[key] !== 'number') {
-                const num = parseInt(metadata.stats[key], 10);
-                if (!isNaN(num)) metadata.stats[key] = num;
-            }
-        });
+        // Promote archive_warnings to archiveWarnings (camelCase for normalization)
+        if (metadata.archive_warnings) metadata.archiveWarnings = metadata.archive_warnings;
+        // Always include url field
+        metadata.url = url || metadata.url || null;
         if (includeRawHtml) metadata.rawHtml = html;
 
         // If we failed to extract a title or author, treat as parse failure
@@ -318,9 +276,6 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
                 if (globalAuthors.length > 0) metadata.authors = globalAuthors;
             }
         }
-
-        // Always include url field
-        metadata.url = url || metadata.url || null;
 
         // Validate with Zod schema
         const validation = AO3Schema.safeParse(metadata);
