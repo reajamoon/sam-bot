@@ -231,13 +231,21 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
 
         // --- Promote all required fields to top-level for Zod/schema alignment ---
         if (!metadata.stats) metadata.stats = {};
+        // Promote stats fields to top-level with expected names (especially chapters!)
+        if (metadata.stats.rating) metadata.rating = metadata.stats.rating;
+        if (metadata.stats.words) metadata.wordCount = metadata.stats.words;
+        if (metadata.stats.chapters) metadata.chapters = metadata.stats.chapters;
+        if (metadata.stats.published) metadata.publishedDate = metadata.stats.published;
+        if (metadata.stats.updated) metadata.updatedDate = metadata.stats.updated;
+        if (metadata.stats.kudos) metadata.kudos = metadata.stats.kudos;
+
         // --- Robust status extraction ---
         // 1. Check for AO3 'complete-yes'/'complete-no' icons
         let statusFromIcon = null;
         if (typeof $ === 'function') {
             if ($('img[src$="complete-yes.png"]').length > 0) statusFromIcon = 'Complete';
             else if ($('img[src$="complete-no.png"]').length > 0) statusFromIcon = 'In Progress';
-            }
+        }
         // 2. Parse chapters field for N/N, N/?, ?/?
         let statusFromChapters = null;
         if (typeof metadata.chapters === 'string') {
@@ -247,27 +255,28 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
                 const num2 = match[2] === '?' ? null : parseInt(match[2], 10);
                 if (num2 && num1 === num2 && num1 > 0) statusFromChapters = 'Complete';
                 else if (num2 === null || num1 < (num2 || 0)) statusFromChapters = 'In Progress';
-                    }
             }
+        }
         // 3. Abandoned tag
         const abandonedTag = 'Abandoned Work - Unfinished and Discontinued';
         let freeformTagsArr = [];
         if (Array.isArray(metadata.freeform_tags)) {
             freeformTagsArr = metadata.freeform_tags.map(t => t.trim().toLowerCase());
-            } else if (Array.isArray(metadata.tags)) {
+        } else if (Array.isArray(metadata.tags)) {
             freeformTagsArr = metadata.tags.map(t => t.trim().toLowerCase());
-            } let statusFromAbandoned = null;
-            if (freeformTagsArr.includes(abandonedTag.toLowerCase())) {
+        }
+        let statusFromAbandoned = null;
+        if (freeformTagsArr.includes(abandonedTag.toLowerCase())) {
             statusFromAbandoned = 'Abandoned';
-            }
+        }
         // 4. Completed date field
         let statusFromCompleted = null;
         if (typeof metadata.stats.completed !== 'undefined') {
-        if (metadata.stats.completed && metadata.stats.completed.trim() !== '') {
-            statusFromCompleted = 'Complete';
-            metadata.completedDate = metadata.stats.completed;
+            if (metadata.stats.completed && metadata.stats.completed.trim() !== '') {
+                statusFromCompleted = 'Complete';
+                metadata.completedDate = metadata.stats.completed;
             } else {
-            statusFromCompleted = 'In Progress';
+                statusFromCompleted = 'In Progress';
             }
         }
         // 5. Fallback to stats.status if present
@@ -292,12 +301,6 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
             || statusFromStats
             || 'Unknown'
         );
-
-        // Promote stats fields to top-level with expected names
-            if (metadata.stats.rating) metadata.rating = metadata.stats.rating;
-            if (metadata.stats.words) metadata.wordCount = metadata.stats.words;
-            if (metadata.stats.chapters) metadata.chapters = metadata.stats.chapters;
-            if (metadata.stats.published) metadata.publishedDate = metadata.stats.published;
             if (metadata.stats.updated) metadata.updatedDate = metadata.stats.updated;
             if (metadata.stats.kudos) metadata.kudos = metadata.stats.kudos;
             if (metadata.stats.published) metadata.publishedDate = metadata.stats.published;
