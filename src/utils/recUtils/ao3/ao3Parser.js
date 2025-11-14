@@ -232,13 +232,35 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
         // --- Promote all required fields to top-level for Zod/schema alignment ---
         if (!metadata.stats) metadata.stats = {};
         // Promote stats fields to top-level with expected names
+        // Check for canonical AO3 abandoned tag in freeform tags
+        const abandonedTag = 'Abandoned Work - Unfinished and Discontinued';
+        let freeformTagsArr = [];
+        if (Array.isArray(metadata.freeform_tags)) {
+            freeformTagsArr = metadata.freeform_tags.map(t => t.trim().toLowerCase());
+        } else if (Array.isArray(metadata.tags)) {
+            freeformTagsArr = metadata.tags.map(t => t.trim().toLowerCase());
+        }
+        if (freeformTagsArr.includes(abandonedTag.toLowerCase())) {
+            if (!metadata.status || metadata.status.toLowerCase() !== 'deleted') {
+                metadata.status = 'Abandoned';
+            }
+        }
         if (metadata.stats.rating) metadata.rating = metadata.stats.rating;
         if (metadata.stats.words) metadata.wordCount = metadata.stats.words;
         if (metadata.stats.chapters) metadata.chapters = metadata.stats.chapters;
-        if (metadata.stats.status) metadata.status = metadata.stats.status;
+        // AO3 does not provide a direct status field; infer from completed
+        if (typeof metadata.stats.completed !== 'undefined') {
+            // AO3 marks completed as a date string if complete, or empty/undefined if not
+            if (metadata.stats.completed && metadata.stats.completed.trim() !== '') {
+                metadata.status = 'Complete';
+                metadata.completedDate = metadata.stats.completed;
+            } else {
+                metadata.status = 'In Progress';
+            }
+        }
+        if (metadata.stats.status) metadata.status = metadata.stats.status; // fallback if present
         if (metadata.stats.published) metadata.publishedDate = metadata.stats.published;
         if (metadata.stats.updated) metadata.updatedDate = metadata.stats.updated;
-        if (metadata.stats.completed) metadata.completedDate = metadata.stats.completed;
         if (metadata.stats.kudos) metadata.kudos = metadata.stats.kudos;
         if (metadata.stats.hits) metadata.hits = metadata.stats.hits;
         if (metadata.stats.bookmarks) metadata.bookmarks = metadata.stats.bookmarks;
