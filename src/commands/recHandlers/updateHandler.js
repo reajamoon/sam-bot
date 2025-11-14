@@ -307,14 +307,16 @@ async function handleUpdateRecommendation(interaction) {
         if (appendAdditional && newTags && newTags.length > 0) {
             // Merge with all existing tags (main + additional), deduplicate
             let oldAdditional = [];
-            try { oldAdditional = JSON.parse(recommendation.additionalTags || '[]'); } catch { oldAdditional = []; }
+            if (Array.isArray(recommendation.additionalTags)) {
+                oldAdditional = recommendation.additionalTags;
+            } else if (typeof recommendation.additionalTags === 'string') {
+                try { oldAdditional = JSON.parse(recommendation.additionalTags); } catch { oldAdditional = []; }
+            }
             let mainTags = [];
-            if (recommendation.tags) {
-                if (Array.isArray(recommendation.tags)) {
-                    mainTags = recommendation.tags;
-                } else if (typeof recommendation.tags === 'string') {
-                    mainTags = recommendation.tags.split(',').map(t => t.trim()).filter(Boolean);
-                }
+            if (Array.isArray(recommendation.tags)) {
+                mainTags = recommendation.tags;
+            } else if (typeof recommendation.tags === 'string') {
+                try { mainTags = JSON.parse(recommendation.tags); } catch { mainTags = recommendation.tags.split(',').map(t => t.trim()).filter(Boolean); }
             }
             additionalTagsToSend = Array.from(new Set([
                 ...mainTags.map(t => t.toLowerCase()),
