@@ -147,10 +147,26 @@ module.exports = {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('search')
-                .setDescription('Search for recommendations by title, author, or tags')
+                .setDescription('Search for recommendations by title, author, tags, rating, or summary')
                 .addStringOption(option =>
                     option.setName('title')
                         .setDescription('Search by fic title (partial match)')
+                        .setRequired(false))
+                .addStringOption(option =>
+                    option.setName('author')
+                        .setDescription('Search by author (partial match)')
+                        .setRequired(false))
+                .addStringOption(option =>
+                    option.setName('tags')
+                        .setDescription('Search by tag (partial match, comma-separated)')
+                        .setRequired(false))
+                .addStringOption(option =>
+                    option.setName('rating')
+                        .setDescription('Search by rating (e.g., Teen, Explicit)')
+                        .setRequired(false))
+                .addStringOption(option =>
+                    option.setName('summary')
+                        .setDescription('Search by summary (partial match)')
                         .setRequired(false)))
         .addSubcommand(subcommand =>
             subcommand
