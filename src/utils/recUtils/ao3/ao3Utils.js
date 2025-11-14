@@ -61,8 +61,7 @@ async function getLoggedInAO3Page() {
     const username = process.env.AO3_USERNAME;
     const password = process.env.AO3_PASSWORD;
     const headless = process.env.AO3_HEADLESS === 'false' ? false : true;
-    const fs = require('fs');
-    const COOKIES_PATH = 'ao3_cookies.json';
+    // fs and COOKIES_PATH already declared above
     // Configurable timeouts (ms)
     const NAV_TIMEOUT = parseInt(process.env.AO3_NAV_TIMEOUT, 10) || 90000;
     const LOGIN_RETRY_MAX = parseInt(process.env.AO3_LOGIN_RETRY_MAX, 10) || 3;
@@ -330,6 +329,25 @@ async function getLoggedInAO3Page() {
         'Upgrade-Insecure-Requests': '1',
         'X-Sam-Bot-Info': 'Hi AO3 devs! This is Sam, a hand-coded Discord bot for a single small server. I only fetch header metadata for user recs and do not retrieve fic content. Contact: https://github.com/reajamoon/sam-bot'
     });
+    // Set cookies on the new page if cookies exist (fixes first-fic unauthenticated bug)
+    const fs = require('fs');
+    const COOKIES_PATH = 'ao3_cookies.json';
+    let cookiesToSet = null;
+    if (fs.existsSync(COOKIES_PATH)) {
+        try {
+            cookiesToSet = JSON.parse(fs.readFileSync(COOKIES_PATH, 'utf8'));
+        } catch {}
+    }
+    if (!cookiesToSet && global.__samInMemoryCookies) {
+        cookiesToSet = global.__samInMemoryCookies;
+    }
+    if (cookiesToSet && Array.isArray(cookiesToSet) && cookiesToSet.length > 0) {
+        try {
+            await page.setCookie(...cookiesToSet);
+        } catch (e) {
+            logBrowserEvent('[AO3] Failed to set cookies on new page after login: ' + e.message);
+        }
+    }
     return { browser, page };
 }
 
