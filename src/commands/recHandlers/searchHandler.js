@@ -33,17 +33,18 @@ async function handleSearchRecommendations(interaction) {
         });
         return;
     }
-    // Pagination: 5 results per page
+    // Pagination: 3 results per page
     const page = 1;
-    const perPage = 5;
+    const perPage = 3;
     const totalPages = Math.ceil(allResults.length / perPage);
     const recs = allResults.slice((page - 1) * perPage, page * perPage);
     const embed = createSearchResultsEmbed(recs, page, totalPages, titleQuery);
     const { buildSearchPaginationRow } = require('../../utils/recUtils/searchPagination');
-    const row = buildSearchPaginationRow(page, totalPages, 'recsearch');
-    // Store search state in a customId for future interaction handling (not yet implemented)
+    // Use a customId format that encodes query, page, and totalPages for correct pagination
+    const row = buildSearchPaginationRow(page, totalPages, `recsearch:${titleQuery}:${page}:${totalPages}`);
+    const totalResults = allResults.length;
     await interaction.editReply({
-        content: `Here are your search results for "${titleQuery}":`,
+        content: `Found **${totalResults}** fic${totalResults === 1 ? '' : 's'} matching "${titleQuery}". Here are your search results:`,
         embeds: [embed],
         components: totalPages > 1 ? [row] : []
     });

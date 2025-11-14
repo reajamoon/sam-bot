@@ -25,10 +25,21 @@ function createSearchResultsEmbed(recs, page, totalPages, query) {
         const author = Array.isArray(rec.authors) ? rec.authors.join(', ') : (rec.author || 'Unknown Author');
         const url = rec.url || '';
         const summary = rec.summary ? (rec.summary.length > 120 ? rec.summary.slice(0, 117) + '...' : rec.summary) : '';
+        const rating = rec.rating || 'Unrated';
+        const status = rec.status || 'Unknown';
+        const wordcount = rec.wordcount ? rec.wordcount.toLocaleString() : 'N/A';
+        // Tags: prefer rec.tags (array or comma string), fallback to empty
+        let tags = [];
+        if (Array.isArray(rec.tags)) {
+            tags = rec.tags;
+        } else if (typeof rec.tags === 'string') {
+            tags = rec.tags.split(',').map(t => t.trim()).filter(Boolean);
+        }
+        const tagDisplay = tags.length ? `Tags: ${tags.slice(0, 5).join(', ')}${tags.length > 5 ? ', ...' : ''}` : '';
         embed.addFields({
             name: `📖 ${title}`,
             value: `By: ${author}
-[Read Fic](${url})${summary ? `\n${summary}` : ''}`,
+[Link](${url}) | ${rating} | ${status} | ${wordcount} words${tagDisplay ? `\n${tagDisplay}` : ''}${summary ? `\n${summary}` : ''}`,
             inline: false
         });
     }

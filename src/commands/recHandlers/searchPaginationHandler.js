@@ -28,7 +28,7 @@ async function handleSearchPagination(interaction) {
         order: [['updatedAt', 'DESC']],
         limit: 25
     });
-    const perPage = 5;
+    const perPage = 3;
     const recs = allResults.slice((page - 1) * perPage, page * perPage);
     const embed = createSearchResultsEmbed(recs, page, totalPages, query);
     const row = buildSearchPaginationRow(page, totalPages, `recsearch:${query}`);
