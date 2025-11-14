@@ -134,14 +134,22 @@ async function processRecommendationJob({
     console.log('[PROCESS JOB] archiveWarnings before DB update:', metadata.archiveWarnings);
     // Merge tags: combine existing tags, new tags, and deduplicate
     let oldTags = [];
-    try { oldTags = JSON.parse(existingRec.tags || '[]'); } catch { oldTags = []; }
+    if (Array.isArray(existingRec.tags)) {
+      oldTags = existingRec.tags;
+    } else if (typeof existingRec.tags === 'string') {
+      try { oldTags = JSON.parse(existingRec.tags); } catch { oldTags = []; }
+    }
     let newTags = Array.isArray(metadata.tags) ? metadata.tags : [];
     // Merge and deduplicate
     const mergedTags = Array.from(new Set([...oldTags, ...newTags]));
 
     // Merge additionalTags: never overwrite, always deduplicate
     let oldAdditional = [];
-    try { oldAdditional = JSON.parse(existingRec.additionalTags || '[]'); } catch { oldAdditional = []; }
+    if (Array.isArray(existingRec.additionalTags)) {
+      oldAdditional = existingRec.additionalTags;
+    } else if (typeof existingRec.additionalTags === 'string') {
+      try { oldAdditional = JSON.parse(existingRec.additionalTags); } catch { oldAdditional = []; }
+    }
     const mergedAdditional = Array.from(new Set([...oldAdditional, ...(Array.isArray(additionalTags) ? additionalTags : [])]));
 
     // Only update fields if changed
@@ -157,7 +165,7 @@ async function processRecommendationJob({
     const newAuthor = newAuthors[0] || 'Unknown Author';
     if (existingRec.author !== newAuthor) updateFields.author = newAuthor;
     if (existingRec.summary !== metadata.summary) updateFields.summary = metadata.summary;
-    if (JSON.stringify(oldTags) !== JSON.stringify(mergedTags)) updateFields.tags = JSON.stringify(mergedTags);
+    if (JSON.stringify(oldTags) !== JSON.stringify(mergedTags)) updateFields.tags = mergedTags;
     if (existingRec.rating !== metadata.rating) updateFields.rating = metadata.rating;
     if (existingRec.wordCount !== metadata.wordCount) updateFields.wordCount = metadata.wordCount;
     if (existingRec.chapters !== metadata.chapters) updateFields.chapters = metadata.chapters;
@@ -165,7 +173,7 @@ async function processRecommendationJob({
     if (existingRec.language !== metadata.language) updateFields.language = metadata.language;
     if (existingRec.publishedDate !== metadata.publishedDate) updateFields.publishedDate = metadata.publishedDate;
     if (existingRec.updatedDate !== metadata.updatedDate) updateFields.updatedDate = metadata.updatedDate;
-    if (JSON.stringify(oldAdditional) !== JSON.stringify(mergedAdditional)) updateFields.additionalTags = JSON.stringify(mergedAdditional);
+  if (JSON.stringify(oldAdditional) !== JSON.stringify(mergedAdditional)) updateFields.additionalTags = mergedAdditional;
     // Only overwrite notes if the new value is non-empty and different, or if the existing value is empty
     if (
       (notes && notes.trim() && existingRec.notes !== notes) ||
@@ -181,7 +189,7 @@ async function processRecommendationJob({
 
     // Archive warnings update
     if (Array.isArray(metadata.archiveWarnings)) {
-      updateFields.archive_warnings = JSON.stringify(metadata.archiveWarnings);
+      updateFields.archive_warnings = metadata.archiveWarnings;
     }
     if (Object.keys(updateFields).length > 0) {
       try {
@@ -208,7 +216,7 @@ async function processRecommendationJob({
         // Canonical: authors array
         authors: metadata.authors || (metadata.author ? [metadata.author] : ['Unknown Author']),
         summary: metadata.summary,
-        tags: JSON.stringify(Array.isArray(metadata.tags) ? metadata.tags : []),
+        tags: Array.isArray(metadata.tags) ? metadata.tags : [],
         rating: metadata.rating,
         wordCount: metadata.wordCount,
         chapters: metadata.chapters,
@@ -218,9 +226,9 @@ async function processRecommendationJob({
         updatedDate: metadata.updatedDate,
         recommendedBy: user.id,
         recommendedByUsername: user.username,
-        additionalTags: JSON.stringify(Array.isArray(additionalTags) ? additionalTags : []),
+        additionalTags: Array.isArray(additionalTags) ? additionalTags : [],
         notes: notes,
-        archive_warnings: JSON.stringify(Array.isArray(metadata.archiveWarnings) ? metadata.archiveWarnings : []),
+        archive_warnings: Array.isArray(metadata.archiveWarnings) ? metadata.archiveWarnings : [],
         kudos: metadata.kudos,
         hits: metadata.hits,
         bookmarks: metadata.bookmarks,

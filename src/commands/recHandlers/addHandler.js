@@ -87,7 +87,7 @@ async function handleAddRecommendation(interaction) {
       if (notes || (additionalTags && additionalTags.length > 0)) {
         await queueEntry.update({
           notes: notes || '',
-          additional_tags: JSON.stringify(additionalTags)
+          additional_tags: additionalTags
         });
       }
       return await interaction.editReply({
