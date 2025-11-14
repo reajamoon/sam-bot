@@ -1,3 +1,9 @@
+
+// All requires and constants at the very top to avoid ReferenceError and circular dependency issues
+const fs = require('fs');
+const COOKIES_PATH = 'ao3_cookies.json';
+const { getSharedBrowser, logBrowserEvent, getCurrentUserAgent } = require('./ao3BrowserManager');
+
 /**
  * Utility to bypass AO3 'stay logged in' interstitial by re-navigating to the target fic URL.
  * Call this after login if you detect the interstitial.
@@ -41,12 +47,6 @@ async function debugLoginAndFetchWork(workUrl) {
         await browser.close();
     }
 }
-// ao3Utils.js
-// Utility for logging in to AO3 with Puppeteer and returning a logged-in page
-
-const { getSharedBrowser, logBrowserEvent, getCurrentUserAgent } = require('./ao3BrowserManager');
-const fs = require('fs');
-const COOKIES_PATH = 'ao3_cookies.json';
 
 
 
