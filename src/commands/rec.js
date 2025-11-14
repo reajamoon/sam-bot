@@ -132,14 +132,10 @@ module.exports = {
             subcommand
                 .setName('remove')
                 .setDescription('Remove a fanfiction recommendation')
-                .addIntegerOption(option =>
-                    option.setName('id')
-                        .setDescription('ID of the recommendation to remove')
-                        .setRequired(false))
                 .addStringOption(option =>
-                    option.setName('url')
-                        .setDescription('URL of the recommendation to remove')
-                        .setRequired(false)))
+                    option.setName('identifier')
+                        .setDescription('Fic ID, AO3 WorkId, or URL')
+                        .setRequired(true)))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('help')

@@ -14,13 +14,10 @@ async function handleRemoveRecommendation(interaction) {
 
     await interaction.deferReply();
     
-    const recId = interaction.options.getInteger('id');
-    const recUrl = interaction.options.getString('url');
-    const ao3Id = interaction.options.getInteger('ao3_id');
-    
+    const identifier = interaction.options.getString('identifier');
     try {
-        // Find the rec in the database by ID, URL, or AO3 ID
-        const recommendation = await findRecommendationByIdOrUrl(interaction, recId, recUrl, ao3Id);
+        // Find the rec in the database by ID, AO3 WorkId, or URL
+        const recommendation = await findRecommendationByIdOrUrl(interaction, identifier);
         if (!recommendation) {
             return await interaction.editReply({
                 content: 'Recommendation not found. Please check your identifier and try again.'

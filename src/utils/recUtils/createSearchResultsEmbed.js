@@ -43,7 +43,7 @@ function createSearchResultsEmbed(recs, page, totalPages, query) {
         embed.addFields({
             name: `📖 ${title}`,
             value: `By: ${author}
-[Link](${url}) | ${rating} | ${status} | ${wordcount} words${tagDisplay ? ` (ID: ${rec.id})\n${tagDisplay}` : ''}${summary ? `\n>>> ${summary}` : ''}`,
+[Link](${url}) | ${rating} | ${status} | ${wordcount} words${tagDisplay ? ` | ID: ${rec.id}\n${tagDisplay}` : ''}${summary ? `\n>>> ${summary}` : ''}`,
             inline: false
         });
     }
