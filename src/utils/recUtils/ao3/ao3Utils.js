@@ -43,7 +43,10 @@ async function debugLoginAndFetchWork(workUrl) {
 }
 // ao3Utils.js
 // Utility for logging in to AO3 with Puppeteer and returning a logged-in page
+
 const { getSharedBrowser, logBrowserEvent, getCurrentUserAgent } = require('./ao3BrowserManager');
+const fs = require('fs');
+const COOKIES_PATH = 'ao3_cookies.json';
 
 
 
