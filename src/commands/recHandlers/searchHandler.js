@@ -56,33 +56,25 @@ async function handleSearchRecommendations(interaction) {
     }
     if (tagsQuery) {
         // Advanced: allow mixing AND (+) and OR (,) logic
+        // For jsonb arrays, use only [Op.contains]
         // Example: 'canon divergence+bottom dean winchester, angst' means (canon divergence AND bottom dean winchester) OR (angst)
         const orGroups = tagsQuery.split(',').map(group => group.trim()).filter(Boolean);
         const tagOrClauses = [];
         for (const group of orGroups) {
             if (group.includes('+')) {
-                // AND group
+                // AND group: all tags must be present
                 const andTags = group.split('+').map(t => t.trim()).filter(Boolean);
-                if (Array.isArray(andTags) && andTags.length > 0) {
+                if (andTags.length > 0) {
                     tagOrClauses.push({ tags: { [Op.contains]: andTags } });
                 }
             } else if (group.length) {
-                // Single tag (OR)
-                // Ensure group is not an accidental array or empty string
-                if (typeof group === 'string' && group.trim().length > 0) {
-                    tagOrClauses.push({ tags: { [Op.overlap]: [group.trim()] } });
-                }
+                // Single tag (OR): use [Op.contains] with single-element array
+                tagOrClauses.push({ tags: { [Op.contains]: [group] } });
             }
         }
         // Only push valid clauses
         const validTagOrClauses = tagOrClauses.filter(clause => {
-            if (clause.tags[Op.contains]) {
-                return Array.isArray(clause.tags[Op.contains]) && clause.tags[Op.contains].length > 0;
-            }
-            if (clause.tags[Op.overlap]) {
-                return Array.isArray(clause.tags[Op.overlap]) && clause.tags[Op.overlap].length > 0;
-            }
-            return false;
+            return clause.tags && clause.tags[Op.contains] && Array.isArray(clause.tags[Op.contains]) && clause.tags[Op.contains].length > 0;
         });
         if (validTagOrClauses.length === 1) {
             whereClauses.push(validTagOrClauses[0]);
