@@ -233,6 +233,17 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
         if (!metadata.stats) metadata.stats = {};
         // Promote stats fields to top-level with expected names
         // Check for canonical AO3 abandoned tag in freeform tags
+        // If status is still not set, infer from chapters field (N/N where N == N means complete)
+        if (typeof metadata.chapters === 'string') {
+            const match = metadata.chapters.match(/^(\d+)\s*\/\s*(\d+)$/);
+            if (match) {
+                const num1 = parseInt(match[1], 10);
+                const num2 = parseInt(match[2], 10);
+                if (!isNaN(num1) && !isNaN(num2) && num1 === num2 && num1 > 0) {
+                    metadata.status = 'Complete';
+                }
+            }
+        }
         const abandonedTag = 'Abandoned Work - Unfinished and Discontinued';
         let freeformTagsArr = [];
         if (Array.isArray(metadata.freeform_tags)) {
