@@ -139,11 +139,12 @@ async function createRecommendationEmbed(rec) {
             value: fieldValue
         });
     }
-    const allTags = rec.getParsedTags();
-    if (allTags.length > 0) {
+    // Only show freeform tags (tags field)
+    const freeformTags = Array.isArray(rec.tags) ? rec.tags : [];
+    if (freeformTags.length > 0) {
         embed.addFields({
             name: 'Tags',
-            value: allTags.slice(0, 8).join(', ') + (allTags.length > 8 ? '...' : '')
+            value: freeformTags.slice(0, 8).join(', ') + (freeformTags.length > 8 ? '...' : '')
         });
     }
     if (rec.notes) {
