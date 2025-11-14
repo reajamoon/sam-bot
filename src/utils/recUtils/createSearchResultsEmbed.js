@@ -27,7 +27,11 @@ function createSearchResultsEmbed(recs, page, totalPages, query) {
         const summary = rec.summary ? (rec.summary.length > 120 ? rec.summary.slice(0, 117) + '...' : rec.summary) : '';
         const rating = rec.rating || 'Unrated';
         const status = rec.status || 'Unknown';
-        const wordcount = rec.wordcount ? rec.wordcount.toLocaleString() : 'N/A';
+        let wordcount = rec.wordCount;
+        if (typeof wordcount === 'string') {
+            wordcount = parseInt(wordcount.replace(/,/g, ''), 10);
+        }
+        wordcount = (typeof wordcount === 'number' && !isNaN(wordcount)) ? wordcount.toLocaleString() : 'N/A';
         // Tags: prefer rec.tags (array or comma string), fallback to empty
         let tags = [];
         if (Array.isArray(rec.tags)) {
@@ -39,7 +43,7 @@ function createSearchResultsEmbed(recs, page, totalPages, query) {
         embed.addFields({
             name: `📖 ${title}`,
             value: `By: ${author}
-[Link](${url}) | ${rating} | ${status} | ${wordcount} words${tagDisplay ? `\n${tagDisplay}` : ''}${summary ? `\n${summary}` : ''}`,
+[Link](${url}) | ${rating} | ${status} | ${wordcount} words${tagDisplay ? `\n${tagDisplay}` : ''}${summary ? `\n>>> ${summary}` : ''}`,
             inline: false
         });
     }
