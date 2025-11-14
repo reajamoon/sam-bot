@@ -2,9 +2,9 @@
 // Script to clean up the tags field for all AO3 recommendations, preserving manual tags in additionalTags.
 // Usage: node cleanupTags.js
 
-const { Recommendation } = require('./src/models');
-const { fetchFicMetadata } = require('./src/utils/recUtils/ficParser');
-const normalizeMetadata = require('./src/utils/recUtils/normalizeMetadata');
+const { Recommendation } = require('../src/models');
+const { fetchFicMetadata } = require('../src/utils/recUtils/ficParser');
+const normalizeMetadata = require('../src/utils/recUtils/normalizeMetadata');
 
 async function cleanupTags() {
   const ficId = process.argv[2];
