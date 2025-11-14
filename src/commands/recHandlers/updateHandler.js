@@ -23,6 +23,20 @@ function validateAttachment(newAttachment, willBeDeleted) {
 }
 
 async function handleUpdateRecommendation(interaction) {
+        // Restrict manual status setting to mods only
+        const newStatus = interaction.options.getString('status');
+        if (newStatus) {
+            // Check for mod permissions (ManageMessages or Administrator)
+            const member = interaction.member;
+            const isMod = member && (member.permissions.has('ManageMessages') || member.permissions.has('Administrator'));
+            if (!isMod) {
+                await interaction.editReply({
+                    content: 'You do not have permission to manually set fic status. Only moderators can use this option.',
+                    flags: MessageFlags.Ephemeral
+                });
+                return;
+            }
+        }
     try {
         console.log('[rec update] Handler called', {
             user: interaction.user?.id,
