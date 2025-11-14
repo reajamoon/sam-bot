@@ -333,8 +333,6 @@ async function getLoggedInAO3Page() {
         'X-Sam-Bot-Info': 'Hi AO3 devs! This is Sam, a hand-coded Discord bot for a single small server. I only fetch header metadata for user recs and do not retrieve fic content. Contact: https://github.com/reajamoon/sam-bot'
     });
     // Set cookies on the new page if cookies exist (fixes first-fic unauthenticated bug)
-    const fs = require('fs');
-    const COOKIES_PATH = 'ao3_cookies.json';
     let cookiesToSet = null;
     if (fs.existsSync(COOKIES_PATH)) {
         try {
