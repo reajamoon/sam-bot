@@ -2,12 +2,12 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.addColumn('Recommendations', 'character_tags', {
+  await queryInterface.addColumn('recommendations', 'character_tags', {
       type: Sequelize.JSONB,
       allowNull: true,
       defaultValue: []
     });
-    await queryInterface.addColumn('Recommendations', 'fandom_tags', {
+  await queryInterface.addColumn('recommendations', 'fandom_tags', {
       type: Sequelize.JSONB,
       allowNull: true,
       defaultValue: []
@@ -15,7 +15,7 @@ module.exports = {
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.removeColumn('Recommendations', 'character_tags');
-    await queryInterface.removeColumn('Recommendations', 'fandom_tags');
+  await queryInterface.removeColumn('recommendations', 'character_tags');
+  await queryInterface.removeColumn('recommendations', 'fandom_tags');
   }
 };
