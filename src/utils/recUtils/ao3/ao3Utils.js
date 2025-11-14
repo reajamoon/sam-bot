@@ -111,27 +111,9 @@ async function getLoggedInAO3Page() {
     });
 
     if (fs.existsSync(COOKIES_PATH)) {
-        let cookies = null;
-        let needsRefresh = false;
         try {
             logBrowserEvent('[AO3] Attempting to load cookies from file...');
-            cookies = JSON.parse(fs.readFileSync(COOKIES_PATH, 'utf8'));
-            // Proactive refresh: check expiry
-            const now = Math.floor(Date.now() / 1000);
-            const refreshThreshold = 24 * 60 * 60; // 1 day in seconds
-            if (Array.isArray(cookies)) {
-                for (const c of cookies) {
-                    // Only consider cookies with a valid, nonzero expiry
-                    if (typeof c.expires === 'number' && c.expires > 0 && c.expires - now < refreshThreshold) {
-                        needsRefresh = true;
-                        break;
-                    }
-                }
-            }
-            if (needsRefresh) {
-                logBrowserEvent('[AO3] Cookies expiring soon, triggering proactive refresh.');
-                throw new Error('Cookies expiring soon, refreshing.');
-            }
+            const cookies = JSON.parse(fs.readFileSync(COOKIES_PATH, 'utf8'));
             await page.goto('https://archiveofourown.org/', { waitUntil: 'domcontentloaded' });
             await page.setCookie(...cookies);
             await page.reload({ waitUntil: 'domcontentloaded' });
