@@ -2,11 +2,17 @@
 // Shared AO3 field label to normalized key mapping for meta and stats groups
 
 const AO3_FIELD_MAP = {
+    // Tag arrays
+    'freeform_tags': 'tags',
+    'fandom_tags': 'fandom_tags',
+    'character_tags': 'character_tags',
+    'relationship_tags': 'relationship_tags',
+    'category_tags': 'category_tags',
+    'archive_warnings': 'archive_warnings',
+
     // Meta group fields
     'rating': 'rating',
     'ratings': 'rating',
-    'archive_warning': 'archive_warnings',
-    'archive_warnings': 'archive_warnings',
     'category': 'category_tags',
     'categories': 'category_tags',
     'fandom': 'fandom_tags',
@@ -15,10 +21,10 @@ const AO3_FIELD_MAP = {
     'relationships': 'relationship_tags',
     'character': 'character_tags',
     'characters': 'character_tags',
-    'additional_tags': 'freeform_tags',
-    'freeform_tags': 'freeform_tags',
+    'additional_tags': 'tags',
     'language': 'language',
     'collections': 'collections',
+
     // Stats group fields
     'published': 'published',
     'updated': 'updated',
