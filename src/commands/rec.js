@@ -149,6 +149,18 @@ module.exports = {
                 .setName('search')
                 .setDescription('Search for recommendations by title, author, tags, rating, or summary')
                 .addStringOption(option =>
+                    option.setName('id')
+                        .setDescription('Search by Fic ID (exact match)')
+                        .setRequired(false))
+                .addStringOption(option =>
+                    option.setName('workid')
+                        .setDescription('Search by AO3 Work ID (exact match)')
+                        .setRequired(false))
+                .addStringOption(option =>
+                    option.setName('url')
+                        .setDescription('Search by fic URL (exact match)')
+                        .setRequired(false))
+                .addStringOption(option =>
                     option.setName('title')
                         .setDescription('Search by fic title (partial match)')
                         .setRequired(false))
