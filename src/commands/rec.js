@@ -115,6 +115,10 @@ module.exports = {
                 .addStringOption(option =>
                     option.setName('notes')
                         .setDescription('Personal notes about this fic')
+                        .setRequired(false))
+                .addStringOption(option =>
+                    option.setName('status')
+                        .setDescription('Manually set fic status (MODS ONLY)')
                         .setRequired(false)))
         .addSubcommand(subcommand =>
             subcommand
