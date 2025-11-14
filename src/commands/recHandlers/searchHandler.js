@@ -26,49 +26,64 @@ async function handleSearchRecommendations(interaction) {
     const { Recommendation } = require('../../models');
     const { Op } = require('sequelize');
     const createSearchResultsEmbed = require('../../utils/recUtils/createSearchResultsEmbed');
-    // Build AND filter for all provided fields
-    const where = {};
+    // Build AND filter for all provided fields using [Op.and]
+    const whereClauses = [];
     if (idQuery) {
-        // Only allow exact match for ID (integer)
         const idNum = parseInt(idQuery, 10);
         if (!isNaN(idNum)) {
-            where.id = idNum;
+            whereClauses.push({ id: idNum });
         } else {
             await interaction.editReply({ content: 'Fic ID must be a number.' });
             return;
         }
     }
     if (workIdQuery) {
-        // Only allow exact match for AO3 work ID (must be present in url)
-        where.url = { [Op.iLike]: `%/works/${workIdQuery}` };
+        whereClauses.push({ url: { [Op.iLike]: `%/works/${workIdQuery}` } });
     }
     if (urlQuery) {
-        // Only allow exact match for URL
-        where.url = urlQuery.trim();
+        whereClauses.push({ url: urlQuery.trim() });
     }
     if (titleQuery) {
-        where.title = { [Op.iLike]: `%${titleQuery.trim()}%` };
+        whereClauses.push({ title: { [Op.iLike]: `%${titleQuery.trim()}%` } });
     }
     if (authorQuery) {
-        // Search both author (string) and authors (array)
-        where[Op.or] = [
-            { author: { [Op.iLike]: `%${authorQuery.trim()}%` } },
-            { authors: { [Op.contains]: [authorQuery.trim()] } }
-        ];
+        whereClauses.push({
+            [Op.or]: [
+                { author: { [Op.iLike]: `%${authorQuery.trim()}%` } },
+                { authors: { [Op.contains]: [authorQuery.trim()] } }
+            ]
+        });
     }
     if (tagsQuery) {
-        // Split comma-separated tags, match any (OR)
-        const tags = tagsQuery.split(',').map(t => t.trim()).filter(Boolean);
-        if (tags.length) {
-            where.tags = { [Op.overlap]: tags };
+        // Advanced: allow mixing AND (+) and OR (,) logic
+        // Example: 'canon divergence+bottom dean winchester, angst' means (canon divergence AND bottom dean winchester) OR (angst)
+        const orGroups = tagsQuery.split(',').map(group => group.trim()).filter(Boolean);
+        const tagOrClauses = [];
+        for (const group of orGroups) {
+            if (group.includes('+')) {
+                // AND group
+                const andTags = group.split('+').map(t => t.trim()).filter(Boolean);
+                if (andTags.length) {
+                    tagOrClauses.push({ tags: { [Op.contains]: andTags } });
+                }
+            } else if (group.length) {
+                // Single tag (OR)
+                tagOrClauses.push({ tags: { [Op.overlap]: [group] } });
+            }
+        }
+        if (tagOrClauses.length === 1) {
+            whereClauses.push(tagOrClauses[0]);
+        } else if (tagOrClauses.length > 1) {
+            whereClauses.push({ [Op.or]: tagOrClauses });
         }
     }
     if (ratingQuery) {
-        where.rating = { [Op.iLike]: `%${ratingQuery.trim()}%` };
+        whereClauses.push({ rating: { [Op.iLike]: `%${ratingQuery.trim()}%` } });
     }
     if (summaryQuery) {
-        where.summary = { [Op.iLike]: `%${summaryQuery.trim()}%` };
+        whereClauses.push({ summary: { [Op.iLike]: `%${summaryQuery.trim()}%` } });
     }
+    const where = whereClauses.length > 0 ? { [Op.and]: whereClauses } : {};
     const allResultsRaw = await Recommendation.findAll({
         where,
         order: [['updatedAt', 'DESC']],

@@ -72,37 +72,44 @@ function createHelpPages() {
         )
         .setFooter({ text: 'Getting Started • Use the category buttons below to navigate' });
     // Page 2: Finding & Reading Recommendations
-    const page2 = new EmbedBuilder()
-        .setTitle('📚 The PB Bunker Library - Finding Fics')
-        .setDescription('So get this, if you can\'t think of what to read, I\'ve got you covered. Let me show you all the ways to discover your next great story.')
-        .setColor(0x8B4513)
-        .addFields(
-            {
-                name: 'Random Recommendations',
-                value: '**Get anything:** `/rec random`\n' +
-                       'I\'ll pick something at random from our collection.\n\n' +
-                       '**Filter by tag:** `/rec random tag:angst`\n' +
-                       'Tell me what kind of day you\'re having and I\'ll find something that matches.',
-                inline: false
-            },
-            {
-                name: '📊 Library Stats',
-                value: '**See the numbers:** `/rec stats`\n' +
-                       'Check how many fics we\'ve got, who\'s been contributing the most, that sort of thing.',
-                inline: false
-            },
-            {
-                name: '🔗 Reading Experience',
-                value: 'Every recommendation I show you has clickable links. The title goes straight to the fic, and there\'s a big "🔗 Read Here" button.',
-                inline: false
-            },
-            {
-                name: '🔍 Search (Coming Eventually)',
-                value: 'I\'m working on a proper search function. For now, use `/rec random` with tags or just ask me to pull something until you find what you want.',
-                inline: false
-            }
-        )
-        .setFooter({ text: 'Finding Fics • Use the category buttons below to navigate' });
+        const page2 = new EmbedBuilder()
+            .setTitle('📚 The PB Bunker Library - Finding Fics')
+            .setDescription('So get this, if you can\'t think of what to read, I\'ve got you covered. Let me show you all the ways to discover your next great story.')
+            .setColor(0x8B4513)
+            .addFields(
+                {
+                    name: 'Random Recommendations',
+                    value: '**Get anything:** `/rec random`\n' +
+                           'I\'ll pick something at random from our collection.\n\n' +
+                           '**Filter by tag:** `/rec random tag:angst`\n' +
+                           'Tell me what kind of day you\'re having and I\'ll find something that matches.',
+                    inline: false
+                },
+                {
+                    name: 'Advanced Search',
+                    value: '**Find exactly what you want:** `/rec search` lets you search by title, author, tags, rating, summary, and more.\n\n' +
+                           '**Tag search logic:**\n' +
+                           '- Use a comma (`,`) to search for fics with ANY of the listed tags (OR logic).\n' +
+                           '- Use a plus (`+`) to require ALL tags in a group (AND logic).\n' +
+                           '- Mix them for advanced searches!\n' +
+                           '  - Example: `canon divergence+bottom dean winchester, angst` finds fics with BOTH "canon divergence" AND "bottom dean winchester", OR fics with "angst".\n' +
+                           '- Spaces are ignored around tags.\n' +
+                           '- You can combine with other fields like title, author, etc.',
+                    inline: false
+                },
+                {
+                    name: 'Library Stats',
+                    value: '**See the numbers:** `/rec stats`\n' +
+                           'Check how many fics we\'ve got, who\'s been contributing the most, that sort of thing.',
+                    inline: false
+                },
+                {
+                    name: 'Reading Experience',
+                    value: 'Every recommendation I show you has clickable links. The title goes straight to the fic, and there\'s a big "🔗 Read Here" button.',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Finding Fics • Use the category buttons below to navigate' });
     // Page 3: Managing Your Recommendations
     const page3 = new EmbedBuilder()
         .setTitle('📚 The PB Bunker Library - Managing Your Recs')
