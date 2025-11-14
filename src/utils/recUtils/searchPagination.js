@@ -17,25 +17,27 @@ function buildSearchPaginationRow(page, totalPages, customIdBase = 'recsearch') 
         query = parts.slice(1).join(':');
         customIdBase = parts[0];
     }
+    // Encode query to avoid delimiter collision
+    const encodedQuery = encodeURIComponent(query);
     const row = new ActionRowBuilder();
     row.addComponents(
         new ButtonBuilder()
-            .setCustomId(`${customIdBase}:first:${query}:${page}:${totalPages}`)
+            .setCustomId(`${customIdBase}:first:${encodedQuery}:${page}:${totalPages}`)
             .setLabel('⏮️')
             .setStyle(ButtonStyle.Secondary)
             .setDisabled(page === 1),
         new ButtonBuilder()
-            .setCustomId(`${customIdBase}:prev:${query}:${page}:${totalPages}`)
+            .setCustomId(`${customIdBase}:prev:${encodedQuery}:${page}:${totalPages}`)
             .setLabel('◀️')
             .setStyle(ButtonStyle.Primary)
             .setDisabled(page === 1),
         new ButtonBuilder()
-            .setCustomId(`${customIdBase}:next:${query}:${page}:${totalPages}`)
+            .setCustomId(`${customIdBase}:next:${encodedQuery}:${page}:${totalPages}`)
             .setLabel('▶️')
             .setStyle(ButtonStyle.Primary)
             .setDisabled(page === totalPages),
         new ButtonBuilder()
-            .setCustomId(`${customIdBase}:last:${query}:${page}:${totalPages}`)
+            .setCustomId(`${customIdBase}:last:${encodedQuery}:${page}:${totalPages}`)
             .setLabel('⏭️')
             .setStyle(ButtonStyle.Secondary)
             .setDisabled(page === totalPages)

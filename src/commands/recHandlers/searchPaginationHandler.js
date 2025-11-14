@@ -11,7 +11,7 @@ const { buildSearchPaginationRow } = require('../../utils/recUtils/searchPaginat
 async function handleSearchPagination(interaction) {
     // Example customId: recsearch_next:query:page:totalPages
     const [base, action, rawQuery, rawPage, rawTotal] = interaction.customId.split(':');
-    const query = rawQuery || '';
+    const query = rawQuery ? decodeURIComponent(rawQuery) : '';
     const totalPages = parseInt(rawTotal, 10) || 1;
     let page = parseInt(rawPage, 10) || 1;
     if (action === 'next') page++;
