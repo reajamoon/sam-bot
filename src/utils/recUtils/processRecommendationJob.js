@@ -94,13 +94,15 @@ async function processRecommendationJob({
     if (metadata.isHttpError) {
       return { error: 'connection_error' };
     }
-    // Allow manual override of individual fields
-    if (manualFields.title) metadata.title = manualFields.title;
-    if (manualFields.authors) metadata.authors = manualFields.authors;
-    else if (manualFields.author) metadata.authors = [manualFields.author];
-    if (manualFields.summary) metadata.summary = manualFields.summary;
-    if (manualFields.wordCount) metadata.wordCount = manualFields.wordCount;
-    if (manualFields.rating) metadata.rating = manualFields.rating;
+  // Allow manual override of individual fields
+  if (manualFields.title) metadata.title = manualFields.title;
+  if (manualFields.authors) metadata.authors = manualFields.authors;
+  else if (manualFields.author) metadata.authors = [manualFields.author];
+  if (manualFields.summary) metadata.summary = manualFields.summary;
+  if (manualFields.wordCount) metadata.wordCount = manualFields.wordCount;
+  if (manualFields.rating) metadata.rating = manualFields.rating;
+  // Always override status with manual value if provided
+  if (manualFields.status) metadata.status = manualFields.status;
     // Normalize all metadata fields before saving
     metadata = normalizeMetadata(metadata, (url.includes('archiveofourown.org') ? 'ao3' :
       url.includes('fanfiction.net') ? 'ffnet' :
