@@ -41,7 +41,7 @@ async function handleSearchRecommendations(interaction) {
     const embed = createSearchResultsEmbed(recs, page, totalPages, titleQuery);
     const { buildSearchPaginationRow } = require('../../utils/recUtils/searchPagination');
     // Use a customId format that encodes query, page, and totalPages for correct pagination
-    const row = buildSearchPaginationRow(page, totalPages, `recsearch:${titleQuery}:${page}:${totalPages}`);
+    const row = buildSearchPaginationRow(page, totalPages, `recsearch:${titleQuery}`);
     const totalResults = allResults.length;
     await interaction.editReply({
         content: `Found **${totalResults}** fic${totalResults === 1 ? '' : 's'} matching "${titleQuery}". Here are your search results:`,
