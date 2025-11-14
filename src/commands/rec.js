@@ -151,7 +151,11 @@ module.exports = {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('search')
-                .setDescription('Search for recommendations by title, author, or tags'))
+                .setDescription('Search for recommendations by title, author, or tags')
+                .addStringOption(option =>
+                    option.setName('title')
+                        .setDescription('Search by fic title (partial match)')
+                        .setRequired(false)))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('add_ao3share')
@@ -257,5 +261,17 @@ module.exports = {
      */
     async handleHelpNavigation(interaction) {
         await handleHelpNavigation(interaction);
+    },
+    /**
+     * Handles button interactions for search pagination.
+     * @param {import('discord.js').ButtonInteraction} interaction
+     * @returns {Promise<void>}
+     */
+    async handleButtonInteraction(interaction) {
+        // Only handle recsearch pagination buttons
+        if (interaction.customId && interaction.customId.startsWith('recsearch')) {
+            const handleSearchPagination = require('./recHandlers/searchPaginationHandler');
+            await handleSearchPagination(interaction);
+        }
     },
 };

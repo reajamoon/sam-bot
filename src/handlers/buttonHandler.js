@@ -16,6 +16,14 @@ async function handleButton(interaction) {
         const customId = interaction.customId;
     // logger.info(`[ButtonHandler] Received button interaction: customId=${customId}`);
 
+        // Rec search pagination buttons
+        if (customId && customId.startsWith('recsearch')) {
+            // Route to rec.js handler
+            const rec = require('../commands/rec');
+            await rec.handleButtonInteraction(interaction);
+            return;
+        }
+
         // Profile editing buttons
         if (customId === 'profile_settings' || customId.startsWith('profile_settings_') ||
             customId === 'profile_settings_done' || customId.startsWith('profile_settings_done_') ||
