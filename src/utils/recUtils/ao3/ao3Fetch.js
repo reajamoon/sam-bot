@@ -84,9 +84,11 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
         }
     }
 
-    let ok = await doLoginAndFetch();
+    let ok = false;
     let attempts = 1;
-    let maxAttempts = 2;
+    const maxAttempts = 2;
+    let lastError = null;
+    ok = await doLoginAndFetch();
     while ((!ok || !html) && attempts < maxAttempts) {
         // If we failed, delete cookies and try again
         const COOKIES_PATH = 'ao3_cookies.json';
@@ -95,13 +97,20 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
             try { fs.unlinkSync(COOKIES_PATH); } catch {}
         }
         retried = true;
-        ok = await doLoginAndFetch();
+        try {
+            ok = await doLoginAndFetch();
+        } catch (err) {
+            lastError = err;
+            ok = false;
+        }
         attempts++;
     }
     if (ok && html) {
         return parseAO3Metadata(html, ao3Url, includeRawHtml);
     }
-    // Log failed HTML for debugging
+    // If we failed all attempts, log and return a clear error
+    const cooldownMs = 60000; // 1 minute cooldown after repeated failures
+    console.error('[AO3] AO3 fetch failed after multiple attempts. Entering cooldown. Last error:', lastError ? lastError.message : '(none)');
     if (LOG_FAILED_HTML && html) {
         try {
             const safeUrl = ao3Url.replace(/[^a-zA-Z0-9]/g, '_').slice(-60);
@@ -113,11 +122,13 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
             console.warn('[AO3] Failed to save failed HTML:', err);
         }
     }
+    // Cooldown to avoid hammering AO3 if something is wrong
+    await new Promise(res => setTimeout(res, cooldownMs));
     return {
         title: 'Unknown Title',
         author: 'Unknown Author',
         url: ao3Url,
-        error: 'AO3 session or login required',
+        error: lastError ? `AO3 session or login failed: ${lastError.message}` : 'AO3 session or login required',
         summary: updateMessages.loginMessage
     };
 }

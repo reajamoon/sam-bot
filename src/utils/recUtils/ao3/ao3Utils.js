@@ -232,10 +232,27 @@ async function getLoggedInAO3Page() {
             throw new Error('AO3 rate limit or CAPTCHA detected. Please wait and try again later.');
         }
         if (!(postLoginErrorText.includes('Incorrect username or password') || postLoginErrorText.includes('error'))) {
-            // Save cookies after successful login
+            // Save cookies after successful login (atomic write)
             const cookies = await page.cookies();
-            fs.writeFileSync(COOKIES_PATH, JSON.stringify(cookies, null, 2));
-            console.log('[AO3] Login successful, cookies saved.');
+            const path = require('path');
+            const absPath = path.resolve(COOKIES_PATH);
+            const tmpPath = absPath + '.tmp';
+            let cookiesInMemory = null;
+            try {
+                fs.writeFileSync(tmpPath, JSON.stringify(cookies, null, 2));
+                fs.renameSync(tmpPath, absPath);
+                console.log(`[AO3] Login successful, cookies saved atomically at: ${absPath}`);
+            } catch (err) {
+                console.error(`[AO3] ERROR: Failed to atomically save cookies to ${absPath}:`, err);
+                cookiesInMemory = cookies;
+                // Optionally, you could notify an admin or set a global flag here
+                console.warn('[AO3] WARNING: Cookies will be kept in memory for this session only. They will not persist after restart.');
+            }
+            // Attach in-memory cookies to the page/browser for fallback use
+            if (cookiesInMemory) {
+                // Attach to page for this session (if needed elsewhere, export or store globally)
+                page.__samInMemoryCookies = cookiesInMemory;
+            }
         }
     } catch (err) {
         console.error('[AO3] Login failed.', err);
