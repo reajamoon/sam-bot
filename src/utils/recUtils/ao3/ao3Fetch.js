@@ -31,18 +31,8 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
         const loginResult = await getLoggedInAO3Page();
         browser = loginResult.browser;
         page = loginResult.page;
-        // If logged in with cookies, always navigate to the fic URL
-        if (loginResult.loggedInWithCookies) {
-            console.log('[AO3] Navigated with cookies.');
-            await page.goto(ao3Url, { waitUntil: 'domcontentloaded', timeout: 15000 });
-        }
-        // Check for login redirect
-        let currentUrl = page.url();
-        if (currentUrl.includes('/users/login?restricted=true&return_to=')) {
-            // Perform login (should already be logged in, but just in case)
-            // After login, go back to the original work URL
-            await page.goto(ao3Url, { waitUntil: 'domcontentloaded', timeout: 15000 });
-        }
+        // Always navigate to the fic URL after login, regardless of login method
+        await page.goto(ao3Url, { waitUntil: 'domcontentloaded', timeout: 15000 });
         // Bypass 'stay logged in' interstitial if present
         await bypassStayLoggedInInterstitial(page, ao3Url);
         // AO3-specific: detect rate-limiting or CAPTCHA/anti-bot pages (title and error containers only)
@@ -76,6 +66,7 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
         }
         html = await page.content();
         // Extra check: ensure not still on login/interstitial page
+        let currentUrl = page.url();
         if (
             html.includes('<form id="loginform"') ||
             /New\s*Session/i.test(pageTitle) ||
