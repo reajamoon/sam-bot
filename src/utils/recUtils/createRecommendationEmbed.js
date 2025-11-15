@@ -12,12 +12,12 @@ const ratingEmojis = {
 // Builds the embed for a rec. Checks if the link works, adds warnings if needed.
 async function createRecommendationEmbed(rec) {
     // DEBUG: Log the rec object and tag fields to inspect tag presence
-    console.log('[DEBUG] createRecommendationEmbed rec:', JSON.stringify(rec, null, 2));
+    //console.log('[DEBUG] createRecommendationEmbed rec:', JSON.stringify(rec, null, 2));
     if (typeof rec.getParsedTags === 'function') {
         const parsedTags = rec.getParsedTags();
-        console.log('[DEBUG] getParsedTags() result:', parsedTags);
-    } else {
-        console.log('[DEBUG] getParsedTags() not a function. tags:', rec.tags, 'additionalTags:', rec.additionalTags);
+        //console.log('[DEBUG] getParsedTags() result:', parsedTags);
+        //} else {
+        //console.log('[DEBUG] getParsedTags() not a function. tags:', rec.tags, 'additionalTags:', rec.additionalTags);
     }
     // Archive warning emoji and logic
     const majorWarningEmoji = '<:warn_yes:1142772202379415622>';

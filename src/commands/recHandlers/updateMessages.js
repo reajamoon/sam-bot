@@ -14,7 +14,7 @@ const updateMessages = {
     forbidden403: 'Access restricted, 403? Hm, You might need to log in to view this story... I should be logged in.\nWeird error, gimme a minute and try again. Or the site might be at fault, check their status if this keeps happening.',
     connectionError: 'Connection error... The site may be down or unreachable. Yeah, probably server problems. Check their status page? Or it could be this shitty motel wifi again.',
     loginMessage: 'Hm, it says "You have to be logged in to view this story..." I should be logged in. Weird error, gimme a minute and try again.\nOr the site might be at fault, check their status if this keeps happening.',
-    parseError: 'Why don\'t we use card catalogues anymore? I could find *anything* when we used card catalogues. Uhh wait what was I supposed to be looking for? Can you give me just a second and run that by me again? I\'m *so* sorry!'
+    parseError: 'Uhh wait what was I supposed to be looking for? Can you give me just a second and run that by me again? I\'m *so* sorry!'
 };
 
 module.exports = updateMessages;
