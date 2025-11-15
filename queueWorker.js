@@ -173,17 +173,7 @@ async function processQueueJob(job) {
           const users = await User.findAll({ where: { discordId: missingUserIds } });
           for (const u of users) userMap.set(u.discordId, u);
         }
-        if (!channel || !channel.isTextBased()) {
-          console.warn(`[QueueWorker] Could not fetch or use channel ${channelId}. Skipping notification.`);
-          return;
-        }
-        const mentions = getTagMentions(subscribers, userMap);
-        await channel.send({
-          content: `${mentions}\nYour fic parsing job for <${job.fic_url}> is complete!\n\n*Oh yeah hey, check this out: to toggle queue notifications on|off, you just use the /rec notifytag command. Simple as.*`,
-          embeds: [embedOrError.embed || embedOrError]
-        });
-        // Clean up subscribers after notification
-        await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
+        // Notification and subscriber cleanup are now handled by the main bot poller (Sam).
       }
     });
   } catch (err) {
