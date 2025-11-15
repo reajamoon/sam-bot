@@ -14,17 +14,17 @@ async function notifyQueueSubscribers(client) {
             const userIds = subscribers.map(s => s.user_id);
             const users = await User.findAll({ where: { discordId: userIds } });
             let embed = null;
-            if (job.result && job.result.title) {
+            // Fetch the Recommendation from the database using fic_url
+            const { Recommendation } = require('../models');
+            const rec = await Recommendation.findOne({ where: { url: job.fic_url } });
+            if (rec) {
                 try {
-                    const rec = {
-                        ...job.result,
-                        url: job.fic_url,
-                        id: job.id
-                    };
                     embed = await createRecommendationEmbed(rec);
                 } catch (err) {
                     console.error('Failed to build embed with createRecommendationEmbed:', err);
                 }
+            } else {
+                console.warn(`No Recommendation found for fic_url: ${job.fic_url}`);
             }
             const configEntry = await Config.findOne({ where: { key: 'fic_queue_channel' } });
             const channelId = configEntry ? configEntry.value : null;
