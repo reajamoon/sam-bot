@@ -23,7 +23,7 @@ const client = new Client({
     ],
 });
 
-client.once('ready', () => {
+client.once('clientReady', () => {
     setInterval(() => notifyQueueSubscribers(client), POLL_INTERVAL_MS);
     logger.info('Fic queue notification poller started.');
 });
