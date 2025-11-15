@@ -1,6 +1,6 @@
 const { MessageFlags } = require('discord.js');
 const { Recommendation } = require('../../models');
-const findRecommendationByIdOrUrl = require('../../utils/recUtils/findRecommendationByIdOrUrl');
+const findRecommendationByIdOrUrl = require('../../shared/recUtils/findRecommendationByIdOrUrl');
 
 // Removes a rec from the library. Only owner or mods can do it.
 async function handleRemoveRecommendation(interaction) {

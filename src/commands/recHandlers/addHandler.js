@@ -1,6 +1,6 @@
 const updateMessages = require('./updateMessages');
-const isValidFanficUrl = require('../../utils/recUtils/isValidFanficUrl');
-const processRecommendationJob = require('../../utils/recUtils/processRecommendationJob');
+const isValidFanficUrl = require('../../shared/recUtils/isValidFanficUrl');
+const processRecommendationJob = require('../../shared/recUtils/processRecommendationJob');
 
 // Adds a new fic rec. Checks for duplicates, fetches metadata, and builds the embed.
 async function handleAddRecommendation(interaction) {
@@ -12,7 +12,7 @@ async function handleAddRecommendation(interaction) {
     });
     await interaction.deferReply();
 
-    const normalizeAO3Url = require('../../utils/recUtils/normalizeAO3Url');
+  const normalizeAO3Url = require('../../shared/recUtils/normalizeAO3Url');
     let url = interaction.options.getString('url');
     url = normalizeAO3Url(url);
     const manualTitle = interaction.options.getString('title');
@@ -36,7 +36,7 @@ async function handleAddRecommendation(interaction) {
 
     // --- Fic Parsing Queue Logic ---
     const { Recommendation } = require('../../models');
-    const createOrJoinQueueEntry = require('../../utils/recUtils/createOrJoinQueueEntry');
+  const createOrJoinQueueEntry = require('../../shared/recUtils/createOrJoinQueueEntry');
     // Check if fic is already in the library
     const existingRec = await Recommendation.findOne({ where: { url } });
     if (existingRec) {

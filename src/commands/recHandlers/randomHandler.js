@@ -1,6 +1,6 @@
 const { MessageFlags } = require('discord.js');
 const { Recommendation } = require('../../models');
-const createRecommendationEmbed = require('../../utils/recUtils/createRecommendationEmbed');
+const createRecommendationEmbed = require('../../shared/recUtils/createRecommendationEmbed');
 
 // Picks a random fic from the library. Filters by tag if you want.
 async function handleRandomRecommendation(interaction) {

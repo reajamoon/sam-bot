@@ -1,6 +1,6 @@
 // ao3ShareModal.js
 // Handler for AO3 share HTML modal submission
-const { parseAo3ShareHtml } = require('../../utils/recUtils/ao3ShareParser');
+const { parseAo3ShareHtml } = require('../../shared/recUtils/ao3ShareParser');
 const { MessageFlags } = require('discord.js');
 
 async function handleAo3ShareModal(interaction) {

@@ -1,9 +1,9 @@
-// PM2 ecosystem file for queueWorker.js
+// PM2 ecosystem file for Jack (queue worker)
 module.exports = {
   apps: [
     {
       name: 'jack',
-      script: './queueWorker.js',
+  script: './src/bots/jack/queueWorker.js',
       instances: 1,
       autorestart: true,
       watch: false,

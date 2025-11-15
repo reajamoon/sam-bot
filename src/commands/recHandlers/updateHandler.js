@@ -1,7 +1,7 @@
-const findRecommendationByIdOrUrl = require('../../utils/recUtils/findRecommendationByIdOrUrl');
+const findRecommendationByIdOrUrl = require('../../shared/recUtils/findRecommendationByIdOrUrl');
 const { MessageFlags } = require('discord.js');
-const isValidFanficUrl = require('../../utils/recUtils/isValidFanficUrl');
-const processRecommendationJob = require('../../utils/recUtils/processRecommendationJob');
+const isValidFanficUrl = require('../../shared/recUtils/isValidFanficUrl');
+const processRecommendationJob = require('../../shared/recUtils/processRecommendationJob');
 
 // Modular validation helpers
 function validateAttachment(newAttachment, willBeDeleted) {
@@ -59,7 +59,7 @@ async function handleUpdateRecommendation(interaction) {
         console.log('[rec update] Option values:', debugFields);
         await interaction.deferReply();
 
-        const normalizeAO3Url = require('../../utils/recUtils/normalizeAO3Url');
+    const normalizeAO3Url = require('../../shared/recUtils/normalizeAO3Url');
         const identifier = interaction.options.getString('identifier');
         if (!identifier) {
             await interaction.editReply({

@@ -36,7 +36,7 @@ async function handleSearchRecommendations(interaction) {
     }
     const { Recommendation } = require('../../models');
     const { Op } = require('sequelize');
-    const createSearchResultsEmbed = require('../../utils/recUtils/createSearchResultsEmbed');
+    const createSearchResultsEmbed = require('../../shared/recUtils/createSearchResultsEmbed');
     // Build AND filter for all provided fields using [Op.and]
     const whereClauses = [];
     if (idQuery) {
@@ -143,7 +143,7 @@ async function handleSearchRecommendations(interaction) {
     }
     if (allResults.length === 1) {
         // Show full rec embed for exact match
-        const createRecommendationEmbed = require('../../utils/recUtils/createRecommendationEmbed');
+    const createRecommendationEmbed = require('../../shared/recUtils/createRecommendationEmbed');
         const embed = await createRecommendationEmbed(allResults[0]);
         await interaction.editReply({
             content: `Found 1 fic matching your search.`,
@@ -165,7 +165,7 @@ async function handleSearchRecommendations(interaction) {
     if (ratingQuery) searchSummary.push(`rating: "${ratingQuery}"`);
     if (summaryQuery) searchSummary.push(`summary: "${summaryQuery}"`);
     const embed = createSearchResultsEmbed(recs, page, totalPages, searchSummary.join(', '));
-    const { buildSearchPaginationRow } = require('../../utils/recUtils/searchPagination');
+    const { buildSearchPaginationRow } = require('../../shared/recUtils/searchPagination');
     const row = buildSearchPaginationRow(page, totalPages, `recsearch:${titleQuery || ''}`);
     const totalResults = allResults.length;
     await interaction.editReply({

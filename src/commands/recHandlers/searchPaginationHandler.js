@@ -1,7 +1,7 @@
 const { Recommendation } = require('../../models');
 const { Op } = require('sequelize');
-const createSearchResultsEmbed = require('../../utils/recUtils/createSearchResultsEmbed');
-const { buildSearchPaginationRow } = require('../../utils/recUtils/searchPagination');
+const createSearchResultsEmbed = require('../../shared/recUtils/createSearchResultsEmbed');
+const { buildSearchPaginationRow } = require('../../shared/recUtils/searchPagination');
 
 /**
  * Handles button interactions for search pagination.
