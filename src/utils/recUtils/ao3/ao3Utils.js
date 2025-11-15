@@ -221,28 +221,46 @@ async function getLoggedInAO3Page() {
             await gotoLogin();
             pageContent = await page.content();
         }
-        // Try main login form first
+        // More robust: try main login form selector with retries
+        const MAIN_SELECTOR = '#user_login';
+        const SMALL_SELECTOR = '#user_session_login_small';
+        const SELECTOR_RETRIES = 3;
+        const SELECTOR_WAIT = 10000; // 10 seconds per try
         let mainLoginExists = false;
-        try {
-            await page.waitForSelector('#user_login', { timeout: 2000 });
-            mainLoginExists = true;
-        } catch {}
+        for (let i = 0; i < SELECTOR_RETRIES; i++) {
+            try {
+                await page.waitForSelector(MAIN_SELECTOR, { timeout: SELECTOR_WAIT });
+                mainLoginExists = true;
+                logBrowserEvent(`[AO3] Main login form found (attempt ${i+1}).`);
+                break;
+            } catch (e) {
+                logBrowserEvent(`[AO3] Main login form not found (attempt ${i+1}).`);
+            }
+        }
         if (mainLoginExists) {
-            await page.type('#user_login', username);
+            logBrowserEvent('[AO3] Using main login form.');
+            await page.type(MAIN_SELECTOR, username);
             await page.type('#user_password', password);
             await Promise.all([
                 page.click('#loginform input[name="commit"]'),
                 page.waitForNavigation({ waitUntil: 'domcontentloaded' })
             ]);
         } else {
-            // Fallback to small login form in header
+            // Retry small login form selector with retries
             let smallLoginExists = false;
-            try {
-                await page.waitForSelector('#user_session_login_small', { timeout: 2000 });
-                smallLoginExists = true;
-            } catch {}
+            for (let i = 0; i < SELECTOR_RETRIES; i++) {
+                try {
+                    await page.waitForSelector(SMALL_SELECTOR, { timeout: SELECTOR_WAIT });
+                    smallLoginExists = true;
+                    logBrowserEvent(`[AO3] Small login form found (attempt ${i+1}).`);
+                    break;
+                } catch (e) {
+                    logBrowserEvent(`[AO3] Small login form not found (attempt ${i+1}).`);
+                }
+            }
             if (smallLoginExists) {
-                await page.type('#user_session_login_small', username);
+                logBrowserEvent('[AO3] Using small login form.');
+                await page.type(SMALL_SELECTOR, username);
                 await page.type('#user_session_password_small', password);
                 await Promise.all([
                     page.click('#small_login input[name="commit"]'),
@@ -250,11 +268,13 @@ async function getLoggedInAO3Page() {
                 ]);
             } else {
                 // As a last resort, try clicking a generic button (interstitial)
+                logBrowserEvent('[AO3] No login form found, using fallback button.');
                 const button = await page.$('input[type="submit"], button');
                 if (button) {
+                    // Use NAV_TIMEOUT for fallback navigation to avoid premature timeouts
                     await Promise.all([
                         button.click(),
-                        page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 5000 })
+                        page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT })
                     ]);
                 }
             }
