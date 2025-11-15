@@ -3,7 +3,7 @@
  * @module FFNetMeta
  */
 const { fetchHTML } = require('./fetchHtmlUtil');
-const updateMessages = require('../../commands/recHandlers/updateMessages');
+const updateMessages = require('../text/updateMessages');
 const normalizeMetadata = require('./normalizeMetadata');
 
 /**

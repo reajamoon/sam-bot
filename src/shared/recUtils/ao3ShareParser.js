@@ -2,7 +2,7 @@
 // Utility to parse AO3 share HTML export
 
 function parseAo3ShareHtml(html) {
-    const updateMessages = require('../../../commands/recHandlers/updateMessages');
+    const updateMessages = require('../text/updateMessages');
     const result = {};
     let errors = [];
     // More robust: allow for extra whitespace and missing <strong> tags

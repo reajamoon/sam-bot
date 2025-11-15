@@ -36,7 +36,7 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
     // Detect AO3 search results page and treat as error
     const searchWorksTitle = /<title>\s*Search Works \| Archive of Our Own\s*<\/title>/i;
     if (searchWorksTitle.test(html)) {
-        const updateMessages = require('../../../commands/recHandlers/updateMessages');
+    const updateMessages = require('../../text/updateMessages');
         return {
             error: true,
             message: 'AO3 returned a search heading.',
@@ -54,7 +54,7 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
         const $ = cheerio.load(html);
         // Check for AO3 'New Session' interstitial
         if (html.includes('<title>New Session') || html.includes('Please log in to continue') || html.includes('name="user_session"')) {
-            const updateMessages = require('../../../commands/recHandlers/updateMessages');
+            const updateMessages = require('../../text/updateMessages');
             return {
                 title: 'Unknown Title',
                 authors: ['Unknown Author'],
@@ -66,7 +66,7 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
         // Only treat as site protection if 'cloudflare' appears in the <title> or in a known error header
         const titleMatch = html.match(/<title>([^<]*)<\/title>/i);
         if (titleMatch && /cloudflare/i.test(titleMatch[1])) {
-            const updateMessages = require('../../../commands/recHandlers/updateMessages');
+            const updateMessages = require('../../text/updateMessages');
             return {
                 title: 'Unknown Title',
                 authors: ['Unknown Author'],
@@ -77,7 +77,7 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
         }
         const headerMatch = html.match(/<h1[^>]*>([^<]*)<\/h1>/i);
         if (headerMatch && /cloudflare/i.test(headerMatch[1])) {
-            const updateMessages = require('../../../commands/recHandlers/updateMessages');
+            const updateMessages = require('../../text/updateMessages');
             return {
                 title: 'Unknown Title',
                 authors: ['Unknown Author'],
