@@ -68,16 +68,15 @@ async function notifyQueueSubscribers(client) {
     }
 }
 
-// Start the poller after the bot is ready
-client.once('ready', () => {
-    setInterval(() => notifyQueueSubscribers(client), POLL_INTERVAL_MS);
-    logger.info('Fic queue notification poller started.');
-});
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
 const { readdirSync } = require('fs');
 const { join } = require('path');
 require('dotenv').config();
-console.log('[sam-bot] DATABASE_URL:', process.env.DATABASE_URL);
+
+client.once('ready', () => {
+    setInterval(() => notifyQueueSubscribers(client), POLL_INTERVAL_MS);
+    logger.info('Fic queue notification poller started.');
+});
 const logger = require('./utils/logger');
 const { sequelize } = require('./models');
 const BirthdayNotificationManager = require('./utils/birthdayNotifications');
