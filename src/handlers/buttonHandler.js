@@ -18,8 +18,8 @@ async function handleButton(interaction) {
 
         // Rec search pagination buttons
         if (customId && customId.startsWith('recsearch')) {
-            // Route to rec.js handler
-            const rec = require('../commands/rec');
+            // Route to rec.js handler (new location)
+            const rec = require('../bots/sam/commands/rec');
             await rec.handleButtonInteraction(interaction);
             return;
         }
@@ -66,8 +66,8 @@ async function handleButton(interaction) {
         // Rec help navigation buttons
         if (customId.startsWith('rec_help_')) {
             // logger.info(`[ButtonHandler] Routing to handleHelpNavigation for customId=${customId}`);
-            const { handleHelpNavigation } = require('../commands/recHandlers/helpHandler');
-            await handleHelpNavigation(interaction);
+            const rec = require('../bots/sam/commands/rec');
+            await rec.handleHelpNavigation(interaction);
             return;
         }
 

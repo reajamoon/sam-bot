@@ -1,6 +1,6 @@
 // Finds a rec by ID, URL, or AO3 work number. If you pass in more than one, expect sass.
 const { Op } = require('sequelize');
-const updateMessages = require('../../commands/recHandlers/updateMessages');
+const updateMessages = require('../text/updateMessages');
 
 
 /**

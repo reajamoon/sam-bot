@@ -1,4 +1,4 @@
-const updateMessages = require('../../commands/recHandlers/updateMessages');
+const updateMessages = require('../text/updateMessages');
 /**
  * Wattpad metadata fetcher and parser
  * @module wattpadMeta

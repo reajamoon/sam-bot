@@ -98,7 +98,7 @@ async function processQueueJob(job) {
 		const configEntry = await Config.findOne({ where: { key: 'fic_queue_channel' } });
 		const channelId = configEntry ? configEntry.value : null;
 		// No direct Discord interaction for Jack; notification logic should be handled by Sam.
-		const updateMessages = require('../../commands/recHandlers/updateMessages');
+		const updateMessages = require('../../shared/text/updateMessages');
 		await processRecommendationJob({
 			url: job.fic_url,
 			user,
