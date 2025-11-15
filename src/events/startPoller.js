@@ -1,4 +1,4 @@
-const { POLL_INTERVAL_MS } = require('../config/config.json');
+const POLL_INTERVAL_MS = 10000;
 const { ParseQueue, ParseQueueSubscriber, User, Config } = require('../models');
 const createRecommendationEmbed = require('../utils/recUtils/createRecommendationEmbed');
 
