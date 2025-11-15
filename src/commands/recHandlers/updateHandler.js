@@ -144,18 +144,35 @@ async function handleUpdateRecommendation(interaction) {
                         });
                         return;
                     }
-                    // Only enforce cooldown for metadata re-fetches
-                    const now = Date.now();
+                    // Only enforce cooldown for metadata re-fetches (robust version)
                     let cooldownMsg = '';
-                    if (updatedRec && updatedRec.updatedAt) {
-                        const cooldownMs = 5 * 60 * 1000; // 5 min cooldown (replace with config if needed)
-                        const lastUpdate = new Date(updatedRec.updatedAt).getTime();
+                    let lastUpdate = null;
+                    if (updatedRec) {
+                        // Try to get updatedAt as a Date
+                        if (updatedRec.updatedAt instanceof Date) {
+                            lastUpdate = updatedRec.updatedAt.getTime();
+                        } else if (typeof updatedRec.updatedAt === 'string' || typeof updatedRec.updatedAt === 'number') {
+                            const parsed = new Date(updatedRec.updatedAt);
+                            if (!isNaN(parsed.getTime())) lastUpdate = parsed.getTime();
+                        }
+                    }
+                    const now = Date.now();
+                    const cooldownMs = 5 * 60 * 1000; // 5 min cooldown (replace with config if needed)
+                    if (lastUpdate) {
                         const timeLeft = Math.max(0, cooldownMs - (now - lastUpdate));
+                        console.log('[rec update] Cooldown check:', {
+                            now,
+                            lastUpdate,
+                            diff: now - lastUpdate,
+                            timeLeft
+                        });
                         if (timeLeft > 0) {
                             const min = Math.floor(timeLeft / 60000);
                             const sec = Math.floor((timeLeft % 60000) / 1000);
                             cooldownMsg = `\nYou can update this fic again in ${min > 0 ? `${min}m ` : ''}${sec}s.`;
                         }
+                    } else {
+                        console.log('[rec update] No valid updatedAt found for cooldown check:', updatedRec && updatedRec.updatedAt);
                     }
                     await processRecommendationJob({
                         url: urlToUse,

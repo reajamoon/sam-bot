@@ -1,3 +1,78 @@
+// --- Fic Queue Notification Poller ---
+const { ParseQueue, ParseQueueSubscriber, User, Config } = require('./models');
+const { EmbedBuilder } = require('discord.js');
+const createRecommendationEmbed = require('./utils/recUtils/createRecommendationEmbed');
+const POLL_INTERVAL_MS = 10000; // 10 seconds
+
+async function notifyQueueSubscribers() {
+    try {
+        // Find all jobs that are done and still have subscribers
+        const doneJobs = await ParseQueue.findAll({
+            where: { status: 'done' },
+            include: [{ model: ParseQueueSubscriber, as: 'subscribers' }]
+        });
+        for (const job of doneJobs) {
+            // Get all subscribers for this job
+            const subscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: job.id } });
+            if (!subscribers.length) continue;
+            // Fetch user records for tagging preference
+            const userIds = subscribers.map(s => s.user_id);
+            const users = await User.findAll({ where: { discordId: userIds } });
+            // Build notification embed using shared utility
+            let embed = null;
+            if (job.result && job.result.title) {
+                try {
+                    // createRecommendationEmbed expects a rec object; adapt job.result as needed
+                    const rec = {
+                        ...job.result,
+                        url: job.fic_url,
+                        id: job.id
+                    };
+                    embed = await createRecommendationEmbed(rec);
+                } catch (err) {
+                    logger.error('Failed to build embed with createRecommendationEmbed:', err);
+                }
+            }
+            // Get notification channel from config
+            const configEntry = await Config.findOne({ where: { key: 'fic_queue_channel' } });
+            const channelId = configEntry ? configEntry.value : null;
+            if (!channelId) {
+                logger.warn('No fic_queue_channel configured; skipping queue notifications.');
+                continue;
+            }
+            const channel = client.channels.cache.get(channelId);
+            if (!channel) {
+                logger.warn(`Fic queue notification channel ${channelId} not found.`);
+                continue;
+            }
+            // Build mention string for users who want to be tagged
+            const mentionList = users.filter(u => u.queueNotifyTag !== false).map(u => `<@${u.discordId}>`).join(' ');
+            // Send notification and embed as separate messages
+            try {
+                // First, send the notification message (with mentions and fic URL)
+                await channel.send({
+                    content: `>>> ${mentionList ? mentionList + ' ' : ''}Your fic parsing job is done!\n` + (job.fic_url ? `\n<${job.fic_url}>` : ''),
+                });
+                // Then, send the embed (if available)
+                if (embed) {
+                    await channel.send({ embeds: [embed] });
+                }
+            } catch (err) {
+                logger.error('Failed to send fic queue notification:', err);
+            }
+            // Remove all subscribers for this job so they are not notified again
+            await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
+        }
+    } catch (err) {
+        logger.error('Error in queue notification poller:', err);
+    }
+}
+
+// Start the poller after the bot is ready
+client.once('ready', () => {
+    setInterval(notifyQueueSubscribers, POLL_INTERVAL_MS);
+    logger.info('Fic queue notification poller started.');
+});
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
 const { readdirSync } = require('fs');
 const { join } = require('path');
