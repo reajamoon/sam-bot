@@ -24,8 +24,9 @@ const client = new Client({
 });
 
 logger.info('Sam bot main file loaded');
-logger.info('Registering ready event for poller and birthday manager');
-client.once('ready', () => {
+logger.info('Registering clientReady event for poller and birthday manager');
+client.once('clientReady', () => {
+    logger.info('clientReady event fired, starting poller and birthday manager');
     setInterval(() => notifyQueueSubscribers(client), POLL_INTERVAL_MS);
     logger.info('Fic queue notification poller started.');
     birthdayManager.start();
