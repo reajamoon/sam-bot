@@ -24,14 +24,7 @@ const client = new Client({
 });
 
 logger.info('Sam bot main file loaded');
-logger.info('Registering ready event for poller and birthday manager');
-client.once('ready', () => {
-    logger.info('ready event fired, starting poller and birthday manager');
-    setInterval(() => notifyQueueSubscribers(client), POLL_INTERVAL_MS);
-    logger.info('Fic queue notification poller started.');
-    birthdayManager.start();
-    logger.info('Birthday notification manager started.');
-});
+// Poller and birthday manager startup now handled in event modules
 
 // Create collections for commands
 client.commands = new Collection();
@@ -83,9 +76,9 @@ async function startBot() {
         logger.info('Database synchronized successfully.');
 
         // Login to Discord
-        logger.info('Calling client.login...');
+        console.log('BOOTSTRAP: about to call client.login');
         await client.login(process.env.BOT_TOKEN);
-        logger.info('client.login promise resolved');
+        console.log('BOOTSTRAP: client.login promise resolved');
         // Birthday manager now started in clientReady event above
     } catch (error) {
         logger.error('Failed to start bot:', error);
