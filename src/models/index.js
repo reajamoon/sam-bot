@@ -30,9 +30,14 @@ const ParseQueue = require('./ParseQueue')(sequelize);
 const ParseQueueSubscriber = require('./ParseQueueSubscriber')(sequelize);
 const Config = require('./Config')(sequelize);
 
+
 // Define associations
 User.belongsToMany(Guild, { through: 'UserGuilds' });
 Guild.belongsToMany(User, { through: 'UserGuilds' });
+
+// ParseQueue <-> ParseQueueSubscriber association for poller
+ParseQueue.hasMany(ParseQueueSubscriber, { foreignKey: 'queue_id', as: 'subscribers' });
+ParseQueueSubscriber.belongsTo(ParseQueue, { foreignKey: 'queue_id' });
 
 
 
