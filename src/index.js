@@ -4,7 +4,7 @@ const { EmbedBuilder } = require('discord.js');
 const createRecommendationEmbed = require('./utils/recUtils/createRecommendationEmbed');
 const POLL_INTERVAL_MS = 10000; // 10 seconds
 
-async function notifyQueueSubscribers() {
+async function notifyQueueSubscribers(client) {
     try {
         // Find all jobs that are done and still have subscribers
         const doneJobs = await ParseQueue.findAll({
@@ -70,7 +70,7 @@ async function notifyQueueSubscribers() {
 
 // Start the poller after the bot is ready
 client.once('ready', () => {
-    setInterval(notifyQueueSubscribers, POLL_INTERVAL_MS);
+    setInterval(() => notifyQueueSubscribers(client), POLL_INTERVAL_MS);
     logger.info('Fic queue notification poller started.');
 });
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
