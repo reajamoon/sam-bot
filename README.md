@@ -12,12 +12,14 @@ Heya! If you’re reading this, you probably already know the deal. Destiel, Sup
 - **Live updates:** Change something? It updates instantly. If it doesn't for some reason (server issues or whatever) just pull a new profile with `/profile` and it'll show the changes.
 
 ## Project Overview
+
 - **Modular Architecture:** All features are split into dedicated command, handler, event, model, and utility modules. See `docs/bot-architecture-overview.md` for details.
 - **Sam Winchester’s Voice:** All member-facing text uses Sam’s voice—dry wit, practical, and a little snarky. See `docs/sam-voice-guidelines.md`. These guidelines exist for my own reference but also to kind of explain my Sam headcanons and characterizations I use for Sambot.
 - **Database:** Uses SQLite for development and PostgreSQL for production. Database files are ignored via `.gitignore` for security.
 - **Process Management:** Uses PM2 for deployment. Never use `npm start` or `npm run dev`—those are disabled. Dude, trust me.
 
 ## Documentation
+
 - [Profile System](docs/profile-system.md)
 - [Rec System](docs/rec-system.md)
 - [Bot Architecture Overview](docs/bot-architecture-overview.md)
@@ -27,24 +29,30 @@ Heya! If you’re reading this, you probably already know the deal. Destiel, Sup
 - [Changelog](CHANGELOG.md)
 
 ## Project Status & Issues
+
 This is a single developer project. The source is public for transparency, feature tracking, and documentation. If you’re a member and want to see how things work, poke around! If you want to base your own project on it, go wild! I’m not currently accepting outside contributions. If you really think we'd work well together hit me up on discord and let's talk. You can submit issues or feature requests if you spot a bug or have an idea.
 
 ## Extending the Bot
+
 - Adds new commands by creating handler modules in `src/commands/`.
 - Adds new profile fields or rec features by updating models and utility logic.
 - Uses standardized custom ID formats for all buttons and navigation.
 - Reference the docs for architecture, naming, and best practices.
 
 ## Security Best Practices
+
 - Never commits database files or secrets.
 - Uses environment variables for all sensitive config.
 - Always validates user input and handles errors gracefully.
 
 ## In-Jokes & Personality
+
 SamBot is basically Sam Winchester trapped in Discord. He’s snarky, helpful, and a  giant nerd. If he recs the same super angsty omegaverse fic for the hundredth time, just let him cook.
 
 ## Already Here?
+
 `/rec` for fics, `/profile` for profile stuff, ping a mod if you need backup. Sam’s always lurking.
 
 ## Not Here Yet?
+
 Join us, give the dev a cookie: [discord.gg/profoundbond](https://discord.gg/profoundbond)
