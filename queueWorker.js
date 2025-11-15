@@ -39,15 +39,26 @@ async function cleanupOldQueueJobs() {
   for (const job of stuckJobs) {
     // Notify all subscribers (respect queueNotifyTag)
     const subscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: job.id } });
-    const configEntry = await Config.findOne({ where: { key: 'fic_queue_channel' } });
-    if (configEntry && subscribers.length > 0) {
-      const channel = await client.channels.fetch(configEntry.value).catch(() => null);
-      if (channel && channel.isTextBased()) {
-        await channel.send({
-          content: `Sorry, something went wrong while processing your fic parsing job for <${job.fic_url}>. Please try again.\n\n*Oh and if you want: to toggle queue notifications on|off, you just use the /rec notifytag command.*`,
-        });
+    if (subscribers.length > 0) {
+      for (const sub of subscribers) {
+        try {
+          // Fetch user and check queueNotifyTag
+          const { User } = require('./src/models');
+          const user = await User.findOne({ where: { discordId: sub.user_id } });
+          if (user && user.queueNotifyTag !== false) {
+            const dmUser = await client.users.fetch(sub.user_id).catch(() => null);
+            if (dmUser) {
+              await dmUser.send({
+                content: `Hey, just a heads up—your fic parsing job for <${job.fic_url}> got stuck in the queue and I had to drop it. Sometimes the stacks get a little weird, but you can always try again.\n\nIf you want to turn off these DMs, just use the \`/rec notifytag\` command. (And if you have questions, you know where to find me.)`
+              });
+            }
+          }
+        } catch (err) {
+          console.warn(`[QueueWorker] Failed to DM user ${sub.user_id} about dropped job ${job.id}:`, err);
+        }
       }
     }
+    // No channel notification for dropped jobs; only DM the user(s)
     await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
     await job.destroy();
     console.log(`[QueueWorker] Cleanup: Dropped stuck job id=${job.id} (status: ${job.status}, url: ${job.fic_url})`);
