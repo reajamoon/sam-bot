@@ -23,9 +23,13 @@ const client = new Client({
     ],
 });
 
+logger.info('Sam bot main file loaded');
+logger.info('Registering clientReady event for poller and birthday manager');
 client.once('clientReady', () => {
     setInterval(() => notifyQueueSubscribers(client), POLL_INTERVAL_MS);
     logger.info('Fic queue notification poller started.');
+    birthdayManager.start();
+    logger.info('Birthday notification manager started.');
 });
 
 // Create collections for commands
@@ -79,10 +83,7 @@ async function startBot() {
 
         // Login to Discord
         await client.login(process.env.BOT_TOKEN);
-        // Start birthday notification system after bot is ready
-        client.once('clientReady', () => {
-            birthdayManager.start();
-        });
+        // Birthday manager now started in clientReady event above
     } catch (error) {
         logger.error('Failed to start bot:', error);
         process.exit(1);
@@ -179,7 +180,6 @@ async function notifyQueueSubscribers(client) {
             } catch (err) {
                 logger.error('Failed to send fic queue notification:', err);
             }
-            // Remove all subscribers for this job so they are not notified again
             await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
         }
     } catch (err) {
