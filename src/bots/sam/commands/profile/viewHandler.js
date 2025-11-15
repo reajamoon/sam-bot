@@ -1,4 +1,4 @@
-const { getOrCreateUser, generateProfileCard, createProfileButtons, canViewProfile } = require('../../../../utils/profileCard');
+const { getOrCreateUser, generateProfileCard, createProfileButtons, canViewProfile } = require('../../utils/profileCard');
 
 module.exports = async function handleProfileView(interaction) {
     const targetUser = interaction.options.getUser('user') || interaction.user;
