@@ -3,7 +3,7 @@
  * @module ljMeta
  */
 const { fetchHTML } = require('./fetchHtmlUtil');
-const updateMessages = require('../text/updateMessages');
+const updateMessages = require('../../text/updateMessages');
 
 /**
  * Fetches metadata from LiveJournal

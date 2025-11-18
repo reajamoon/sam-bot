@@ -1,5 +1,5 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { User } = require('../../../models');
+const { User } = require('../../../../models');
 const { formatBirthdayForProfile } = require('./birthdayFormatter');
 const { getZodiacSign, getChineseZodiacSign } = require('../../../shared/utils/zodiacCalculator');
 const { generateServerStats } = require('../../../shared/utils/serverStats');
