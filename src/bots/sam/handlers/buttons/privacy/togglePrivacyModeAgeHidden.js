@@ -1,5 +1,5 @@
 // Handler for toggling age-hidden privacy mode
-const { User } = require('../../../../../models');
+const { User } = require('../../../../../shared/models');
 const { getProfileMessageId } = require('../../../../../shared/utils/messageTracking');
 const { buildPrivacySettingsMenu } = require('./privacyMenu');
 const { performDualUpdate } = require('../../../utils/dualUpdate');

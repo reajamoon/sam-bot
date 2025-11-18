@@ -1,5 +1,5 @@
-const { User } = require('../../../models');
-const logger = require('../utils/logger');
+const { User } = require('../../../shared/models');
+const logger = require('../../../shared/utils/logger');
 
 /**
  * Handle select menu interactions
@@ -63,7 +63,7 @@ async function handleSelectMenu(interaction) {
 
                 // Update the original profile if we found the message ID
                 if (originalMessageId) {
-                    const { updateOriginalProfile } = require('../utils/updateOriginalProfile');
+                    const { updateOriginalProfile } = require('../../utils/updateOriginalProfile');
                     await updateOriginalProfile(interaction, originalMessageId, 'timezone display change');
                 }
 

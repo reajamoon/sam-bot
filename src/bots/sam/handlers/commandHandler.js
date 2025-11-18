@@ -1,4 +1,4 @@
-const logger = require('../utils/logger');
+const logger = require('../../../shared/utils/logger');
 
 /**
  * Handle slash command interactions

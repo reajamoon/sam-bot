@@ -1,9 +1,9 @@
 // Handler for toggling birthday hidden privacy setting
-const { User } = require('../../../../../models');
+const { User } = require('../../../../../shared/models');
 const { parsePrivacySettingsCustomId } = require('../../../../../shared/utils/messageTracking');
 const { getProfileMessageId } = require('../../../utils/profileMessageTracker');
 const { buildPrivacySettingsMenu } = require('./privacyMenu');
-const { performDualUpdate } = require('../../../utils/dualUpdate');
+const { performDualUpdate } = require('../../../../../shared/utils/dualUpdate');
 const logger = require('../../../../../shared/utils/logger');
 const { InteractionFlags } = require('discord.js');
 

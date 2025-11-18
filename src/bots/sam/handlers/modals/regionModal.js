@@ -1,5 +1,5 @@
 const { MessageFlags } = require('discord.js');
-const { User } = require('../../../../models');
+const { User } = require('../../../../shared/models');
 const logger = require('../../../shared/utils/logger');
 const { validateRegion } = require('../../../shared/utils/regionValidator');
 

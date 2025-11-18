@@ -1,10 +1,10 @@
-const { handleBirthdayModal } = require('../../../handlers/modals/birthdayModal');
-const { handleBioModal } = require('../../../handlers/modals/bioModal');
-const { handleTimezoneModal } = require('../../../handlers/modals/timezoneModal');
-const { handlePronounsModal } = require('../../../handlers/modals/pronounsModal');
-const { handleRegionModal } = require('../../../handlers/modals/regionModal');
-const { handleAo3ShareModal } = require('../../../handlers/modals/ao3ShareModal');
-const logger = require('../utils/logger');
+const { handleBirthdayModal } = require('../../handlers/modals/birthdayModal');
+const { handleBioModal } = require('../../handlers/modals/bioModal');
+const { handleTimezoneModal } = require('../../handlers/modals/timezoneModal');
+const { handlePronounsModal } = require('../../handlers/modals/pronounsModal');
+const { handleRegionModal } = require('../../handlers/modals/regionModal');
+const { handleAo3ShareModal } = require('../../handlers/modals/ao3ShareModal');
+const logger = require('../../../shared/utils/logger');
 
 /**
  * Handle modal submissions by delegating to appropriate handlers

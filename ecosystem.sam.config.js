@@ -2,7 +2,7 @@
 module.exports = {
   apps: [
     {
-      name: "sam-bot",
+      name: "sam",
       script: "./src/bots/sam/sam.js",
       max_memory_restart: "800M",
       max_restarts: 5,

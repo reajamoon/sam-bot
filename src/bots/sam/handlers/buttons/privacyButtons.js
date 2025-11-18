@@ -1,6 +1,6 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, InteractionFlags } = require('discord.js');
 const EPHEMERAL_FLAG = typeof InteractionFlags !== 'undefined' && InteractionFlags.Ephemeral ? InteractionFlags.Ephemeral : 64;
-const { User } = require('../../../../models');
+const { User } = require('../../../../shared/models');
 const logger = require('../../../../shared/utils/logger');
 const { parsePrivacySettingsCustomId, parsePrivacySettingsDoneCustomId } = require('../../../../shared/utils/messageTracking');
 const { buildPrivacySettingsMenu } = require('./privacy');

@@ -1,4 +1,4 @@
-const { User, Guild, BirthdayMessage } = require('../../../models');
+const { User, Guild, BirthdayMessage } = require('../../../shared/models');
 const { EmbedBuilder } = require('discord.js');
 const logger = require('../../../shared/utils/logger');
 
