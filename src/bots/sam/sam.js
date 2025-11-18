@@ -1,5 +1,5 @@
 // Unified Sam bot startup (temp version for review)
-const { ParseQueue, ParseQueueSubscriber, User, Config, sequelize } = require('../shared/models');
+const { ParseQueue, ParseQueueSubscriber, User, Config, sequelize } = require('../../shared/models');
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
 const { readdirSync } = require('fs');
 const { join } = require('path');
