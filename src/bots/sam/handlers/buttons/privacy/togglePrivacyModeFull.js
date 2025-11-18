@@ -1,5 +1,5 @@
 // Handler for toggling full privacy mode
-const { User } = require('../../../../../shared/models');
+const { User } = require('../../../../../models');
 const { parsePrivacySettingsCustomId } = require('../../../../../shared/utils/messageTracking');
 const { getProfileMessageId } = require('../../../utils/profileMessageTracker');
 const { buildPrivacySettingsMenu } = require('./privacyMenu');
