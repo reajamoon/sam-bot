@@ -12,18 +12,18 @@ This document tracks the step-by-step migration of the Sam bot codebase to suppo
 
 ## 2. Create New Folder Structure
 
-- [ ] Create `src/bots/sam/` for Sam-specific code
-- [ ] Create `src/bots/dean/` for Dean-specific code
-- [ ] Create `src/bots/cas/` for Cas-specific code
+- [x] Create `src/bots/sam/` for Sam-specific code
+- [x] Create `src/bots/dean/` for Dean-specific code
+- [x] Create `src/bots/cas/` for Cas-specific code
 - [x] Create `src/bots/jack/` for Jack (queue worker) specific code (formerly queueWorker.js)
-- [ ] Create `src/shared/` for shared utilities, models, and helpers
+- [x] Create `src/shared/` for shared utilities, models, and helpers
 
 ## 3. Migrate Sam's Code
 
-- [ ] Move `src/commands` to `src/bots/sam/commands`
-- [ ] Move `src/events` to `src/bots/sam/events`
-- [ ] Move Sam's entry point (main bot file) to `src/bots/sam/`
-- [ ] Update all imports in Sam's code to reflect new paths
+- [x] Move `src/commands` to `src/bots/sam/commands`
+- [x] Move `src/events` to `src/bots/sam/events`
+- [x] Move Sam's entry point (main bot file) to `src/bots/sam/`
+- [x] Update all imports in Sam's code to reflect new paths
 - [ ] Test Sam bot after each move
 
 ## 4. Migrate and Refactor Shared Code
