@@ -1,11 +1,11 @@
 const { Events } = require('discord.js');
-const logger = require('../utils/logger');
+const logger = require('../../../shared/utils/logger');
 
 // Import specialized handlers
-const { handleCommand } = require('../handlers/commandHandler');
-const { handleButton } = require('../handlers/buttonHandler');
-const { handleSelectMenu } = require('../handlers/selectMenuHandler');
-const { handleModal } = require('../handlers/modalHandler');
+const { handleCommand } = require('../../handlers/commandHandler');
+const { handleButton } = require('../../handlers/buttonHandler');
+const { handleSelectMenu } = require('../../handlers/selectMenuHandler');
+const { handleModal } = require('../../handlers/modalHandler');
 
 // In-memory set to track processed interaction IDs
 const processedInteractionIds = new Set();

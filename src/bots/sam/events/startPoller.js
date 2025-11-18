@@ -1,6 +1,6 @@
 const POLL_INTERVAL_MS = 10000;
-const { ParseQueue, ParseQueueSubscriber, User, Config } = require('../models');
-const createRecommendationEmbed = require('../utils/recUtils/createRecommendationEmbed');
+const { ParseQueue, ParseQueueSubscriber, User, Config } = require('../../../models');
+const createRecommendationEmbed = require('../../../shared/recUtils/createRecommendationEmbed');
 
 async function notifyQueueSubscribers(client) {
     try {
