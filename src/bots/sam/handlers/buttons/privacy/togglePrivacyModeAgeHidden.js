@@ -2,7 +2,7 @@
 const { User } = require('../../../../../models');
 const { getProfileMessageId } = require('../../../../../shared/utils/messageTracking');
 const { buildPrivacySettingsMenu } = require('./privacyMenu');
-const { performDualUpdate } = require('../../../utils/dualUpdate');
+const { performDualUpdate } = require('../../../../../shared/utils/dualUpdate');
 const logger = require('../../../../../shared/utils/logger');
 const { InteractionFlags } = require('discord.js');
 
