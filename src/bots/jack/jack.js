@@ -63,7 +63,7 @@ async function cleanupOldQueueJobs() {
 // queueWorker.js
 // Background worker to process fic parsing jobs from the ParseQueue
 const { sequelize, ParseQueue, ParseQueueSubscriber, Recommendation, Config } = require('../../models');
-const processRecommendationJob = require('../../shared/recUtils/processRecommendationJob');
+const processRecommendationJob = require('../../shared/recUtils/processRecommendationJob'); // already correct, no change needed
 require('dotenv').config();
 
 async function processQueueJob(job) {
@@ -98,7 +98,7 @@ async function processQueueJob(job) {
 		const configEntry = await Config.findOne({ where: { key: 'fic_queue_channel' } });
 		const channelId = configEntry ? configEntry.value : null;
 		// No direct Discord interaction for Jack; notification logic should be handled by Sam.
-		const updateMessages = require('../../shared/text/updateMessages');
+		const updateMessages = require('../../shared/text/updateMessages'); // already correct, no change needed
 		await processRecommendationJob({
 			url: job.fic_url,
 			user,
