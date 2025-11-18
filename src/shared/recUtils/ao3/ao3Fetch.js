@@ -1,4 +1,4 @@
-const updateMessages = require('../text/updateMessages');
+const updateMessages = require('../../text/updateMessages');
 // ao3Fetch.js
 // AO3 login/fallback fetch logic
 
