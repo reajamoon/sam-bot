@@ -1,5 +1,5 @@
 const { Events } = require('discord.js');
-const { User } = require('../../../models');
+const { User } = require('../../../shared/models');
 
 module.exports = {
     name: Events.MessageCreate,

@@ -1,5 +1,5 @@
 const { Events } = require('discord.js');
-const { User, Guild } = require('../../../models');
+const { User, Guild } = require('../../../shared/models');
 const logger = require('../../../shared/utils/logger');
 
 module.exports = {

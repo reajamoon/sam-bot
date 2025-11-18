@@ -517,7 +517,7 @@ async function handleProfileSettingsDone(interaction) {
 
 
         try {
-            const User = require('../../../../models').User;
+            const User = require('../../../../shared/models').User;
             const user = await User.findByPk(interaction.user.id);
 
             if (!user) {

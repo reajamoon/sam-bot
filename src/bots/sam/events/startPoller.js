@@ -1,5 +1,5 @@
 const POLL_INTERVAL_MS = 10000;
-const { ParseQueue, ParseQueueSubscriber, User, Config } = require('../../../models');
+const { ParseQueue, ParseQueueSubscriber, User, Config } = require('../../../shared/models');
 const createRecommendationEmbed = require('../../../shared/recUtils/createRecommendationEmbed');
 
 async function notifyQueueSubscribers(client) {
@@ -15,7 +15,7 @@ async function notifyQueueSubscribers(client) {
             const users = await User.findAll({ where: { discordId: userIds } });
             let embed = null;
             // Fetch the Recommendation from the database using fic_url
-            const { Recommendation } = require('../models');
+            const { Recommendation } = require('../../../shared/models');
             const rec = await Recommendation.findOne({ where: { url: job.fic_url } });
             if (rec) {
                 try {
