@@ -1,7 +1,7 @@
 const { User } = require('../../../../../models');
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { buildButtonId } = require('../../../../../shared/utils/buttonId');
-const { performDualUpdate } = require('../../../../utils/dualUpdate');
+const { performDualUpdate } = require('../../../../../shared/utils/dualUpdate');
 const { updateOriginalProfile } = require('../../../../utils/updateOriginalProfile');
 
 async function handleRegionDisplay(interaction) {
