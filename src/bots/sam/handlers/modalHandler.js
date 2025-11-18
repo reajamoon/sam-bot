@@ -1,9 +1,9 @@
-const { handleBirthdayModal } = require('../../handlers/modals/birthdayModal');
-const { handleBioModal } = require('../../handlers/modals/bioModal');
-const { handleTimezoneModal } = require('../../handlers/modals/timezoneModal');
-const { handlePronounsModal } = require('../../handlers/modals/pronounsModal');
-const { handleRegionModal } = require('../../handlers/modals/regionModal');
-const { handleAo3ShareModal } = require('../../handlers/modals/ao3ShareModal');
+const { handleBirthdayModal } = require('./modals/birthdayModal');
+const { handleBioModal } = require('./modals/bioModal');
+const { handleTimezoneModal } = require('./modals/timezoneModal');
+const { handlePronounsModal } = require('./modals/pronounsModal');
+const { handleRegionModal } = require('./modals/regionModal');
+const { handleAo3ShareModal } = require('./modals/ao3ShareModal');
 const logger = require('../../../shared/utils/logger');
 
 /**
