@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
-const { getZodiacSign, getChineseZodiacSign } = require('./zodiacCalculator');
+const { getZodiacSign, getChineseZodiacSign } = require('./zodiacCalculator'); // already correct, no change needed
 
 /**
  * Formats timezone info for the profile card. If it spits out nonsense, well, timezones are chaos.

@@ -1,4 +1,4 @@
-const { User } = require('../../../shared/models');
+const { User } = require('../../../../models');
 const { generateProfileCard, createProfileButtons } = require('./profileCard');
 const logger = require('../../../shared/utils/logger');
 

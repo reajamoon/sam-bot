@@ -1,4 +1,4 @@
-const { updateOriginalProfile } = require('../../bots/sam/utils/updateOriginalProfile');
+const { updateOriginalProfile } = require('../../../bots/sam/utils/updateOriginalProfile');
 
 
 /**

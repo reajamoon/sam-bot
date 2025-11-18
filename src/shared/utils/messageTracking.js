@@ -57,7 +57,7 @@ function getProfileOwnerIdFromInteraction(interaction) {
 function parsePrivacySettingsDoneCustomId(customId) {
     return {};
 }
-const logger = require('./logger');
+const logger = require('./logger'); // already correct, no change needed
 
 /**
  * Message tracking utilities for live profile updates
