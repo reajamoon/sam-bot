@@ -1,6 +1,6 @@
 // recNotifyTag.js
 // /rec notifytag on|off - toggle queue notification tagging for the user
-const { User } = require('../../../models');
+const { User } = require('../../../../models');
 
 module.exports = async function handleRecNotifyTag(interaction) {
   const mode = interaction.options.getString('mode');

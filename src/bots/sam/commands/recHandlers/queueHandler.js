@@ -1,6 +1,6 @@
 // queueHandler.js
 // Handler for /rec queue command: shows the current fic metadata queue
-const { ParseQueue } = require('../../../models');
+const { ParseQueue } = require('../../../../models');
 const { EmbedBuilder } = require('discord.js');
 
 module.exports = async function handleQueue(interaction) {
