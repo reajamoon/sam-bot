@@ -1,10 +1,10 @@
 const { EmbedBuilder } = require('discord.js');
-const { createBirthdayHelp } = require('../../../utils/profileHelpBirthday');
-const { createBioHelp } = require('../../../utils/profileHelpBio');
-const { createPrivacyHelp } = require('../../../utils/profileHelpPrivacy');
-const { createTipsHelp } = require('../../../utils/profileHelpTips');
-const { createTimezoneRegionHelp } = require('../../../utils/profileHelpTimezoneRegion');
-const { createHelpWithBackButton } = require('../../../utils/profileHelpButtons');
+const { createBirthdayHelp } = require('./profileHelpBirthday');
+const { createBioHelp } = require('./profileHelpBio');
+const { createPrivacyHelp } = require('./profileHelpPrivacy');
+const { createTipsHelp } = require('./profileHelpTips');
+const { createTimezoneRegionHelp } = require('./profileHelpTimezoneRegion');
+const { createHelpWithBackButton } = require('./profileHelpButtons');
 
 /**
  * Profile help system with category-based navigation
