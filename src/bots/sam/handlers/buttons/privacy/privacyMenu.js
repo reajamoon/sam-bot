@@ -2,7 +2,7 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { buildButtonId } = require('../../../../../shared/utils/buttonId');
 const { buildPrivacySettingsDoneCustomId } = require('../../../../../shared/utils/messageTracking');
-const menuTexts = require('../../../utils/menuTexts.json').privacy;
+const menuTexts = require('../../../../../shared/text/menuTexts.json').privacy;
 const { encodeMessageId } = require('../../../../../shared/utils/messageTracking');
 
 function buildPrivacySettingsButtonId(action, userId, messageId) {
