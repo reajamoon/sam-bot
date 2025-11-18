@@ -1,6 +1,6 @@
 const { Events } = require('discord.js');
-const { User, Guild } = require('../models');
-const logger = require('../utils/logger');
+const { User, Guild } = require('../../../models');
+const logger = require('../../../shared/utils/logger');
 
 module.exports = {
     name: Events.GuildCreate,

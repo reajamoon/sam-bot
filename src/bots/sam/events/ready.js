@@ -1,8 +1,8 @@
 const { Events } = require('discord.js');
-const logger = require('../utils/logger');
+const logger = require('../../../shared/utils/logger');
 const startPoller = require('./startPoller');
 const startBirthdayManager = require('./startBirthdayManager');
-const BirthdayNotificationManager = require('../utils/birthdayNotifications');
+const BirthdayNotificationManager = require('../../utils/birthdayNotifications');
 
 module.exports = {
     name: Events.ClientReady,
