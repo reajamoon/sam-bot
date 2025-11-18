@@ -1,6 +1,6 @@
 // resetQueueHandler.js
 // Handler for /rec resetqueue command: resets all jobs stuck in 'processing' back to 'pending'
-const { ParseQueue } = require('../../../models');
+const { ParseQueue } = require('../../../../models');
 
 module.exports = async function handleResetQueue(interaction) {
   const { MessageFlags } = require('discord.js');

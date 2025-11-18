@@ -1,5 +1,5 @@
 const { EmbedBuilder, MessageFlags } = require('discord.js');
-const { Recommendation } = require('../../../models');
+const { Recommendation } = require('../../../../models');
 
 // Shows stats for the PB library.
 async function handleStats(interaction) {
