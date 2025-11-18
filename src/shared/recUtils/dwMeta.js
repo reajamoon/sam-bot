@@ -3,7 +3,7 @@
  * @module dwMeta
  */
 const { fetchHTML } = require('./fetchHtmlUtil');
-const updateMessages = require('../text/updateMessages');
+const updateMessages = require('../text/updateMessages'); // already correct, no change needed
 
 /**
  * Fetches metadata from Dreamwidth

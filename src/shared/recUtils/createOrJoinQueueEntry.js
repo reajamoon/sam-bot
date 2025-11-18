@@ -1,4 +1,4 @@
-const updateMessages = require('../text/updateMessages');
+const updateMessages = require('../text/updateMessages'); // already correct, no change needed
 // Utility to create or join a ParseQueue entry for a fic URL, handling race conditions and user subscription.
 const { ParseQueue, ParseQueueSubscriber, Config } = require('../../models');
 
