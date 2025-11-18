@@ -1,9 +1,9 @@
 
 const { InteractionFlags } = require('discord.js');
 const EPHEMERAL_FLAG = typeof InteractionFlags !== 'undefined' && InteractionFlags.Ephemeral ? InteractionFlags.Ephemeral : 64;
-const { handleProfileButtons } = require('../../../handlers/buttons/profile');
-const { handleNavigationButtons } = require('../../../handlers/buttons/navigation');
-const { handlePrivacyButtons } = require('../../../handlers/buttons/privacyButtons');
+const { handleProfileButtons } = require('./buttons/profile');
+const { handleNavigationButtons } = require('./buttons/navigation');
+const { handlePrivacyButtons } = require('./buttons/privacyButtons');
 const logger = require('../../../shared/utils/logger');
 
 /**
