@@ -5,7 +5,7 @@ const logger = require('../../../../shared/utils/logger');
 const { parsePrivacySettingsCustomId, parsePrivacySettingsDoneCustomId } = require('../../../../shared/utils/messageTracking');
 const { buildPrivacySettingsMenu } = require('./privacy');
 
-const { performDualUpdate } = require('../../../utils/dualUpdate');
+const { performDualUpdate } = require('../../../../shared/utils/dualUpdate');
 
 const { getProfileMessageId } = require('../../../../shared/utils/messageTracking');
 const { handleInteractionNavigation } = require('../../../../shared/utils/interactionNavigation');
