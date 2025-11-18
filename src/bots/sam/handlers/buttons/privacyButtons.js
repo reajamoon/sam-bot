@@ -1,14 +1,14 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, InteractionFlags } = require('discord.js');
 const EPHEMERAL_FLAG = typeof InteractionFlags !== 'undefined' && InteractionFlags.Ephemeral ? InteractionFlags.Ephemeral : 64;
-const { User } = require('../../../models');
-const logger = require('../../../shared/utils/logger');
-const { parsePrivacySettingsCustomId, parsePrivacySettingsDoneCustomId } = require('../../../shared/utils/messageTracking');
+const { User } = require('../../../../models');
+const logger = require('../../../../shared/utils/logger');
+const { parsePrivacySettingsCustomId, parsePrivacySettingsDoneCustomId } = require('../../../../shared/utils/messageTracking');
 const { buildPrivacySettingsMenu } = require('./privacy');
 
-const { performDualUpdate } = require('../../utils/dualUpdate');
+const { performDualUpdate } = require('../../../utils/dualUpdate');
 
-const { getProfileMessageId } = require('../../../shared/utils/messageTracking');
-const { handleInteractionNavigation } = require('../../../shared/utils/interactionNavigation');
+const { getProfileMessageId } = require('../../../../shared/utils/messageTracking');
+const { handleInteractionNavigation } = require('../../../../shared/utils/interactionNavigation');
 /**
  * Handle privacy and settings button interactions
  */
@@ -100,7 +100,7 @@ async function handlePrivacyButtons(interaction) {
         });
         return;
     }
-    
+
     // Toggle birthday hidden (profile birthday visibility)
     else if (interaction.customId.includes('toggle_birthday_hidden_privacy_settings_')) {
         const { handleToggleBirthdayHidden } = require('./privacy');
