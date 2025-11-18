@@ -1,6 +1,6 @@
 // src/commands/setFicQueueChannel.js
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const { Config } = require('../../../shared/models');
+const { Config } = require('../../../models');
 
 module.exports = {
   data: new SlashCommandBuilder()

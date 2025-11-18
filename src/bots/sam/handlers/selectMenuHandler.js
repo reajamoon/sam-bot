@@ -1,4 +1,4 @@
-const { User } = require('../../../shared/models');
+const { User } = require('../../../models');
 const logger = require('../../../shared/utils/logger');
 
 /**

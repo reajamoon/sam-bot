@@ -1,7 +1,7 @@
 // Alright, grabbing Discord stuff and our User model
 const { SlashCommandBuilder, PermissionFlagsBits, InteractionFlags } = require('discord.js');
 const EPHEMERAL_FLAG = InteractionFlags?.Ephemeral ?? 64;
-const { User } = require('../../../shared/models');
+const { User } = require('../../../models');
 
 module.exports = {
     // Command for manually setting someone’s message count (for history imports, etc)
