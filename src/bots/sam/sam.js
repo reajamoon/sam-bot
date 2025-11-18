@@ -6,7 +6,7 @@ const { join } = require('path');
 require('dotenv').config();
 const logger = require('../../shared/utils/logger');
 const createRecommendationEmbed = require('../../shared/recUtils/createRecommendationEmbed');
-const BirthdayNotificationManager = require('../../shared/utils/birthdayNotifications');
+const BirthdayNotificationManager = require('./utils/birthdayNotifications');
 
 const POLL_INTERVAL_MS = 10000;
 
