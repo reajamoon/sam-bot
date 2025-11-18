@@ -1,7 +1,7 @@
 const { MessageFlags } = require('discord.js');
-const { User } = require('../../../models');
-const logger = require('../../../shared/utils/logger');
-const { validateRegion } = require('../../../shared/utils/regionValidator');
+const { User } = require('../../../../models');
+const logger = require('../../../../shared/utils/logger');
+const { validateRegion } = require('../../../../shared/utils/regionValidator');
 
 /**
  * Handle region modal submission
@@ -18,7 +18,7 @@ async function handleRegionModal(interaction, originalMessageId = null) {
 
     const regionInput = interaction.fields.getTextInputValue('region_input').trim();
     logger.info(`Region Modal: regionInput = "${regionInput}"`);
-    
+
     if (!regionInput) {
         // Create back button to return to Profile Settings
         const { ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');

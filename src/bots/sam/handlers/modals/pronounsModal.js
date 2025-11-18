@@ -1,6 +1,6 @@
 const { MessageFlags } = require('discord.js');
-const { User } = require('../../../models');
-const logger = require('../../../shared/utils/logger');
+const { User } = require('../../../../models');
+const logger = require('../../../../shared/utils/logger');
 
 /**
  * Handle pronouns modal submission
