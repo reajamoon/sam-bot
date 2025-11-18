@@ -1,4 +1,4 @@
-const updateMessages = require('../../text/updateMessages');
+const updateMessages = require('../text/updateMessages');
 /**
  * Wattpad metadata fetcher and parser
  * @module wattpadMeta
