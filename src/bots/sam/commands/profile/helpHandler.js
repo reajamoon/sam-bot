@@ -1,7 +1,7 @@
 const { createProfileHelpMain } = require('../../utils/profileHelp');
 
 module.exports = async function handleProfileHelp(interaction) {
-        const logger = require('../../utils/logger');
+        const logger = require('../../../../shared/utils/logger');
         logger.info(`[handleProfileHelp] Called with interaction.customId=${interaction.customId}`);
         const { embed, components } = createProfileHelpMain(interaction);
         const { InteractionFlags } = require('discord.js');        
