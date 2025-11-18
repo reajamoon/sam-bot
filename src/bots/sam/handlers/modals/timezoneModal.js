@@ -1,4 +1,4 @@
-const { User } = require('../../../../models');
+const { User } = require('../../../models');
 const logger = require('../../../shared/utils/logger');
 
 /**
@@ -182,7 +182,7 @@ async function handleTimezoneModal(interaction, originalMessageId = null) {
                                     avatar: profileOwnerUser.avatar
                                 }
                             });
-                            const { generateProfileCard, createProfileButtons } = require('../../../utils/profileCard');
+                            const { generateProfileCard, createProfileButtons } = require('../../utils/profileCard');
                             const { embed } = await generateProfileCard(profileOwnerUser, user, interaction.client, interaction);
                             const profileButtons = createProfileButtons(interaction.user.id, interaction.user.id, originalMessageId);
                             await originalMessage.edit({

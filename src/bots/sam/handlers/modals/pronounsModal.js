@@ -1,5 +1,5 @@
 const { MessageFlags } = require('discord.js');
-const { User } = require('../../../../shared/models');
+const { User } = require('../../../models');
 const logger = require('../../../shared/utils/logger');
 
 /**
@@ -91,7 +91,7 @@ async function handlePronounsModal(interaction, originalMessageId = null) {
 
         // If we have message tracking, try to update the original profile
         if (originalMessageId) {
-            const { updateOriginalProfile } = require('../../../utils/updateOriginalProfile');
+            const { updateOriginalProfile } = require('../../utils/updateOriginalProfile');
             await updateOriginalProfile(interaction, originalMessageId, 'pronouns change');
         }
 

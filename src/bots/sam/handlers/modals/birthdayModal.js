@@ -1,5 +1,5 @@
 const { MessageFlags } = require('discord.js');
-const { User } = require('../../../../shared/models');
+const { User } = require('../../../models');
 const logger = require('../../../shared/utils/logger');
 
 /**
@@ -170,7 +170,7 @@ async function handleBirthdayModal(interaction, originalMessageId = null) {
                             });
 
                             // Import profile utilities
-                            const { generateProfileCard, createProfileButtons } = require('../../../utils/profileCard');
+                            const { generateProfileCard, createProfileButtons } = require('../../utils/profileCard');
 
                             // Generate fresh profile with updated birthday
                             const { embed } = await generateProfileCard(profileOwnerUser, user, interaction.client, interaction);
