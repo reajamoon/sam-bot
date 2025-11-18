@@ -3,7 +3,7 @@ module.exports = {
   apps: [
     {
       name: 'jack',
-  script: './src/bots/jack/queueWorker.js',
+  script: './src/bots/jack/jack.js',
       instances: 1,
       autorestart: true,
       watch: false,
