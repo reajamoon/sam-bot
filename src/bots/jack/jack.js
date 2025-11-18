@@ -12,7 +12,7 @@ async function cleanupOldQueueJobs() {
 	const now = new Date();
 	// Remove 'done' jobs older than 3 hours
 	const doneCutoff = new Date(now.getTime() - 3 * 60 * 60 * 1000);
-	const { ParseQueue, ParseQueueSubscriber, Config } = require('../../models');
+	const { ParseQueue, ParseQueueSubscriber, Config } = require('../../models'); // already correct, no change needed
 	const doneDeleted = await ParseQueue.destroy({ where: { status: 'done', updated_at: { [Op.lt]: doneCutoff } } });
 	if (doneDeleted > 0) {
 		console.log(`[QueueWorker] Cleanup: Removed ${doneDeleted} 'done' jobs older than 3 hours.`);
@@ -31,7 +31,7 @@ async function cleanupOldQueueJobs() {
 	const allJobIds = allJobs.map(j => j.id);
 	const allSubscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: allJobIds } });
 	// Batch fetch all users for these subscribers
-	const { User } = require('../../models');
+	const { User } = require('../../models'); // already correct, no change needed
 	if (stuckJobs.length > 0) {
 		console.log(`[QueueWorker] Cleanup: Found ${stuckJobs.length} stuck 'pending' or 'processing' jobs older than 15 minutes.`);
 	} else {

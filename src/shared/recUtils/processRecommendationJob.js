@@ -1,4 +1,4 @@
-const updateMessages = require('../../../text/updateMessages');
+const updateMessages = require('../../text/updateMessages');
 // processRecommendationJob.js
 // Shared utility for creating/updating recommendations (used by command handlers and queue worker)
 
