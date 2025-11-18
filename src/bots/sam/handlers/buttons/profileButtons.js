@@ -1,5 +1,5 @@
 const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, EmbedBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, InteractionFlags } = require('discord.js');
-const { User } = require('../../../../models');
+const { User } = require('../../../../shared/models');
 const logger = require('../../../../shared/utils/logger');
 const { parseProfileSettingsCustomId, buildModalCustomId, buildSelectMenuCustomId, buildInputCustomId, buildProfileSettingsDoneCustomId, decodeMessageId } = require('../../../../shared/utils/messageTracking');
 

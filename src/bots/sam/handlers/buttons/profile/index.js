@@ -1,7 +1,7 @@
 const { handleSettingsMenu } = require('./settingsMenu');
 const { handleTimezoneDisplay } = require('./timezoneDisplay');
 const { handleBirthday } = require('./birthday');
-const { handleRegionDisplay } = require('../../../../../handlers/buttons/profile/regionDisplay');
+const { handleRegionDisplay } = require('./regionDisplay');
 const { handlePronouns } = require('./pronouns');
 const { handleBio } = require('./bio');
 const { handleRegion } = require('./region');

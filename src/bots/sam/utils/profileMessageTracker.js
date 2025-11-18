@@ -2,7 +2,7 @@
  * Utility for robust profile message ID tracking and propagation
  * Ensures all profile settings/menu buttons carry the original profile card message ID
  */
-const logger = require('./logger');
+const logger = require('../../../shared/utils/logger');
 
 /**
  * Extracts the original profile card message ID from customId, interaction, or fallback
