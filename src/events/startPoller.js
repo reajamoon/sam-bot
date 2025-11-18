@@ -56,6 +56,38 @@ async function notifyQueueSubscribers(client) {
 }
 
 module.exports = (client) => {
-    setInterval(() => notifyQueueSubscribers(client), POLL_INTERVAL_MS || 10000);
+
+    // Helper: Notify users if their job was dropped due to being stuck (not normal 3-hour cleanup)
+    async function notifyDroppedQueueJobs() {
+        const { Op } = require('sequelize');
+        // Only notify for jobs that were stuck in 'pending' or 'processing' and dropped as 'error' with a stuck message
+        const droppedJobs = await ParseQueue.findAll({
+            where: {
+                status: 'error',
+                error_message: { [Op.iLike]: '%stuck%' }
+            }
+        });
+        for (const job of droppedJobs) {
+            const subscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: job.id } });
+            for (const sub of subscribers) {
+                const user = await User.findOne({ where: { discordId: sub.user_id } });
+                if (user && user.queueNotifyTag !== false) {
+                    const dmUser = await client.users.fetch(sub.user_id).catch(() => null);
+                    if (dmUser) {
+                        await dmUser.send({
+                            content: `Hey, just a heads up—your fic parsing job for <${job.fic_url}> got stuck in the queue and I had to drop it. Sometimes the stacks get a little weird, but you can always try again.\n\nIf you want to turn off these DMs, just use the \`/rec notifytag\` command. (And if you have questions, you know where to find me.)`
+                        });
+                    }
+                }
+            }
+            await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
+            await ParseQueue.destroy({ where: { id: job.id } });
+        }
+    }
+
+    setInterval(() => {
+        notifyQueueSubscribers(client);
+        notifyDroppedQueueJobs();
+    }, POLL_INTERVAL_MS || 10000);
     console.log('Fic queue notification poller started.');
 };

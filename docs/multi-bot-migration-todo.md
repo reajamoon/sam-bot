@@ -6,16 +6,16 @@ This document tracks the step-by-step migration of the Sam bot codebase to suppo
 
 ## 1. Plan and Prepare
 
-- [ ] Define new folder structure for multi-bot support
-- [ ] Identify all bot-specific and shared code
-- [ ] Backup current codebase
+- [X] Define new folder structure for multi-bot support
+- [X] Identify all bot-specific and shared code
+- [X] Backup current codebase
 
 ## 2. Create New Folder Structure
 
 - [ ] Create `src/bots/sam/` for Sam-specific code
 - [ ] Create `src/bots/dean/` for Dean-specific code
 - [ ] Create `src/bots/cas/` for Cas-specific code
-- [ ] Create `src/bots/jack/` for Jack (queueWorker) specific code
+- [x] Create `src/bots/jack/` for Jack (queue worker) specific code (formerly queueWorker.js)
 - [ ] Create `src/shared/` for shared utilities, models, and helpers
 
 ## 3. Migrate Sam's Code
