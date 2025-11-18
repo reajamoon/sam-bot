@@ -1,4 +1,4 @@
-const { User } = require('../../../../../../models');
+const { User } = require('../../../../../models');
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { buildButtonId } = require('../../../../../shared/utils/buttonId');
 const { performDualUpdate } = require('../../../../utils/dualUpdate');
