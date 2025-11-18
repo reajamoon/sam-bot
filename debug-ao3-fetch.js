@@ -4,7 +4,7 @@
 
 
 require('dotenv').config();
-const { debugLoginAndFetchWork } = require('./src/utils/recUtils/ao3/ao3Utils');
+const { debugLoginAndFetchWork } = require('./src/shared/recUtils/ao3/ao3Utils');
 
 const workUrl = process.argv[2];
 if (!workUrl) {

@@ -4,7 +4,7 @@ const { readdirSync } = require('fs');
 const { join } = require('path');
 
 const commands = [];
-const commandsPath = join(__dirname, 'src', 'commands');
+const commandsPath = join(__dirname, 'src', 'bots', 'sam', 'commands');
 const commandFiles = readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
 // Grab the SlashCommandBuilder#toJSON() output of each command's data for deployment

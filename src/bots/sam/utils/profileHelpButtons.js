@@ -1,6 +1,6 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { encodeMessageId } = require('./messageTracking');
-const { buildButtonId } = require('./buttonId');
+const { encodeMessageId } = require('../../../shared/utils/messageTracking');
+const { buildButtonId } = require('../../../shared/utils/buttonId');
 
 /**
  * Shared navigation button logic for profile help menus
