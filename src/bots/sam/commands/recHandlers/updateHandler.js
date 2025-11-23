@@ -129,79 +129,21 @@ async function handleUpdateRecommendation(interaction) {
                     });
                     return;
                 } else if (queueEntry.status === 'done' && queueEntry.result) {
-                    // Allow manual field updates to bypass cooldown
-                    const manualFieldsRequested = newTitle || newAuthor || newSummary || newRating || newStatus || newWordCount || (newTags && newTags.length > 0) || newNotes;
+                    // For done/cached recs, fetch from DB and build embed directly (no AO3 access)
+                    const { Recommendation } = require('../../../../models');
+                    const createRecommendationEmbed = require('../../../../shared/recUtils/createRecommendationEmbed');
                     const updatedRec = await findRecommendationByIdOrUrl(interaction, recId, urlToUse, null);
-                    if (manualFieldsRequested) {
-                        await processRecommendationJob({
-                            url: urlToUse,
-                            user: { id: interaction.user.id, username: interaction.user.username },
-                            manualFields: {
-                                title: newTitle,
-                                authors: newAuthor ? [newAuthor] : undefined,
-                                summary: newSummary,
-                                rating: newRating,
-                                wordCount: newWordCount,
-                                status: newStatus
-                            },
-                            additionalTags: newTags || [],
-                            notes: newNotes || '',
-                            isUpdate: true,
-                            existingRec: updatedRec || recommendation,
-                            notify: async (embed) => {
-                                await interaction.editReply({
-                                    content: 'This fic was just updated! Here’s the latest info.',
-                                    embeds: [embed]
-                                });
-                            }
-                        });
-                        return;
-                    }
-                    // Only enforce cooldown for metadata re-fetches (robust version)
-                    let cooldownMsg = '';
-                    let lastUpdate = null;
                     if (updatedRec) {
-                        // Try to get updatedAt as a Date
-                        if (updatedRec.updatedAt instanceof Date) {
-                            lastUpdate = updatedRec.updatedAt.getTime();
-                        } else if (typeof updatedRec.updatedAt === 'string' || typeof updatedRec.updatedAt === 'number') {
-                            const parsed = new Date(updatedRec.updatedAt);
-                            if (!isNaN(parsed.getTime())) lastUpdate = parsed.getTime();
-                        }
-                    }
-                    const now = Date.now();
-                    const cooldownMs = 5 * 60 * 1000; // 5 min cooldown (replace with config if needed)
-                    if (lastUpdate) {
-                        const timeLeft = Math.max(0, cooldownMs - (now - lastUpdate));
-                        console.log('[rec update] Cooldown check:', {
-                            now,
-                            lastUpdate,
-                            diff: now - lastUpdate,
-                            timeLeft
+                        const embed = await createRecommendationEmbed(updatedRec);
+                        await interaction.editReply({
+                            content: 'This fic was just updated! Here’s the latest info.',
+                            embeds: [embed]
                         });
-                        if (timeLeft > 0) {
-                            const min = Math.floor(timeLeft / 60000);
-                            const sec = Math.floor((timeLeft % 60000) / 1000);
-                            cooldownMsg = `\nYou can update this fic again in ${min > 0 ? `${min}m ` : ''}${sec}s.`;
-                        }
                     } else {
-                        console.log('[rec update] No valid updatedAt found for cooldown check:', updatedRec && updatedRec.updatedAt);
+                        await interaction.editReply({
+                            content: 'Recommendation found in queue but not in database. Please try again or contact an admin.'
+                        });
                     }
-                    await processRecommendationJob({
-                        url: urlToUse,
-                        user: { id: interaction.user.id, username: interaction.user.username },
-                        manualFields: {},
-                        additionalTags: newTags || [],
-                        notes: newNotes || '',
-                        isUpdate: true,
-                        existingRec: updatedRec || recommendation,
-                        notify: async (embed) => {
-                            await interaction.editReply({
-                                content: `This fic was just updated! Here’s the latest info.${cooldownMsg}`,
-                                embeds: [embed]
-                            });
-                        }
-                    });
                     return;
                 } else if (queueEntry.status === 'error') {
                     await interaction.editReply({
@@ -283,29 +225,17 @@ async function handleUpdateRecommendation(interaction) {
             while (Date.now() - start < pollTimeout) {
                 // Refetch the queue entry
                 const updatedQueue = await ParseQueue.findOne({ where: { id: queueEntry.id } });
-                if (updatedQueue && updatedQueue.status === 'done' && updatedQueue.result) {
-                    // Fetch the updated recommendation for embed
-                    const updatedRec = await findRecommendationByIdOrUrl(interaction, recId, urlToUse, null);
-                    if (updatedRec) {
-                        const result = await processRecommendationJob({
-                            url: urlToUse,
-                            user: { id: interaction.user.id, username: interaction.user.username },
-                            manualFields: {},
-                            additionalTags: newTags || [],
-                            notes: newNotes || '',
-                            isUpdate: true,
-                            existingRec: updatedRec,
-                            notify: async (embed) => {
-                                resultEmbed = embed;
+                        if (updatedQueue && updatedQueue.status === 'done' && updatedQueue.result) {
+                            // Fetch the updated recommendation for embed (no AO3 access)
+                            const { Recommendation } = require('../../../../models');
+                            const createRecommendationEmbed = require('../../../../shared/recUtils/createRecommendationEmbed');
+                            const updatedRec = await findRecommendationByIdOrUrl(interaction, recId, urlToUse, null);
+                            if (updatedRec) {
+                                resultEmbed = await createRecommendationEmbed(updatedRec);
                             }
-                        });
-                        if (!resultEmbed && result && result.embed) {
-                            resultEmbed = result.embed;
+                            foundDone = true;
+                            break;
                         }
-                    }
-                    foundDone = true;
-                    break;
-                }
                 await new Promise(res => setTimeout(res, pollInterval));
             }
             if (foundDone && resultEmbed) {
@@ -318,24 +248,16 @@ async function handleUpdateRecommendation(interaction) {
             // Final fallback: check if the job is now done in the DB (worker may have been too fast)
             const finalQueue = await ParseQueue.findOne({ where: { id: queueEntry.id, status: 'done' } });
             if (finalQueue && finalQueue.result) {
+                const { Recommendation } = require('../../../../models');
+                const createRecommendationEmbed = require('../../../../shared/recUtils/createRecommendationEmbed');
                 const updatedRec = await findRecommendationByIdOrUrl(interaction, recId, urlToUse, null);
                 if (updatedRec) {
-                    const result = await processRecommendationJob({
-                        url: urlToUse,
-                        user: { id: interaction.user.id, username: interaction.user.username },
-                        manualFields: {},
-                        additionalTags: newTags || [],
-                        notes: newNotes || '',
-                        isUpdate: true,
-                        existingRec: updatedRec
+                    const embed = await createRecommendationEmbed(updatedRec);
+                    await interaction.editReply({
+                        content: 'That fic was already updated! Here’s the latest info:',
+                        embeds: [embed]
                     });
-                    if (result && result.embed) {
-                        await interaction.editReply({
-                            content: 'That fic was already updated! Here’s the latest info:',
-                            embeds: [result.embed]
-                        });
-                        return;
-                    }
+                    return;
                 }
             }
             // If still not found, fallback to queue message

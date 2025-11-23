@@ -92,20 +92,21 @@ async function handleAddRecommendation(interaction) {
         content: message || updateMessages.alreadyProcessing
       });
     } else if (status === 'done' && queueEntry.result) {
-      // Return cached result (simulate embed)
-      await processRecommendationJob({
-        url,
-        user: { id: interaction.user.id, username: interaction.user.username },
-        manualFields: {},
-        additionalTags,
-        notes,
-        notify: async (embed) => {
-          await interaction.editReply({
-            content: null,
-            embeds: [embed]
-          });
-        }
-      });
+      // Return cached result: fetch Recommendation and build embed directly (no AO3 access)
+      const { Recommendation } = require('../../../../models');
+      const createRecommendationEmbed = require('../../../../shared/recUtils/createRecommendationEmbed');
+      const rec = await Recommendation.findOne({ where: { url } });
+      if (rec) {
+        const embed = await createRecommendationEmbed(rec);
+        await interaction.editReply({
+          content: null,
+          embeds: [embed]
+        });
+      } else {
+        await interaction.editReply({
+          content: 'Recommendation found in queue but not in database. Please try again or contact an admin.'
+        });
+      }
       return;
     } else if (status === 'error') {
       return await interaction.editReply({
