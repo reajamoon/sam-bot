@@ -71,13 +71,22 @@ async function batchSeriesRecommendationJob(seriesUrl, user, options = {}, notif
     workRecs.push(workRec);
   }
   // 3. Store the series rec itself, referencing all works
+  // Pass all available series-level metadata fields for the series rec
+  const seriesManualFields = {
+    ...seriesMeta,
+    works: seriesMeta.works.map(w => ({ title: w.title, url: w.url, authors: w.authors })),
+    // Pass through tags, rating, wordCount, summary, authors, etc. if present
+    tags: seriesMeta.tags || seriesMeta.freeform_tags || [],
+    rating: seriesMeta.rating || 'Not Rated',
+    wordCount: seriesMeta.wordCount,
+    summary: seriesMeta.summary,
+    authors: seriesMeta.authors,
+    // Add any other fields you want to ensure are present
+  };
   const { recommendation: seriesRec, error: seriesError } = await processRecommendationJob({
     url: seriesUrl,
     user,
-    manualFields: {
-      ...seriesMeta,
-      works: seriesMeta.works.map(w => ({ title: w.title, url: w.url, authors: w.authors }))
-    },
+    manualFields: seriesManualFields,
     additionalTags: options.additionalTags,
     notes: options.notes,
     isUpdate: false,

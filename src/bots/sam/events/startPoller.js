@@ -14,9 +14,12 @@ async function notifyQueueSubscribers(client) {
             const userIds = subscribers.map(s => s.user_id);
             const users = await User.findAll({ where: { discordId: userIds } });
             let embed = null;
-            // Fetch the Recommendation from the database using fic_url
+            // Always fetch the Recommendation by rec ID only
             const { Recommendation } = require('../../../models');
-            const rec = await Recommendation.findOne({ where: { url: job.fic_url } });
+            let rec = null;
+            if (job.result && job.result.id) {
+                rec = await Recommendation.findByPk(job.result.id);
+            }
             if (rec) {
                 try {
                     embed = await createRecommendationEmbed(rec);
@@ -24,7 +27,7 @@ async function notifyQueueSubscribers(client) {
                     console.error('Failed to build embed with createRecommendationEmbed:', err);
                 }
             } else {
-                console.warn(`No Recommendation found for fic_url: ${job.fic_url}`);
+                console.warn(`No Recommendation found for rec ID: ${job.result && job.result.id}`);
             }
             const configEntry = await Config.findOne({ where: { key: 'fic_queue_channel' } });
             const channelId = configEntry ? configEntry.value : null;
