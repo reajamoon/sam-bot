@@ -48,6 +48,31 @@ function parseAO3SeriesMetadata(html, url) {
         // Summary (optional)
         const workSummary = workEl.find('blockquote.userstuff').first().text().trim();
         if (workSummary) work.summary = workSummary;
+
+        // Extract tags for this work
+        work.tags = {
+            warnings: [],
+            relationships: [],
+            characters: [],
+            freeforms: []
+        };
+        workEl.find('ul.tags.commas li.warnings a.tag').each((i, tag) => work.tags.warnings.push($(tag).text().trim()));
+        workEl.find('ul.tags.commas li.relationships a.tag').each((i, tag) => work.tags.relationships.push($(tag).text().trim()));
+        workEl.find('ul.tags.commas li.characters a.tag').each((i, tag) => work.tags.characters.push($(tag).text().trim()));
+        workEl.find('ul.tags.commas li.freeforms a.tag').each((i, tag) => work.tags.freeforms.push($(tag).text().trim()));
+
+        // Extract rating and status for this work
+        // Rating: <ul class="required-tags">, <span class="rating-... rating"><span class="text">...</span></span>
+        const ratingSpan = workEl.find('ul.required-tags span.rating');
+        if (ratingSpan.length) {
+            work.rating = ratingSpan.find('span.text').text().trim();
+        }
+        // Status: <ul class="required-tags">, <span class="complete-yes iswip"><span class="text">Complete Work</span></span> or similar
+        const statusSpan = workEl.find('ul.required-tags span.complete-yes, ul.required-tags span.complete-no');
+        if (statusSpan.length) {
+            work.status = statusSpan.find('span.text').text().trim();
+        }
+
         metadata.works.push(work);
     });
 
@@ -58,30 +83,7 @@ function parseAO3SeriesMetadata(html, url) {
     const wordsMatch = statsText.match(/Words:\s*([\d,]+)/i);
     if (wordsMatch) metadata.wordCount = parseInt(wordsMatch[1].replace(/,/g, ''), 10);
 
-    // Extract tags (fandoms, characters, relationships, freeforms, archive warnings)
-    // AO3 series tags are in .tags.commas (like works)
-    metadata.fandom_tags = [];
-    metadata.character_tags = [];
-    metadata.relationship_tags = [];
-    metadata.freeform_tags = [];
-    metadata.archive_warnings = [];
-    $('dd.fandom.tags.commas a.tag').each((i, el) => metadata.fandom_tags.push($(el).text().trim()));
-    $('dd.character.tags.commas a.tag').each((i, el) => metadata.character_tags.push($(el).text().trim()));
-    $('dd.relationship.tags.commas a.tag').each((i, el) => metadata.relationship_tags.push($(el).text().trim()));
-    $('dd.freeform.tags.commas a.tag').each((i, el) => metadata.freeform_tags.push($(el).text().trim()));
-    $('dd.warning.tags.commas a.tag').each((i, el) => metadata.archive_warnings.push($(el).text().trim()));
-
-    // Extract rating (if present)
-    const ratingTag = $('dd.rating.tags.commas a.tag').first();
-    if (ratingTag.length) metadata.rating = ratingTag.text().trim();
-
-    // Extract status (Complete/Incomplete)
-    // AO3 series status is in <dt>Status:</dt><dd>Complete/Incomplete</dd>
-    const statusLabel = $('dt:contains("Status:")');
-    if (statusLabel.length) {
-        const statusValue = statusLabel.next('dd').text().trim();
-        if (statusValue) metadata.status = statusValue;
-    }
+    // Remove series-level tags, rating, and status extraction (not present on AO3 series pages)
 
     return metadata;
 }

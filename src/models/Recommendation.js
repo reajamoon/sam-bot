@@ -133,6 +133,13 @@ module.exports = (sequelize) => {
             type: DataTypes.STRING(500),
             allowNull: true,
             field: 'attachment_url'
+        },
+        // True if this rec is a non-primary work in a series
+        notPrimaryWork: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+            field: 'not_primary_work'
         }
     }, {
         tableName: 'recommendations',

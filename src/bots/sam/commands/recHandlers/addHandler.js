@@ -36,7 +36,36 @@ async function handleAddRecommendation(interaction) {
 
     // --- Fic Parsing Queue Logic ---
     const { Recommendation } = require('../../../../models');
-  const createOrJoinQueueEntry = require('../../../../shared/recUtils/createOrJoinQueueEntry');
+    const createOrJoinQueueEntry = require('../../../../shared/recUtils/createOrJoinQueueEntry');
+    // AO3 series batch parse logic
+    if (/archiveofourown\.org\/series\//.test(url)) {
+      // Check if series already exists
+      const existingSeries = await Recommendation.findOne({ where: { url } });
+      if (existingSeries) {
+        const addedDate = existingSeries.createdAt ? `<t:${Math.floor(new Date(existingSeries.createdAt).getTime()/1000)}:F>` : '';
+        return await interaction.editReply({
+          content: `*${existingSeries.title}* (series) is already in the library${addedDate ? `, since ${addedDate}` : ''}.`
+        });
+      }
+      // Batch parse and store series and all works
+      const batchSeriesRecommendationJob = require('../../../../shared/recUtils/batchSeriesRecommendationJob');
+      try {
+        await interaction.editReply({ content: 'Parsing AO3 series and all works. This may take a moment...' });
+        const { seriesRec, workRecs } = await batchSeriesRecommendationJob(url, {
+          id: interaction.user.id,
+          username: interaction.user.username
+        }, {
+          additionalTags,
+          notes
+        }, async (embed) => {
+          await interaction.editReply({ content: null, embeds: [embed] });
+        });
+        // Done!
+        return;
+      } catch (err) {
+        return await interaction.editReply({ content: `Error parsing AO3 series: ${err.message}` });
+      }
+    }
     // Check if fic is already in the library
     const existingRec = await Recommendation.findOne({ where: { url } });
     if (existingRec) {

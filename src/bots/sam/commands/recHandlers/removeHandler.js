@@ -31,7 +31,16 @@ async function handleRemoveRecommendation(interaction) {
                 content: `That recommendation was added by ${recommendation.recommendedByUsername}. You can only remove your own recommendations unless you're a moderator.`
             });
         }
-        // Remove the recommendation
+        // If this is a series rec, also remove all works in the series
+        if (recommendation.series_works && Array.isArray(recommendation.series_works) && recommendation.series_works.length > 0) {
+            const { Recommendation } = require('../../../../models');
+            const workUrls = recommendation.series_works.map(w => w.url);
+            const worksToRemove = await Recommendation.findAll({ where: { url: workUrls } });
+            for (const work of worksToRemove) {
+                await work.destroy();
+            }
+        }
+        // Remove the recommendation itself
         await recommendation.destroy();
         await interaction.editReply({
             content: `Successfully removed "${recommendation.title}" by ${recommendation.author} from the Profound Bond library.`
