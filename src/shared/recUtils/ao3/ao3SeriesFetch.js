@@ -23,6 +23,8 @@ async function fetchAO3SeriesMetadata(url, includeRawHtml = false) {
         if (browser && browser.isConnected()) {
             try { await browser.close(); } catch {}
         }
+        // Debug: print full error stack to help trace 'fs is not defined'
+        console.error('[AO3 SERIES FETCH ERROR]', err && err.stack ? err.stack : err);
         return {
             url,
             type: 'series',
