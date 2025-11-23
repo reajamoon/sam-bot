@@ -3,6 +3,7 @@ const path = require('path');
 const COOKIES_PATH = 'ao3_cookies.json';
 const COOKIES_META_PATH = 'ao3_cookies_meta.json';
 const { getSharedBrowser, logBrowserEvent, getCurrentUserAgent } = require('./ao3BrowserManager');
+const { ao3RateLimit } = require('./ao3RateLimiter');
 /**
  * Utility to bypass AO3 'stay logged in' interstitial by re-navigating to the target fic URL.
  * Call this after login if you detect the interstitial.
@@ -14,6 +15,7 @@ async function bypassStayLoggedInInterstitial(page, ficUrl) {
     const content = await page.content();
     if (content.includes("you'll stay logged in for two weeks") || content.includes('stay logged in')) {
         // Re-navigate to the fic URL
+        await ao3RateLimit();
         await page.goto(ficUrl, { waitUntil: 'domcontentloaded' });
         return true;
     }
@@ -29,6 +31,7 @@ async function debugLoginAndFetchWork(workUrl) {
         if (!workUrl) {
             return;
         }
+        await ao3RateLimit();
         await page.goto(workUrl, { waitUntil: 'domcontentloaded' });
         const title = await page.title();
         const url = page.url();
@@ -117,14 +120,28 @@ async function getLoggedInAO3Page(ficUrl) {
             logBrowserEvent('[AO3] Attempting to load cookies from file...');
             const cookies = JSON.parse(fs.readFileSync(COOKIES_PATH, 'utf8'));
             await page.setUserAgent(getCurrentUserAgent());
+            await ao3RateLimit();
             await page.goto('https://archiveofourown.org/', { waitUntil: 'domcontentloaded' });
             await page.setCookie(...cookies);
+            await ao3RateLimit();
             await page.reload({ waitUntil: 'domcontentloaded' });
             // Always try to skip stay logged in page and land on fic
             if (ficUrl) await bypassStayLoggedInInterstitial(page, ficUrl);
             // Use a precise selector to check for the 'Log Out' link
             let loggedIn = false;
             let selectorError = null;
+            let pageTitle = await page.title();
+            let pageContent = await page.content();
+            // AO3 rate-limit/anti-bot detection
+            const rateLimitMatch =
+                (pageTitle && /rate limit|too many requests|prove you are human|unusual traffic|captcha|clicking too fast/i.test(pageTitle)) ||
+                (pageContent && /rate limit|too many requests|prove you are human|unusual traffic|captcha|clicking too fast/i.test(pageContent));
+            if (rateLimitMatch) {
+                logBrowserEvent('[AO3] Rate limit or anti-bot page detected after loading cookies. Will not delete cookies or force login.');
+                logBrowserEvent('[AO3] Page title: ' + pageTitle);
+                logBrowserEvent('[AO3] Page HTML snippet (first 1000 chars): ' + pageContent.slice(0, 1000));
+                throw new Error('AO3 rate limit or anti-bot detected. Please back off and retry later.');
+            }
             try {
                 loggedIn = await page.$eval('a[rel="nofollow"][href*="/logout"]', el => el && el.textContent && el.textContent.trim() === 'Log Out');
             } catch (e) {
@@ -137,8 +154,7 @@ async function getLoggedInAO3Page(ficUrl) {
             } else {
                 // Not logged in, cookies are bad/expired
                 logBrowserEvent('[AO3] Logout selector failed or not found. Selector error: ' + (selectorError ? selectorError.message : 'none'));
-                const snippet = await page.content();
-                logBrowserEvent('[AO3] Page HTML snippet (first 1000 chars): ' + snippet.slice(0, 1000));
+                logBrowserEvent('[AO3] Page HTML snippet (first 1000 chars): ' + pageContent.slice(0, 1000));
                 logBrowserEvent('[AO3] Cookies invalid or expired. Deleting cookies and forcing fresh login.');
                 fs.unlinkSync(COOKIES_PATH);
                 fs.unlinkSync(COOKIES_META_PATH);
@@ -176,6 +192,7 @@ async function getLoggedInAO3Page(ficUrl) {
                         'X-Sam-Bot-Info': 'Hi AO3 devs! This is Sam, a hand-coded Discord bot for a single small server. I only fetch header metadata for user recs and do not retrieve fic content. Contact: https://github.com/reajamoon/sam-bot'
                     });
                 }
+                await ao3RateLimit();
                 await page.goto(AO3_LOGIN_URL, { waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT });
                 return;
             } catch (err) {
@@ -378,6 +395,7 @@ async function getLoggedInAO3Page(ficUrl) {
         }
     }
     // After login, always try to skip stay logged in page and land on fic
+    await ao3RateLimit();
     await page.goto('https://archiveofourown.org/', { waitUntil: 'domcontentloaded' });
     if (ficUrl) await bypassStayLoggedInInterstitial(page, ficUrl);
     return { browser, page };

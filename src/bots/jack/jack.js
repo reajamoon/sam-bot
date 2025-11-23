@@ -66,6 +66,17 @@ const { sequelize, ParseQueue, ParseQueueSubscriber, Recommendation, Config } = 
 const processRecommendationJob = require('../../shared/recUtils/processRecommendationJob'); // already correct, no change needed
 require('dotenv').config();
 
+const { getNextAvailableAO3Time, markAO3Requests, MIN_INTERVAL_MS } = require('../../shared/recUtils/ao3/ao3QueueRateHelper');
+
+// Estimate AO3 requests for a job (can be improved for series, etc.)
+function estimateAO3Requests(job) {
+	// For AO3 series, estimate 1 + N works; for single fic, 1
+	if (/archiveofourown\.org\/series\//.test(job.fic_url) && job.result && Array.isArray(job.result.series_works)) {
+		return 1 + job.result.series_works.length;
+	}
+	return 1;
+}
+
 async function processQueueJob(job) {
 	try {
 		await job.update({ status: 'processing' });
@@ -159,6 +170,15 @@ async function pollQueue() {
 			await sequelize.sync();
 			const job = await ParseQueue.findOne({ where: { status: 'pending' }, order: [['created_at', 'ASC']] });
 			if (job) {
+				// AO3 rate-aware queue: estimate requests and wait for next available slot
+				const numRequests = estimateAO3Requests(job);
+				const nextAvailable = getNextAvailableAO3Time(numRequests);
+				const now = Date.now();
+				if (nextAvailable > now) {
+					const wait = nextAvailable - now;
+					console.log(`[QueueWorker] AO3 rate limit: waiting ${wait}ms before processing job ${job.id}`);
+					await new Promise(res => setTimeout(res, wait));
+				}
 				// Simulate 'think time' before starting each job (0.5–2s)
 				const thinkTime = 500 + Math.floor(Math.random() * 1500);
 				console.log(`[QueueWorker] Waiting think time: ${thinkTime}ms before processing job ${job.id}`);
@@ -166,6 +186,8 @@ async function pollQueue() {
 
 				console.log(`[QueueWorker] Starting job ${job.id} at ${new Date().toISOString()}`);
 				await processQueueJob(job);
+				// Mark AO3 slot as used for this job
+				markAO3Requests(numRequests);
 				console.log(`[QueueWorker] Finished job ${job.id} at ${new Date().toISOString()}`);
 
 				// Vary delay range (12–20s normal, 20–30s rare)
