@@ -260,7 +260,12 @@ async function processRecommendationJob({
   }
 
   // Always use the actual Recommendation instance for embed generation
-  console.log('[PROCESS JOB] archive_warnings in Recommendation instance:', recommendation.archive_warnings);
+  // Ensure recommendation is a Sequelize instance with a valid id
+  if (!recommendation || !recommendation.id) {
+    // Fallback: try to reload from DB by URL
+    recommendation = await Recommendation.findOne({ where: { url } });
+  }
+  console.log('[PROCESS JOB] archive_warnings in Recommendation instance:', recommendation && recommendation.archive_warnings);
   const embed = await createRecommendationEmbed(recommendation);
   if (typeof notify === 'function') {
     await notify(embed, recommendation, metadata);
