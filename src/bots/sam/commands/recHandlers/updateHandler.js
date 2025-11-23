@@ -23,19 +23,6 @@ function validateAttachment(newAttachment, willBeDeleted) {
 }
 
 async function handleUpdateRecommendation(interaction) {
-                // If this is a series rec, update series_works for all works in the series if needed
-                if (recommendation.series_works && Array.isArray(recommendation.series_works) && recommendation.series_works.length > 0) {
-                    const { Recommendation } = require('../../../../models');
-                    const workUrls = recommendation.series_works.map(w => w.url);
-                    const worksToUpdate = await Recommendation.findAll({ where: { url: workUrls } });
-                    for (const work of worksToUpdate) {
-                        // Optionally update fields for all works in the series (e.g., tags, notes, etc.)
-                        // For now, just update series_works if changed
-                        if (JSON.stringify(work.series_works) !== JSON.stringify(recommendation.series_works)) {
-                            await work.update({ series_works: recommendation.series_works });
-                        }
-                    }
-                }
         // Restrict manual status setting to mods only
         const newStatus = interaction.options.getString('status');
         if (newStatus) {
@@ -108,6 +95,19 @@ async function handleUpdateRecommendation(interaction) {
 \`${identifier}\` in our library. Use \`/rec stats\` to see what's available.`
             });
             return;
+        }
+        // If this is a series rec, update series_works for all works in the series if needed
+        if (recommendation.series_works && Array.isArray(recommendation.series_works) && recommendation.series_works.length > 0) {
+            const { Recommendation } = require('../../../../models');
+            const workUrls = recommendation.series_works.map(w => w.url);
+            const worksToUpdate = await Recommendation.findAll({ where: { url: workUrls } });
+            for (const work of worksToUpdate) {
+                // Optionally update fields for all works in the series (e.g., tags, notes, etc.)
+                // For now, just update series_works if changed
+                if (JSON.stringify(work.series_works) !== JSON.stringify(recommendation.series_works)) {
+                    await work.update({ series_works: recommendation.series_works });
+                }
+            }
         }
         let urlToUse = newUrl || recommendation.url;
         urlToUse = normalizeAO3Url(urlToUse);
