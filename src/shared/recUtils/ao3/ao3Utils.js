@@ -124,9 +124,11 @@ async function getLoggedInAO3Page(ficUrl) {
             if (ficUrl) await bypassStayLoggedInInterstitial(page, ficUrl);
             // Use a precise selector to check for the 'Log Out' link
             let loggedIn = false;
+            let selectorError = null;
             try {
                 loggedIn = await page.$eval('a[rel="nofollow"][href*="/logout"]', el => el && el.textContent && el.textContent.trim() === 'Log Out');
             } catch (e) {
+                selectorError = e;
                 loggedIn = false;
             }
             if (loggedIn) {
@@ -134,6 +136,9 @@ async function getLoggedInAO3Page(ficUrl) {
                 return { browser, page, loggedInWithCookies: true };
             } else {
                 // Not logged in, cookies are bad/expired
+                logBrowserEvent('[AO3] Logout selector failed or not found. Selector error: ' + (selectorError ? selectorError.message : 'none'));
+                const snippet = await page.content();
+                logBrowserEvent('[AO3] Page HTML snippet (first 1000 chars): ' + snippet.slice(0, 1000));
                 logBrowserEvent('[AO3] Cookies invalid or expired. Deleting cookies and forcing fresh login.');
                 fs.unlinkSync(COOKIES_PATH);
                 fs.unlinkSync(COOKIES_META_PATH);
