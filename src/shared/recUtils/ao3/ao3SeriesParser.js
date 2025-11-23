@@ -58,6 +58,31 @@ function parseAO3SeriesMetadata(html, url) {
     const wordsMatch = statsText.match(/Words:\s*([\d,]+)/i);
     if (wordsMatch) metadata.wordCount = parseInt(wordsMatch[1].replace(/,/g, ''), 10);
 
+    // Extract tags (fandoms, characters, relationships, freeforms, archive warnings)
+    // AO3 series tags are in .tags.commas (like works)
+    metadata.fandom_tags = [];
+    metadata.character_tags = [];
+    metadata.relationship_tags = [];
+    metadata.freeform_tags = [];
+    metadata.archive_warnings = [];
+    $('dd.fandom.tags.commas a.tag').each((i, el) => metadata.fandom_tags.push($(el).text().trim()));
+    $('dd.character.tags.commas a.tag').each((i, el) => metadata.character_tags.push($(el).text().trim()));
+    $('dd.relationship.tags.commas a.tag').each((i, el) => metadata.relationship_tags.push($(el).text().trim()));
+    $('dd.freeform.tags.commas a.tag').each((i, el) => metadata.freeform_tags.push($(el).text().trim()));
+    $('dd.warning.tags.commas a.tag').each((i, el) => metadata.archive_warnings.push($(el).text().trim()));
+
+    // Extract rating (if present)
+    const ratingTag = $('dd.rating.tags.commas a.tag').first();
+    if (ratingTag.length) metadata.rating = ratingTag.text().trim();
+
+    // Extract status (Complete/Incomplete)
+    // AO3 series status is in <dt>Status:</dt><dd>Complete/Incomplete</dd>
+    const statusLabel = $('dt:contains("Status:")');
+    if (statusLabel.length) {
+        const statusValue = statusLabel.next('dd').text().trim();
+        if (statusValue) metadata.status = statusValue;
+    }
+
     return metadata;
 }
 
