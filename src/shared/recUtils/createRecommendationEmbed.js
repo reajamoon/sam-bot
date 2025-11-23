@@ -11,27 +11,52 @@ const ratingEmojis = {
 
 // Builds the embed for a rec. Checks if the link works, adds warnings if needed.
 async function createRecommendationEmbed(rec) {
-        if (Array.isArray(rec.series_works) && rec.series_works.length > 0) {
-            let worksList = '';
-            const maxToShow = 4;
-            for (let i = 0; i < Math.min(rec.series_works.length, maxToShow); i++) {
-                const work = rec.series_works[i];
-                if (work && work.title && work.url) {
-                    worksList += `${i + 1}. [${work.title}](${work.url})\n`;
-                } else if (work && work.title) {
-                    worksList += `${i + 1}. ${work.title}\n`;
-                }
-            }
-            if (rec.series_works.length > maxToShow) {
-                // Add "and more" link to series page
-                worksList += `... [and more](${rec.url})`;
-            }
-            embed.addFields({
-                name: 'Series Works',
-                value: worksList.trim(),
-                inline: false
-            });
+    // Map fic ratings to embed colors
+    const ratingColors = {
+        'general audiences': 0x43a047,      // Green
+        'teen and up audiences': 0xffeb3b, // Yellow
+        'mature': 0xff9800,                // Orange
+        'explicit': 0xd32f2f,              // Red
+        'not rated': 0x757575,             // Grey
+        'unrated': 0x757575
+    };
+    let color = 0x333333;
+    if (rec.rating && typeof rec.rating === 'string') {
+        const key = rec.rating.trim().toLowerCase();
+        if (ratingColors[key]) {
+            color = ratingColors[key];
         }
+    }
+    const embed = new EmbedBuilder()
+        .setTitle(`📖 ${rec.title}`)
+        .setDescription(`**By:** ${(rec.authors && Array.isArray(rec.authors)) ? rec.authors.join(', ') : (rec.author || 'Unknown Author')}`)
+        .setURL(rec.url)
+        .setColor(color)
+        .setTimestamp()
+        .setFooter({
+            text: `From the Profound Bond Library • Recommended by ${rec.recommendedByUsername} • ID: ${rec.id}`
+        });
+    if (Array.isArray(rec.series_works) && rec.series_works.length > 0) {
+        let worksList = '';
+        const maxToShow = 4;
+        for (let i = 0; i < Math.min(rec.series_works.length, maxToShow); i++) {
+            const work = rec.series_works[i];
+            if (work && work.title && work.url) {
+                worksList += `${i + 1}. [${work.title}](${work.url})\n`;
+            } else if (work && work.title) {
+                worksList += `${i + 1}. ${work.title}\n`;
+            }
+        }
+        if (rec.series_works.length > maxToShow) {
+            // Add "and more" link to series page
+            worksList += `... [and more](${rec.url})`;
+        }
+        embed.addFields({
+            name: 'Series Works',
+            value: worksList.trim(),
+            inline: false
+        });
+    }
     // DEBUG: Log the rec object and tag fields to inspect tag presence
     //console.log('[DEBUG] createRecommendationEmbed rec:', JSON.stringify(rec, null, 2));
     if (typeof rec.getParsedTags === 'function') {
@@ -51,82 +76,7 @@ async function createRecommendationEmbed(rec) {
         'Underage Sex'
     ];
 
-    // Map fic ratings to embed colors
-    const ratingColors = {
-        'general audiences': 0x43a047,      // Green
-        'teen and up audiences': 0xffeb3b, // Yellow
-        'mature': 0xff9800,                // Orange
-        'explicit': 0xd32f2f,              // Red
-        'not rated': 0x757575,             // Grey
-        'unrated': 0x757575
-    };
-    let color = 0x9C27B0; // Default (purple)
-    if (rec.rating && typeof rec.rating === 'string') {
-        const key = rec.rating.trim().toLowerCase();
-        if (ratingColors[key]) {
-            color = ratingColors[key];
-        }
-    }
-    const embed = new EmbedBuilder()
-        .setTitle(`📖 ${rec.title}`)
-        .setDescription(`**By:** ${(rec.authors && Array.isArray(rec.authors)) ? rec.authors.join(', ') : (rec.author || 'Unknown Author')}`)
-        .setURL(rec.url)
-        .setColor(color)
-        .setTimestamp()
-        .setFooter({
-            text: `From the Profound Bond Library • Recommended by ${rec.recommendedByUsername} • ID: ${rec.id}`
-        });
-    if (rec.summary) {
-        const summaryText = rec.summary.length > 400 ? rec.summary.substring(0, 400) + '...' : rec.summary;
-        embed.addFields({
-            name: 'Summary',
-            value: `>>> ${summaryText}`
-        });
-    }
-    const isLinkWorking = rec.deleted ? false : await quickLinkCheck(rec.url);
-    const siteName = rec.url.includes('archiveofourown.org') ? 'on Ao3' :
-                    rec.url.includes('fanfiction.net') ? 'on FF.net' :
-                    rec.url.includes('wattpad.com') ? 'on Wattpad' :
-                    rec.url.includes('tumblr.com') ? 'on Tumblr' :
-                    rec.url.includes('dreamwidth.org') ? 'on Dreamwidth' :
-                    rec.url.includes('livejournal.com') ? 'on Livejournal' : 'Here';
-    let linkText = `[Read ${siteName}](${rec.url})`;
-    if (rec.deleted) {
-        linkText += ' 🗑 *Story deleted*';
-        if (rec.attachmentUrl) {
-            linkText += `\n📎 [Backup Available](${rec.attachmentUrl})`;
-        }
-    } else if (!isLinkWorking) {
-        linkText += ' ⚠';
-    }
-    // Story Link, Rating, and Status on the same line (inline fields)
-    const linkAndMetaFields = [
-        {
-            name: '🔗 Story Link',
-            value: linkText,
-            inline: true
-        }
-    ];
-    // Rating (inline)
-    if (rec.rating) {
-        let ratingValue = rec.rating;
-        if (typeof rec.rating === 'string') {
-            const key = rec.rating.trim().toLowerCase();
-            if (ratingEmojis[key]) {
-                ratingValue = `${ratingEmojis[key]} ${rec.rating}`;
-            }
-        }
-        linkAndMetaFields.push({ name: 'Rating', value: ratingValue, inline: true });
-    }
-    // Status (inline)
-    if (rec.status) {
-        let statusValue = rec.status;
-        if (rec.deleted) statusValue += ' (Deleted)';
-        linkAndMetaFields.push({ name: 'Status', value: statusValue, inline: true });
-    } else if (rec.deleted) {
-        linkAndMetaFields.push({ name: 'Status', value: 'Deleted', inline: true });
-    }
-    embed.addFields(linkAndMetaFields);
+    // (Removed duplicate block)
 
     // --- Dynamic Published/Updated, Words, Chapters (all inline, same row) ---
     const statsFields = [];
