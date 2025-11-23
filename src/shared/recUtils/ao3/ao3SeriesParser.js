@@ -2,6 +2,7 @@
 // Extracts metadata for AO3 series pages
 
 const cheerio = require('cheerio');
+const fs = require('fs');
 
 /**
  * Parses AO3 series HTML and returns structured metadata
