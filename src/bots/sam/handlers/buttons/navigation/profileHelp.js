@@ -1,18 +1,18 @@
 // Pure routing function for testability
-const { InteractionFlags } = require('discord.js');
-const { parseButtonId } = require('../../../../../shared/utils/buttonId');
+import { InteractionFlags } from 'discord.js';
+import { parseButtonId } from '../../../../../shared/utils/buttonId.js';
 function getHelpMenuPayload(customId) {
     const parsed = parseButtonId(customId);
     if (parsed && parsed.context === 'profile_help_menu') {
-        const { InteractionFlags } = require('discord.js');
         const ephemeralFlag = InteractionFlags?.Ephemeral ?? 64;
         // Import modular help builders
-    const { createBirthdayHelp } = require('../../../utils/profileHelpBirthday');
-    const { createBioHelp } = require('../../../utils/profileHelpBio');
-    const { createTimezoneRegionHelp } = require('../../../utils/profileHelpTimezoneRegion');
-    const { createPrivacyHelp } = require('../../../utils/profileHelpPrivacy');
-    const { createTipsHelp } = require('../../../utils/profileHelpTips');
-    const { createProfileHelpMain } = require('../../../utils/profileHelp');
+        // ESM imports at top
+        import { createBirthdayHelp } from '../../../utils/profileHelpBirthday.js';
+        import { createBioHelp } from '../../../utils/profileHelpBio.js';
+        import { createTimezoneRegionHelp } from '../../../utils/profileHelpTimezoneRegion.js';
+        import { createPrivacyHelp } from '../../../utils/profileHelpPrivacy.js';
+        import { createTipsHelp } from '../../../utils/profileHelpTips.js';
+        import { createProfileHelpMain } from '../../../utils/profileHelp.js';
 
         // Create a mock interaction object for help builders
         const mockInteraction = {
@@ -53,4 +53,4 @@ function getHelpMenuPayload(customId) {
     return null;
 }
 
-module.exports = { getHelpMenuPayload };
+export { getHelpMenuPayload };

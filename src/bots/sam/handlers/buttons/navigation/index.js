@@ -1,8 +1,8 @@
-const handleProfileHelp = require('../../../commands/profile/helpHandler');
-const { handleBackToProfile } = require('./backToProfile');
+import handleProfileHelp from '../../../commands/profile/helpHandler.js';
+import { handleBackToProfile } from './backToProfile.js';
 
 async function handleNavigationButtons(interaction) {
-    const logger = require('../../../../../shared/utils/logger');
+    const logger = (await import('../../../../../shared/utils/logger.js')).default;
     logger.info(`[handleNavigationButtons] Received interaction with customId=${interaction.customId}`);
     if (interaction.customId === 'profile_help' || interaction.customId === 'profile_help_main') {
         return handleProfileHelp(interaction);
@@ -12,7 +12,7 @@ async function handleNavigationButtons(interaction) {
     }
     // Modular help menu buttonId format
     if (/(_profile_help_menu_)/.test(interaction.customId)) {
-    const { getHelpMenuPayload } = require('./profileHelp');
+    const { getHelpMenuPayload } = await import('./profileHelp.js');
         const payload = getHelpMenuPayload(interaction.customId);
         if (payload) {
             // If type is 'close', just update with empty content
@@ -26,4 +26,4 @@ async function handleNavigationButtons(interaction) {
     }
 }
 
-module.exports = { handleNavigationButtons };
+export { handleNavigationButtons };

@@ -1,13 +1,13 @@
 // Handler for toggling birthday hidden privacy setting
-const { User } = require('../../../../../models');
-const { parsePrivacySettingsCustomId } = require('../../../../../shared/utils/messageTracking');
-const { getProfileMessageId } = require('../../../utils/profileMessageTracker');
-const { buildPrivacySettingsMenu } = require('./privacyMenu');
-const { performDualUpdate } = require('../../../../../shared/utils/dualUpdate');
-const logger = require('../../../../../shared/utils/logger');
-const { InteractionFlags } = require('discord.js');
+import { User } from '../../../../../models/index.js';
+import { parsePrivacySettingsCustomId } from '../../../../../shared/utils/messageTracking.js';
+import { getProfileMessageId } from '../../../utils/profileMessageTracker.js';
+import { buildPrivacySettingsMenu } from './privacyMenu.js';
+import { performDualUpdate } from '../../../../../shared/utils/dualUpdate.js';
+import logger from '../../../../../shared/utils/logger.js';
+import { InteractionFlags } from 'discord.js';
 
-module.exports = async function handleToggleBirthdayHidden(interaction) {
+export default async function handleToggleBirthdayHidden(interaction) {
     // Ephemeral message flag pattern: use InteractionFlags.Ephemeral if available, otherwise fallback to 64.
     // This ensures compatibility across discord.js versions and prevents undefined errors.
     const ephemeralFlag = typeof InteractionFlags !== 'undefined' && InteractionFlags.Ephemeral ? InteractionFlags.Ephemeral : 64;

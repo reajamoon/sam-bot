@@ -1,22 +1,13 @@
-const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, EmbedBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, InteractionFlags } = require('discord.js');
-const { User } = require('../../../../models');
-const logger = require('../../../../shared/utils/logger');
-const { parseProfileSettingsCustomId, buildModalCustomId, buildSelectMenuCustomId, buildInputCustomId, buildProfileSettingsDoneCustomId, decodeMessageId } = require('../../../../shared/utils/messageTracking');
-
-// Removed legacy updateProfileAndMenu. All dual updates should use performDualUpdate from dualUpdate.js.
-
+import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, EmbedBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, InteractionFlags } from 'discord.js';
+import { User } from '../../../../models/index.js';
+import logger from '../../../../shared/utils/logger.js';
+import { parseProfileSettingsCustomId, buildModalCustomId, buildSelectMenuCustomId, buildInputCustomId, buildProfileSettingsDoneCustomId, decodeMessageId, getProfileMessageId, buildProfileButtonId } from '../../../../shared/utils/messageTracking.js';
 /**
  * Handle profile-related button interactions
  */
-
-
 // Export the profile_settings_done handler as a separate function
 async function handleProfileSettingsDone(interaction) {
-    // Profile Settings Done button logic
-    const logger = require('../../../../shared/utils/logger');
     logger.info(`[ProfileSettingsDone] Received customId: ${interaction.customId}`);
-    // Robustly extract userId and messageId using utility (supports base64 encoding)
-    const { parseProfileSettingsCustomId, decodeMessageId } = require('../../../../shared/utils/messageTracking');
     let profileOwnerId = null;
     let originalMessageId = null;
     const parsed = parseProfileSettingsCustomId(interaction.customId);
@@ -29,7 +20,7 @@ async function handleProfileSettingsDone(interaction) {
     }
     logger.info(`[ProfileSettingsDone] Parsed userId: ${profileOwnerId}, messageId: ${originalMessageId}`);
     // Use navigation utility for close logic
-    const { handleInteractionNavigation } = require('../../../../shared/utils/interactionNavigation');
+    const { handleInteractionNavigation } = await import('../../../../shared/utils/interactionNavigation.js');
     await handleInteractionNavigation(interaction, {
         type: 'close',
         content: '✅ Profile Settings closed.',
@@ -41,14 +32,11 @@ async function handleProfileSettingsDone(interaction) {
         (interaction.customId.startsWith('profile_settings_') && !interaction.customId.startsWith('profile_settings_done_'))) {
 
     // message tracking
-    const { getProfileMessageId, buildProfileButtonId } = require('../../../../shared/utils/messageTracking');
     let profileOwnerId = interaction.user.id;
     const originalMessageId = getProfileMessageId(interaction, interaction.customId);
-
         // Debug logging for diagnosis
         logger.info(`[ProfileButtons] customId: ${interaction.customId}`);
         logger.info(`[ProfileButtons] parsed userId: ${trackedData ? trackedData.userId : 'undefined'}, parsed messageId: ${trackedData ? trackedData.messageId : 'undefined'}, actual userId: ${interaction.user.id}`);
-
         // Only trigger permission error if a valid user ID is present and mismatched
         if (profileOwnerId && profileOwnerId !== interaction.user.id) {
             logger.warn(`[ProfileButtons] Permission error: customId=${interaction.customId}, parsed userId=${profileOwnerId}, actual userId=${interaction.user.id}`);
@@ -58,7 +46,6 @@ async function handleProfileSettingsDone(interaction) {
             });
             return;
         }
-
         // Validate that the original message still exists and belongs to this user
         let validatedMessageId = originalMessageId;
         if (originalMessageId) {
@@ -80,9 +67,7 @@ async function handleProfileSettingsDone(interaction) {
                 validatedMessageId = null;
             }
         }
-
         // Show profile settings menu with all the profile editing options
-
         // build all button custom IDs
         const buildButtonCustomId = (action) => {
             return buildProfileButtonId(action, 'profile_settings', interaction.user.id, validatedMessageId || originalMessageId);
@@ -152,7 +137,7 @@ async function handleProfileSettingsDone(interaction) {
                (validatedMessageId ? '\n\n✨ *Changes will update your profile automatically*' : '\n\n⚠️ *Profile auto-update unavailable - message tracking lost*');
 
         const embed = new EmbedBuilder()
-            .setColor('#0099ff')
+            .setColor('#333333')
             .setTitle('⚙️ Profile Settings')
             .setDescription('Choose what you\'d like to update on your profile:')
             .addFields(
@@ -173,7 +158,6 @@ async function handleProfileSettingsDone(interaction) {
         // Check if this is being called from a back button (message is ephemeral and being updated)
         // vs. initial Profile Settings click (need to create new ephemeral message)
         const isBackButton = interaction.message && interaction.message.flags && interaction.message.flags.has('Ephemeral');
-
         if (isBackButton) {
             // Update existing ephemeral message (back button from modal)
             if (typeof interaction.update === 'function') {
@@ -197,13 +181,12 @@ async function handleProfileSettingsDone(interaction) {
             });
         }
     }
-
     // Profile Settings Done button
     else if (interaction.customId === 'profile_settings_done' || interaction.customId.startsWith('profile_settings_done_')) {
     const logger = require('../../../../shared/utils/logger');
     logger.info(`[ProfileSettingsDone] Received customId: ${interaction.customId}`);
     logger.info(`[ProfileSettingsDone] Parsed userId: ${profileOwnerId}, messageId: ${originalMessageId}`);
-        // Robustly extract userId and messageId using utility (supports base64 encoding)
+        // extract userId and messageId using utility (supports base64 encoding)
         const { parseProfileSettingsCustomId, decodeMessageId } = require('../../../../shared/utils/messageTracking');
         let profileOwnerId = null;
         let originalMessageId = null;
@@ -215,7 +198,6 @@ async function handleProfileSettingsDone(interaction) {
                 ? decodeMessageId(parsed.messageId)
                 : parsed.messageId;
         }
-
         // Use navigation utility for close logic
         const { handleInteractionNavigation } = require('../../../../shared/utils/interactionNavigation');
         await handleInteractionNavigation(interaction, {
@@ -230,14 +212,11 @@ async function handleProfileSettingsDone(interaction) {
     else if (interaction.customId === 'timezone_display' || interaction.customId.startsWith('timezone_display_')) {
         // Extract profile owner ID if present (new format)
         const profileOwnerId = interaction.customId.includes('_') ? interaction.customId.split('_')[2] : null;
-
         // Permission check removed: parent menu is ephemeral and only accessible by the user
-
         // Show timezone display preference menu
         // Extract message ID from the button's custom ID to preserve it for dual updates
         const menuParts = interaction.customId.split('_');
         const messageId = menuParts.length >= 4 ? menuParts[3] : '';
-
         const selectMenu = new StringSelectMenuBuilder()
             .setCustomId(`timezone_display_select_${messageId}`)
             .setPlaceholder('Choose how to display your timezone')
@@ -275,7 +254,6 @@ async function handleProfileSettingsDone(interaction) {
             ]);
 
         const row = new ActionRowBuilder().addComponents(selectMenu);
-
         // Extract message ID from button custom ID to preserve it for back button
         const { buildButtonId } = require('../../../../shared/utils/buttonId');
         // Use centralized builder for Back to Profile Settings button
@@ -307,9 +285,7 @@ async function handleProfileSettingsDone(interaction) {
         const parts = interaction.customId.split('_');
         const targetUserId = parts.length >= 3 ? parts[2] : interaction.user.id;
         const originalMessageId = parts.length >= 4 ? parts[3] : null;
-
         // Permission check removed: parent menu is ephemeral and only accessible by the user
-
         // Build modal custom ID with message tracking if available
         const modalCustomId = originalMessageId ? `birthday_modal_${originalMessageId}` : 'birthday_modal';
 
@@ -331,7 +307,7 @@ async function handleProfileSettingsDone(interaction) {
         await interaction.showModal(modal);
     }
 
-    // Confirm set birthday (legacy - may not be used anymore)
+    // Confirm set birthday (legacy - may not be used anymore T^T)
     else if (interaction.customId === 'confirm_set_birthday') {
         await interaction.update({
             content: '✅ **Birthday confirmed!** Your profile has been updated.',
@@ -403,10 +379,8 @@ async function handleProfileSettingsDone(interaction) {
         const parts = interaction.customId.split('_');
         const targetUserId = parts.length >= 3 ? parts[2] : interaction.user.id;
         const originalMessageId = parts.length >= 4 ? parts[3] : null;
-
         // Security check: only allow editing own profile
         // Permission check removed: parent menu is ephemeral and only accessible by the user
-
         // Build modal custom ID with message tracking if available
         const modalCustomId = originalMessageId ? `pronouns_modal_${originalMessageId}` : 'pronouns_modal';
 
@@ -428,7 +402,7 @@ async function handleProfileSettingsDone(interaction) {
         await interaction.showModal(modal);
     }
 
-    // Confirm set pronouns (legacy - may not be used anymore)
+    // Confirm set pronouns (legacy - may not be used anymore idk if i wanna reimplement this or why ffff)
     else if (interaction.customId === 'confirm_set_pronouns') {
         await interaction.update({
             content: '✅ **Pronouns confirmed!** Your profile has been updated.',
@@ -466,7 +440,7 @@ async function handleProfileSettingsDone(interaction) {
         await interaction.showModal(modal);
     }
 
-    // Confirm set bio (legacy - may not be used anymore)
+    // Confirm set bio (legacy - blah blah etc.)
     else if (interaction.customId === 'confirm_set_bio') {
         await interaction.update({
             content: '✅ **Bio confirmed!** Your profile has been updated.',
@@ -531,7 +505,7 @@ async function handleProfileSettingsDone(interaction) {
             const newRegionDisplay = !user.regionDisplay;
             await user.update({ regionDisplay: newRegionDisplay });
 
-            // Create confirmation message
+            // Create confirmation message (THE SEXY EMBED LIVES HERE MODULE ME XOXOXO IM HERE FIND ME)
             const statusText = newRegionDisplay ? 'shown' : 'hidden';
             const description = newRegionDisplay
                 ? '✅ **Region will now be shown in your profile.**\n\n' +
@@ -596,7 +570,7 @@ async function handleProfileSettingsDone(interaction) {
                 );
             }
 
-        } catch (error) {
+        } catch (error) { //GD FUCK THESE RULE
             console.error('Error handling region display toggle:', error);
 
             const errorEmbed = new EmbedBuilder()
@@ -678,7 +652,7 @@ async function handleProfileSettingsDone(interaction) {
                 });
             };
 
-            // Recreate the Profile Settings menu (ephemeral only)
+            // Recreate the Profile Settings menu (ephemeral only) this is so wet ew
             const row1 = new ActionRowBuilder()
                 .addComponents(
                     new ButtonBuilder()
@@ -723,7 +697,7 @@ async function handleProfileSettingsDone(interaction) {
                 );
 
             const embed = new EmbedBuilder()
-                .setColor('#0099ff')
+                .setColor('#333333')
                 .setTitle('⚙️ Profile Settings')
                 .setDescription('Choose what you\'d like to update on your profile:')
                 .addFields(
@@ -754,6 +728,5 @@ async function handleProfileSettingsDone(interaction) {
 }
 
 // Modularized profile button handlers
-const { handleProfileButtons } = require('./profile');
-
-module.exports = { handleProfileButtons, handleProfileSettingsDone };
+import { handleProfileButtons } from './profile.js';
+export { handleProfileButtons, handleProfileSettingsDone };

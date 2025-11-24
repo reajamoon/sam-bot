@@ -1,4 +1,4 @@
-const { getOrCreateUser, generateProfileCard, createProfileButtons, canViewProfile } = require('../../../utils/profileCard');
+import { getOrCreateUser, generateProfileCard, createProfileButtons, canViewProfile } from '../../../utils/profileCard.js';
 
 async function handleBackToProfile(interaction) {
     const targetUser = interaction.user;
@@ -19,4 +19,4 @@ async function handleBackToProfile(interaction) {
     });
 }
 
-module.exports = { handleBackToProfile };
+export { handleBackToProfile };
