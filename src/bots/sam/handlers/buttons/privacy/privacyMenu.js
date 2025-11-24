@@ -4,8 +4,8 @@ import { buildButtonId } from '../../../../../shared/utils/buttonId.js';
 import { buildPrivacySettingsDoneCustomId, encodeMessageId } from '../../../../../shared/utils/messageTracking.js';
 import logger from '../../../../../shared/utils/logger.js';
 
-function buildPrivacySettingsButtonId(action, userId, messageId) {
-    return buildButtonId({
+async function buildPrivacySettingsButtonId(action, userId, messageId) {
+    return await buildButtonId({
         action,
         context: 'privacy_settings',
         primaryId: userId,
@@ -13,8 +13,8 @@ function buildPrivacySettingsButtonId(action, userId, messageId) {
     });
 }
 
-function buildPrivacySettingsDoneButtonId(userId, messageId) {
-    return buildButtonId({
+async function buildPrivacySettingsDoneButtonId(userId, messageId) {
+    return await buildButtonId({
         action: 'done',
         context: 'privacy_settings',
         primaryId: userId,
@@ -43,26 +43,26 @@ export async function buildPrivacySettingsMenu(userData, userId, messageId = nul
     const row1 = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(buildPrivacySettingsButtonId('toggle_birthday_mentions', userId, encodedMsgId))
+                .setCustomId(await buildPrivacySettingsButtonId('toggle_birthday_mentions', userId, encodedMsgId))
                 .setLabel(mentionsEnabled ? menuTexts.birthdayMentionsOn : menuTexts.birthdayMentionsOff)
                 .setStyle(mentionsEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
                 .setEmoji('🎉'),
             new ButtonBuilder()
-                .setCustomId(buildPrivacySettingsButtonId('toggle_birthday_lists', userId, encodedMsgId))
+                .setCustomId(await buildPrivacySettingsButtonId('toggle_birthday_lists', userId, encodedMsgId))
                 .setLabel(announcementsEnabled ? menuTexts.dailyListsOn : menuTexts.dailyListsOff)
                 .setStyle(announcementsEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
                 .setEmoji('📋')
         );
 
     const privacyFullButton = new ButtonBuilder()
-        .setCustomId(buildPrivacySettingsButtonId('toggle_privacy_mode_full', userId, encodedMsgId))
+        .setCustomId(await buildPrivacySettingsButtonId('toggle_privacy_mode_full', userId, encodedMsgId))
         .setLabel(privacyModeFull ? menuTexts.privacyModeFullOn : menuTexts.privacyModeFullOff)
         .setStyle(privacyModeFull ? ButtonStyle.Success : ButtonStyle.Secondary)
         .setEmoji('🔒');
     if (isPrivacyModeStrict) privacyFullButton.setDisabled(true);
 
     const privacyAgeHiddenButton = new ButtonBuilder()
-        .setCustomId(buildPrivacySettingsButtonId('toggle_privacy_mode_age_hidden', userId, encodedMsgId))
+        .setCustomId(await buildPrivacySettingsButtonId('toggle_privacy_mode_age_hidden', userId, encodedMsgId))
         .setLabel(privacyModeAgeHidden ? menuTexts.privacyModeAgeHiddenOn : menuTexts.privacyModeAgeHiddenOff)
         .setStyle(privacyModeAgeHidden ? ButtonStyle.Success : ButtonStyle.Secondary)
         .setEmoji('🎭');
@@ -77,12 +77,12 @@ export async function buildPrivacySettingsMenu(userData, userId, messageId = nul
     const row3 = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(buildPrivacySettingsButtonId('toggle_birthday_hidden', userId, encodedMsgId))
+                .setCustomId(await buildPrivacySettingsButtonId('toggle_birthday_hidden', userId, encodedMsgId))
                 .setLabel(birthdayHidden ? menuTexts.profileBirthdayHidden : menuTexts.profileBirthdayVisible)
                 .setStyle(birthdayHidden ? ButtonStyle.Danger : ButtonStyle.Secondary)
                 .setEmoji('👻'),
             new ButtonBuilder()
-                .setCustomId(buildPrivacySettingsDoneCustomId(userId, encodedMsgId))
+                .setCustomId(await buildPrivacySettingsDoneButtonId(userId, encodedMsgId))
                 .setLabel(menuTexts.closeSettings)
                 .setStyle(ButtonStyle.Primary)
                 .setEmoji('✅')

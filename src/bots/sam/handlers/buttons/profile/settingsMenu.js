@@ -5,8 +5,8 @@ import { buildButtonId } from '../../../../../shared/utils/buttonId.js';
 import { parseProfileSettingsCustomId, getProfileOwnerIdFromInteraction, buildProfileSettingsDoneCustomId, buildModalCustomId, buildSelectMenuCustomId, buildInputCustomId } from '../../../../../shared/utils/messageTracking.js';
 
 // Centralized builder for profile settings buttons
-function buildProfileSettingsButtonId(action, userId, messageId) {
-    return buildButtonId({
+async function buildProfileSettingsButtonId(action, userId, messageId) {
+    return await buildButtonId({
         action,
         context: 'profile_settings',
         primaryId: userId,
@@ -14,8 +14,8 @@ function buildProfileSettingsButtonId(action, userId, messageId) {
     });
 }
 
-function buildProfileSettingsDoneButtonId(userId, messageId) {
-    return buildButtonId({
+async function buildProfileSettingsDoneButtonId(userId, messageId) {
+    return await buildButtonId({
         action: 'done',
         context: 'profile_settings',
         primaryId: userId,

@@ -9,7 +9,7 @@
  * Example: toggle_privacy_mode_full_privacy_settings_123456789012345678_ABCDEFG
  */
 
-function buildButtonId({ action, context, primaryId, secondaryId }) {
+async function buildButtonId({ action, context, primaryId, secondaryId }) {
     if (!action || !context || !primaryId) {
         throw new Error('Missing required fields for button ID');
     }
@@ -17,20 +17,17 @@ function buildButtonId({ action, context, primaryId, secondaryId }) {
     let safeSecondaryId = secondaryId ? String(secondaryId) : '';
 
     // If primaryId or secondaryId are too long, hash them
-    function shortHash(str) {
-        // Simple hash: base64 of first 8 bytes of sha256
+    async function shortHash(str) {
         const crypto = await import('crypto');
         return crypto.createHash('sha256').update(str).digest('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
     }
-    if (safePrimaryId.length > 32) safePrimaryId = shortHash(safePrimaryId);
-    if (safeSecondaryId.length > 32) safeSecondaryId = shortHash(safeSecondaryId);
+    if (safePrimaryId.length > 32) safePrimaryId = await shortHash(safePrimaryId);
+    if (safeSecondaryId.length > 32) safeSecondaryId = await shortHash(safeSecondaryId);
 
     let id = `${action}_${context}_${safePrimaryId}`;
     if (safeSecondaryId) id += `_${safeSecondaryId}`;
     if (id.length > 100) {
-        // If still too long, hash the whole ID
-        id = shortHash(id);
-        // Optionally, log a warning
+        id = await shortHash(id);
         if (process && process.env && process.env.NODE_ENV !== 'production') {
             console.warn('CustomId exceeded 100 chars, hashed:', id);
         }

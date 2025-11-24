@@ -257,7 +257,7 @@ async function handleProfileSettingsDone(interaction) {
         // Extract message ID from button custom ID to preserve it for back button
         const { buildButtonId } = require('../../../../shared/utils/buttonId');
         // Use centralized builder for Back to Profile Settings button
-        const backButtonCustomId = buildButtonId({
+        const backButtonCustomId = await buildButtonId({
             action: 'back_to_profile_settings',
             context: 'profile_settings',
             primaryId: interaction.user.id,
@@ -532,7 +532,7 @@ async function handleProfileSettingsDone(interaction) {
                 // If we lost the original, fallback to previous context
                 propagatedMessageId = interaction.message.id;
             }
-            const backButtonCustomId = buildButtonId({
+            const backButtonCustomId = await buildButtonId({
                 action: 'back_to_profile_settings',
                 context: 'profile_settings',
                 primaryId: interaction.user.id,
@@ -642,9 +642,9 @@ async function handleProfileSettingsDone(interaction) {
             // Build custom IDs with validated message tracking
             // Use centralized buildButtonId utility for all menu buttons
             const { buildButtonId } = require('../../../../shared/utils/buttonId');
-            const buildButtonCustomId = (action) => {
+            const buildButtonCustomId = async (action) => {
                 // Always include validated/original profile message ID for all buttons
-                return buildButtonId({
+                return await buildButtonId({
                     action,
                     context: 'profile_settings',
                     primaryId: interaction.user.id,
@@ -652,31 +652,31 @@ async function handleProfileSettingsDone(interaction) {
                 });
             };
 
-            // Recreate the Profile Settings menu (ephemeral only) this is so wet ew
+            // Recreate the Profile Settings menu (ephemeral only)
             const row1 = new ActionRowBuilder()
                 .addComponents(
                     new ButtonBuilder()
-                        .setCustomId(buildButtonCustomId('set_birthday'))
+                        .setCustomId(await buildButtonCustomId('set_birthday'))
                         .setLabel('Set Birthday')
                         .setStyle(ButtonStyle.Secondary)
                         .setEmoji('🎂'),
                     new ButtonBuilder()
-                        .setCustomId(buildButtonCustomId('set_bio'))
+                        .setCustomId(await buildButtonCustomId('set_bio'))
                         .setLabel('Set Bio')
                         .setStyle(ButtonStyle.Secondary)
                         .setEmoji('📝'),
                     new ButtonBuilder()
-                        .setCustomId(buildButtonCustomId('set_timezone'))
+                        .setCustomId(await buildButtonCustomId('set_timezone'))
                         .setLabel('Set Timezone')
                         .setStyle(ButtonStyle.Secondary)
                         .setEmoji('🌍'),
                     new ButtonBuilder()
-                        .setCustomId(buildButtonCustomId('set_region'))
+                        .setCustomId(await buildButtonCustomId('set_region'))
                         .setLabel('Set Region')
                         .setStyle(ButtonStyle.Secondary)
                         .setEmoji('🗺️'),
                     new ButtonBuilder()
-                        .setCustomId(buildButtonCustomId('toggle_region_display'))
+                        .setCustomId(await buildButtonCustomId('toggle_region_display'))
                         .setLabel('Region Display')
                         .setStyle(ButtonStyle.Secondary)
                         .setEmoji('👁️')
