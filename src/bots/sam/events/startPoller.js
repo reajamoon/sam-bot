@@ -13,7 +13,6 @@ async function notifyQueueSubscribers(client) {
             if (!subscribers.length) continue;
             const userIds = subscribers.map(s => s.user_id);
             const users = await User.findAll({ where: { discordId: userIds } });
-            let embed = null;
             // Always fetch Recommendation from the database for DONE jobs
             let embed = null;
             let rec = null;
