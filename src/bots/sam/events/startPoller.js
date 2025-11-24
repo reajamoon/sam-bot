@@ -40,11 +40,14 @@ async function notifyQueueSubscribers(client) {
                 console.warn(`Fic queue notification channel ${channelId} not found.`);
                 continue;
             }
-            const mentionList = users.filter(u => u.queueNotifyTag !== false).map(u => `<@${u.discordId}>`).join(' ');
+            // For instant_candidate jobs, do not @mention users, but still send embed
+            let contentMsg = `Your fic parsing job is done!\n` + (job.fic_url ? `\n<${job.fic_url}>` : '');
+            if (!job.instant_candidate) {
+                const mentionList = users.filter(u => u.queueNotifyTag !== false).map(u => `<@${u.discordId}>`).join(' ');
+                if (mentionList) contentMsg = `>>> ${mentionList} ` + contentMsg;
+            }
             try {
-                await channel.send({
-                    content: `>>> ${mentionList ? mentionList + ' ' : ''}Your fic parsing job is done!\n` + (job.fic_url ? `\n<${job.fic_url}>` : ''),
-                });
+                await channel.send({ content: contentMsg });
                 if (embed) {
                     await channel.send({ embeds: [embed] });
                 }

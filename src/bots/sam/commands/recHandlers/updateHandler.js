@@ -160,9 +160,13 @@ async function handleUpdateRecommendation(interaction) {
                     return;
                 }
             }
-            // Edge case: Only mark as instant_candidate if there are no other pending/processing jobs
+            // Only mark as instant_candidate if this is a single non-series fic and no other jobs are active
             const activeJobs = await ParseQueue.count({ where: { status: ['pending', 'processing'] } });
-            const isInstant = activeJobs === 0;
+            let isInstant = false;
+            // Only allow instant_candidate for non-series URLs
+            if (!/archiveofourown\.org\/series\//.test(urlToUse) && activeJobs === 0) {
+                isInstant = true;
+            }
             try {
                 queueEntry = await ParseQueue.create({
                     fic_url: urlToUse,
