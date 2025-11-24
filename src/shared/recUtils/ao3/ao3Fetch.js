@@ -12,7 +12,18 @@ function isAO3LoggedInPage(html) {
     return false;
 }
 
+// Simple in-memory mutex for AO3 fetches
+let ao3FetchMutex = Promise.resolve();
+
 async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
+    // Mutex lock: only allow one fetch at a time
+    let release;
+    const lock = new Promise(res => { release = res; });
+    const prev = ao3FetchMutex;
+    let unlock = () => {};
+    ao3FetchMutex = prev.then(() => lock);
+    try {
+        await prev;
     const { getLoggedInAO3Page, appendAdultViewParamIfNeeded, bypassStayLoggedInInterstitial } = require('./ao3Utils');
     const { parseAO3Metadata } = require('./ao3Parser');
     let html, browser, page, ao3Url;
@@ -90,6 +101,7 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
         loggedIn = isAO3LoggedInPage(html);
         return true;
     }
+
 
     let ok = false;
     let attempts = 1;
@@ -180,6 +192,7 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
         if (page && !page.isClosed()) {
             await page.close();
         }
+        release(); // Release the mutex lock
     }
 }
 

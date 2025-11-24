@@ -10,6 +10,14 @@ const { ao3RateLimit } = require('./ao3RateLimiter');
  * @param {import('puppeteer').Page} page - Puppeteer page instance
  * @param {string} ficUrl - The AO3 work URL to re-navigate to
  */
+async function preparePage(page) {
+    await page.setUserAgent(getCurrentUserAgent());
+    await page.setExtraHTTPHeaders({
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Upgrade-Insecure-Requests': '1',
+        'X-Sam-Bot-Info': 'Hi AO3 devs! This is Sam, a hand-coded Discord bot for a single small server. I only fetch header metadata for user recs and do not retrieve fic content. Contact: https://github.com/reajamoon/sam-bot'
+    });
+}
 async function bypassStayLoggedInInterstitial(page, ficUrl) {
     // Check for the interstitial by looking for the message or button
     const content = await page.content();
@@ -294,11 +302,9 @@ async function getLoggedInAO3Page(ficUrl) {
                     page.waitForNavigation({ waitUntil: 'domcontentloaded' })
                 ]);
             } else {
-                // As a last resort, try clicking a generic button (interstitial)
                 logBrowserEvent('[AO3] No login form found, using fallback button.');
                 const button = await page.$('input[type="submit"], button');
                 if (button) {
-                    // Use NAV_TIMEOUT for fallback navigation to avoid premature timeouts
                     await Promise.all([
                         button.click(),
                         page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT })
@@ -306,7 +312,6 @@ async function getLoggedInAO3Page(ficUrl) {
                 }
             }
         }
-        // After login, check for error messages and AO3-specific blocks (title and error containers only)
         const postLoginTitle = await page.title();
         const postLoginErrorText = await page.evaluate(() => {
             const selectors = ['.error', '.notice', 'h1', 'h2', '#main .wrapper h1', '#main .wrapper h2'];
@@ -325,7 +330,6 @@ async function getLoggedInAO3Page(ficUrl) {
             throw new Error('AO3 rate limit or CAPTCHA detected. Please wait and try again later.');
         }
         if (!(postLoginErrorText.includes('Incorrect username or password') || postLoginErrorText.includes('error'))) {
-            // Save cookies after successful login (atomic write)
             const cookies = await page.cookies();
             const absPath = path.resolve(COOKIES_PATH);
             const tmpPath = absPath + '.tmp';
@@ -339,16 +343,13 @@ async function getLoggedInAO3Page(ficUrl) {
                 cookiesInMemory = cookies;
                 console.warn('[AO3] WARNING: Cookies will be kept in memory for this session only. They will not persist after restart.');
             }
-            // Attach in-memory cookies to the page/browser for fallback use
             if (cookiesInMemory) {
-                // Attach to page for this session (if needed elsewhere, export or store globally)
                 page.__samInMemoryCookies = cookiesInMemory;
             }
         }
     } catch (err) {
         loginError = err;
         console.error('[AO3] Login failed.', err);
-        // On any login failure, always delete cookies and reset in-memory cookies
         try {
             if (fs.existsSync(COOKIES_PATH)) {
                 fs.unlinkSync(COOKIES_PATH);
@@ -361,23 +362,29 @@ async function getLoggedInAO3Page(ficUrl) {
             global.__samInMemoryCookies = null;
             logBrowserEvent('[AO3] In-memory cookies reset after login failure.');
         }
+        try {
+            if (browser && browser.isConnected()) {
+                await browser.close();
+                logBrowserEvent('[AO3] Closed browser after login failure.');
+            }
+        } catch (e) {
+            logBrowserEvent('[AO3] Failed to close browser after login failure: ' + e.message);
+        }
+        try {
+            const { resetSharedBrowser } = require('./ao3BrowserManager');
+            await resetSharedBrowser();
+        } catch (e) {
+            logBrowserEvent('[AO3] Could not reset sharedBrowser after login failure: ' + e.message);
+        }
         throw new Error('AO3 login failed.' + (err && err.message ? ' ' + err.message : ''));
     } finally {
-        // Always close the page after login attempt to prevent leaks
         if (page && !page.isClosed()) {
             try { await page.close(); logBrowserEvent('[AO3] Closed page after login attempt.'); } catch (e) { logBrowserEvent('Error closing page after login attempt: ' + e.message); }
         }
     }
-    // Open a new page for the caller to use
+
     page = await browser.newPage();
-    // Always set the user agent and headers on the returned page to ensure session/cookie consistency
-    await page.setUserAgent(getCurrentUserAgent());
-    await page.setExtraHTTPHeaders({
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Upgrade-Insecure-Requests': '1',
-        'X-Sam-Bot-Info': 'Hi AO3 devs! This is Sam, a hand-coded Discord bot for a single small server. I only fetch header metadata for user recs and do not retrieve fic content. Contact: https://github.com/reajamoon/sam-bot'
-    });
-    // Set cookies on the new page if cookies exist (fixes first-fic unauthenticated bug)
+    await preparePage(page);
     let cookiesToSet = null;
     if (fs.existsSync(COOKIES_PATH)) {
         try {
@@ -394,7 +401,7 @@ async function getLoggedInAO3Page(ficUrl) {
             logBrowserEvent('[AO3] Failed to set cookies on new page after login: ' + e.message);
         }
     }
-    // After login, always try to skip stay logged in page and land on fic
+
     await ao3RateLimit();
     await page.goto('https://archiveofourown.org/', { waitUntil: 'domcontentloaded' });
     if (ficUrl) await bypassStayLoggedInInterstitial(page, ficUrl);

@@ -6,6 +6,26 @@ const puppeteer = require('puppeteer');
 
 let sharedBrowser = null;
 let sharedBrowserUseCount = 0;
+let resetMutex = Promise.resolve();
+
+async function resetSharedBrowser() {
+    let release;
+    const lock = new Promise(res => { release = res; });
+    const prev = resetMutex;
+    resetMutex = prev.then(() => lock);
+    await prev;
+    try {
+        if (sharedBrowser && sharedBrowser.isConnected()) {
+            await sharedBrowser.close().catch(() => {});
+        }
+        sharedBrowser = null;
+        sharedBrowserUseCount = 0;
+        currentUserAgent = userAgent;
+        logBrowserEvent('Shared browser has been reset.');
+    } finally {
+        release();
+    }
+}
 const SHARED_BROWSER_MAX_USES = 25;
 const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:118.0) Gecko/20100101 Firefox/118.0';
 let currentUserAgent = userAgent;
@@ -93,5 +113,6 @@ function getCurrentUserAgent() {
 module.exports = {
     getSharedBrowser,
     logBrowserEvent,
-    getCurrentUserAgent
+    getCurrentUserAgent,
+    resetSharedBrowser
 };
