@@ -1,5 +1,5 @@
 // PM2 ecosystem file for Sam bot
-export default {
+module.exports = {
   apps: [
     {
       name: "sam",
