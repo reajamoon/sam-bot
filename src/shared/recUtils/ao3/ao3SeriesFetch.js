@@ -1,8 +1,8 @@
 // ao3SeriesFetch.js
 // Fetches and parses AO3 series metadata
 
-const { getLoggedInAO3Page, bypassStayLoggedInInterstitial } = require('./ao3Utils');
-const { parseAO3SeriesMetadata } = require('./ao3SeriesParser');
+import { getLoggedInAO3Page, bypassStayLoggedInInterstitial } from './ao3Utils.js';
+import { parseAO3SeriesMetadata } from './ao3SeriesParser.js';
 
 async function fetchAO3SeriesMetadata(url, includeRawHtml = false) {
     let html, browser, page;
@@ -35,4 +35,4 @@ async function fetchAO3SeriesMetadata(url, includeRawHtml = false) {
     }
 }
 
-module.exports = { fetchAO3SeriesMetadata };
+export { fetchAO3SeriesMetadata };

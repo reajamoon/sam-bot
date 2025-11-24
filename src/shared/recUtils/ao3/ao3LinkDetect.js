@@ -57,4 +57,5 @@ async function detectAO3LinksInHtml(html) {
     return result;
 }
 
-module.exports = { detectAO3LinksInHtml };
+
+export { detectAO3LinksInHtml };

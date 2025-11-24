@@ -1,5 +1,6 @@
 // AO3 metadata schema using Zod
-const { z } = require('zod');
+
+import { z } from 'zod';
 
 
 // AO3 metadata schema using Zod
@@ -40,4 +41,5 @@ const AO3Schema = z.object({
   rawHtml: z.string().optional(),
 });
 
-module.exports = AO3Schema;
+
+export default AO3Schema;

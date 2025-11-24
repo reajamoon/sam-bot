@@ -1,8 +1,8 @@
 // ao3SeriesParser.js
 // Extracts metadata for AO3 series pages
 
-const cheerio = require('cheerio');
-const fs = require('fs');
+import cheerio from 'cheerio';
+import fs from 'fs';
 
 /**
  * Parses AO3 series HTML and returns structured metadata
@@ -88,4 +88,5 @@ function parseAO3SeriesMetadata(html, url) {
     return metadata;
 }
 
-module.exports = { parseAO3SeriesMetadata };
+
+export { parseAO3SeriesMetadata };

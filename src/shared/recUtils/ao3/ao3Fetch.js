@@ -1,4 +1,4 @@
-const updateMessages = require('../../text/updateMessages');
+import updateMessages from '../../text/updateMessages.js';
 // ao3Fetch.js
 // AO3 login/fallback fetch logic
 
@@ -24,14 +24,14 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
     ao3FetchMutex = prev.then(() => lock);
     try {
         await prev;
-        const { getLoggedInAO3Page, appendAdultViewParamIfNeeded, bypassStayLoggedInInterstitial } = require('./ao3Utils');
-        const { parseAO3Metadata } = require('./ao3Parser');
+        const { getLoggedInAO3Page, appendAdultViewParamIfNeeded, bypassStayLoggedInInterstitial } = await import('./ao3Utils.js');
+        const { parseAO3Metadata } = await import('./ao3Parser.js');
         let html, browser, page, ao3Url;
         let loggedIn = false;
         let retried = false;
         ao3Url = url;
-        const fs = require('fs');
-        const path = require('path');
+        import fs from 'fs';
+        import path from 'path';
         const LOG_FAILED_HTML = true;
         const FAILED_HTML_DIR = path.join(process.cwd(), 'logs', 'ao3_failed_html');
         if (LOG_FAILED_HTML && !fs.existsSync(FAILED_HTML_DIR)) {
@@ -198,4 +198,5 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
     }
 }
 
-module.exports = { fetchAO3MetadataWithFallback, isAO3LoggedInPage };
+
+export { fetchAO3MetadataWithFallback, isAO3LoggedInPage };

@@ -1,9 +1,10 @@
-const fs = require('fs');
-const path = require('path');
+
+import fs from 'fs';
+import path from 'path';
+import { getSharedBrowser, logBrowserEvent, getCurrentUserAgent } from './ao3BrowserManager.js';
+import { ao3RateLimit } from './ao3RateLimiter.js';
 const COOKIES_PATH = 'ao3_cookies.json';
 const COOKIES_META_PATH = 'ao3_cookies_meta.json';
-const { getSharedBrowser, logBrowserEvent, getCurrentUserAgent } = require('./ao3BrowserManager');
-const { ao3RateLimit } = require('./ao3RateLimiter');
 /**
  * Utility to bypass AO3 'stay logged in' interstitial by re-navigating to the target fic URL.
  * Call this after login if you detect the interstitial.
@@ -371,7 +372,7 @@ async function getLoggedInAO3Page(ficUrl) {
             logBrowserEvent('[AO3] Failed to close browser after login failure: ' + e.message);
         }
         try {
-            const { resetSharedBrowser } = require('./ao3BrowserManager');
+            const { resetSharedBrowser } = await import('./ao3BrowserManager.js');
             await resetSharedBrowser();
         } catch (e) {
             logBrowserEvent('[AO3] Could not reset sharedBrowser after login failure: ' + e.message);
@@ -435,7 +436,8 @@ function appendAdultViewParamIfNeeded(url) {
     return base + sep + 'view_adult=true' + fragment;
 }
 
-module.exports = {
+
+export {
     getLoggedInAO3Page,
     appendAdultViewParamIfNeeded,
     debugLoginAndFetchWork,
