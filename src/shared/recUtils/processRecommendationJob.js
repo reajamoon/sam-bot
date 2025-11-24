@@ -2,11 +2,11 @@
 // processRecommendationJob.js
 // Shared utility for creating/updating recommendations (used by command handlers and queue worker)
 
-const { Recommendation } = require('../../models');
-const { fetchFicMetadata } = require('./ficParser');
+import { Recommendation } from '../../models/index.js';
+import { fetchFicMetadata } from './ficParser.js';
 import { createRecommendationEmbed } from './asyncEmbeds.js';
-const normalizeAO3Url = require('./normalizeAO3Url');
-const updateMessages = require('../text/updateMessages');
+import normalizeAO3Url from './normalizeAO3Url.js';
+import updateMessages from '../text/updateMessages.js';
 /**
  * Processes a recommendation job (add or update) with shared logic.
  * @param {Object} options - Job options
@@ -33,7 +33,8 @@ async function processRecommendationJob({
   let metadata;
   url = normalizeAO3Url(url);
   const bypassManual = manualFields.title && manualFields.author;
-  const normalizeMetadata = require('./normalizeMetadata');
+  const normalizeMetadataModule = await import('./normalizeMetadata.js');
+  const normalizeMetadata = normalizeMetadataModule.default || normalizeMetadataModule;
   if (bypassManual) {
     metadata = {
       title: manualFields.title,
@@ -273,4 +274,4 @@ async function processRecommendationJob({
   return { embed, recommendation };
 }
 
-module.exports = processRecommendationJob;
+export default processRecommendationJob;

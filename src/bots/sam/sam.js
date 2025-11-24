@@ -1,12 +1,16 @@
-// Unified Sam bot startup (temp version for review)
-const { ParseQueue, ParseQueueSubscriber, User, Config, sequelize } = require('../../models');
-const { Client, Collection, GatewayIntentBits } = require('discord.js');
-const { readdirSync } = require('fs');
-const { join } = require('path');
-require('dotenv').config();
-const logger = require('../../shared/utils/logger');
+
+// Unified Sam bot startup (ESM version)
+import { ParseQueue, ParseQueueSubscriber, User, Config, sequelize } from '../../models/index.js';
+import { Client, Collection, GatewayIntentBits } from 'discord.js';
+import { readdirSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
+import dotenv from 'dotenv';
+import logger from '../../shared/utils/logger.js';
 import { createRecommendationEmbed } from '../../shared/recUtils/asyncEmbeds.js';
-const BirthdayNotificationManager = require('./utils/birthdayNotifications');
+import BirthdayNotificationManager from './utils/birthdayNotifications.js';
+
+dotenv.config();
 
 const POLL_INTERVAL_MS = 10000;
 
@@ -28,11 +32,14 @@ client.cooldowns = new Collection();
 const birthdayManager = new BirthdayNotificationManager(client);
 
 // Load command files
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 const commandsPath = join(__dirname, 'commands');
 const commandFiles = readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 for (const file of commandFiles) {
     const filePath = join(commandsPath, file);
-    const command = require(filePath);
+    const commandModule = await import(pathToFileURL(filePath));
+    const command = commandModule.default || commandModule;
     if ('data' in command && 'execute' in command) {
         client.commands.set(command.data.name, command);
         logger.info(`Loaded command: ${command.data.name}`);
@@ -46,7 +53,8 @@ const eventsPath = join(__dirname, 'events');
 const eventFiles = readdirSync(eventsPath).filter(file => file.endsWith('.js'));
 for (const file of eventFiles) {
     const filePath = join(eventsPath, file);
-    const event = require(filePath);
+    const eventModule = await import(pathToFileURL(filePath));
+    const event = eventModule.default || eventModule;
     if (event.once) {
         client.once(event.name, (...args) => event.execute(...args));
     } else {
