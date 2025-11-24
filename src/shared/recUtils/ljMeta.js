@@ -2,8 +2,9 @@
  * LiveJournal metadata fetcher and parser
  * @module ljMeta
  */
-const { fetchHTML } = require('./fetchHtmlUtil');
-const updateMessages = require('../text/updateMessages');
+
+import { fetchHTML } from './fetchHtmlUtil.js';
+import updateMessages from '../text/updateMessages.js';
 
 /**
  * Fetches metadata from LiveJournal
@@ -132,6 +133,5 @@ async function fetchLiveJournalMetadata(url, includeRawHtml = false) {
     }
 }
 
-module.exports = {
-    fetchLiveJournalMetadata
-};
+
+export { fetchLiveJournalMetadata };

@@ -395,6 +395,8 @@ async function createRecommendationEmbed(rec) {
     return embed;
 }
 
+
+export default createRecommendationEmbed;
 export {
     isSeriesRec,
     buildBaseEmbed,

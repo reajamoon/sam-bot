@@ -1,6 +1,6 @@
-const updateMessages = require('../text/updateMessages'); // already correct, no change needed
-// Utility to create or join a ParseQueue entry for a fic URL, handling race conditions and user subscription.
-const { ParseQueue, ParseQueueSubscriber, Config } = require('../../models');
+
+import updateMessages from '../text/updateMessages.js';
+import { ParseQueue, ParseQueueSubscriber, Config } from '../../models/index.js';
 
 /**
  * Attempts to create a new queue entry for the given fic URL, or joins the existing one if it already exists.
@@ -50,4 +50,5 @@ async function createOrJoinQueueEntry(ficUrl, userId) {
     return { queueEntry, status: 'created', message: null };
 }
 
-module.exports = createOrJoinQueueEntry;
+
+export default createOrJoinQueueEntry;

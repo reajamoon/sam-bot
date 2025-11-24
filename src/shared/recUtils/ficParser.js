@@ -3,14 +3,15 @@
  * @param {string} url - The URL to fetch
  * @returns {Promise<string>} - The page HTML
  */
-const { fetchHTML, fetchHTMLWithBrowser } = require('./fetchHtmlUtil');
-const { fetchAO3MetadataWithFallback, parseAO3Metadata, detectAO3LinksInHtml } = require('./ao3Meta');
-const { fetchFFNetMetadata } = require('./ffnMeta');
-const { fetchWattpadMetadata } = require('./wattpadMeta');
-const { fetchLiveJournalMetadata } = require('./ljMeta');
-const { fetchDreamwidthMetadata } = require('./dwMeta');
-const normalizeMetadata = require('./normalizeMetadata');
-const quickLinkCheck = require('./quickLinkCheck');
+
+import { fetchHTML, fetchHTMLWithBrowser } from './fetchHtmlUtil.js';
+import { fetchAO3MetadataWithFallback, parseAO3Metadata, detectAO3LinksInHtml } from './ao3Meta.js';
+import { fetchFFNetMetadata } from './ffnMeta.js';
+import { fetchWattpadMetadata } from './wattpadMeta.js';
+import { fetchLiveJournalMetadata } from './ljMeta.js';
+import { fetchDreamwidthMetadata } from './dwMeta.js';
+import normalizeMetadata from './normalizeMetadata.js';
+import quickLinkCheck from './quickLinkCheck.js';
 
 /**
  * Fetches fanfiction metadata from supported sites
@@ -31,7 +32,8 @@ async function fetchFicMetadata(url, includeRawHtml = false) {
 
             if (url.includes('archiveofourown.org')) {
                 if (/archiveofourown\.org\/series\//.test(url)) {
-                    metadata = await require('./ao3Meta').fetchAO3SeriesMetadata(url, includeRawHtml);
+                    const ao3Meta = await import('./ao3Meta.js');
+                    metadata = await ao3Meta.fetchAO3SeriesMetadata(url, includeRawHtml);
                     if (metadata) source = 'ao3-series';
                 } else {
                     metadata = await fetchAO3MetadataWithFallback(url, includeRawHtml);
@@ -113,7 +115,4 @@ function createFallbackMetadata(url, source, errorMessage) {
     return fallback;
 }
 
-module.exports = {
-    fetchFicMetadata,
-    quickLinkCheck
-};
+export { fetchFicMetadata, quickLinkCheck };

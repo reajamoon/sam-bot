@@ -1,4 +1,5 @@
-const { EmbedBuilder } = require('discord.js');
+
+import { EmbedBuilder } from 'discord.js';
 
 /**
  * Builds a paginated search results embed for rec search.
@@ -50,4 +51,5 @@ function createSearchResultsEmbed(recs, page, totalPages, query) {
     return embed;
 }
 
-module.exports = createSearchResultsEmbed;
+
+export default createSearchResultsEmbed;

@@ -2,8 +2,9 @@
  * Dreamwidth metadata fetcher and parser
  * @module dwMeta
  */
-const { fetchHTML } = require('./fetchHtmlUtil');
-const updateMessages = require('../text/updateMessages'); // already correct, no change needed
+
+import { fetchHTML } from './fetchHtmlUtil.js';
+import updateMessages from '../text/updateMessages.js';
 
 /**
  * Fetches metadata from Dreamwidth
@@ -140,6 +141,5 @@ async function fetchDreamwidthMetadata(url, includeRawHtml = false) {
     }
 }
 
-module.exports = {
-    fetchDreamwidthMetadata
-};
+
+export { fetchDreamwidthMetadata };

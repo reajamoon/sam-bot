@@ -1,4 +1,5 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 
 /**
  * Builds a row of pagination buttons for search results.
@@ -45,4 +46,5 @@ function buildSearchPaginationRow(page, totalPages, customIdBase = 'recsearch') 
     return row;
 }
 
-module.exports = { buildSearchPaginationRow };
+
+export { buildSearchPaginationRow };

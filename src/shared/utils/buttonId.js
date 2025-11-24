@@ -19,7 +19,7 @@ function buildButtonId({ action, context, primaryId, secondaryId }) {
     // If primaryId or secondaryId are too long, hash them
     function shortHash(str) {
         // Simple hash: base64 of first 8 bytes of sha256
-        const crypto = require('crypto');
+        const crypto = await import('crypto');
         return crypto.createHash('sha256').update(str).digest('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
     }
     if (safePrimaryId.length > 32) safePrimaryId = shortHash(safePrimaryId);
@@ -66,7 +66,5 @@ function parseButtonId(customId) {
     return { action, context, primaryId, secondaryId };
 }
 
-module.exports = {
-    buildButtonId,
-    parseButtonId
-};
+
+export { buildButtonId, parseButtonId };

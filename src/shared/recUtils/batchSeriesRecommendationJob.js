@@ -1,9 +1,10 @@
 // batchSeriesRecommendationJob.js
 // Handles batch parsing and storing of AO3 series and all works in the series
 
-const { Recommendation } = require('../../models');
-const processRecommendationJob = require('./processRecommendationJob');
-const { fetchFicMetadata } = require('./ficParser');
+
+import { Recommendation } from '../../models/index.js';
+import processRecommendationJob from './processRecommendationJob.js';
+import { fetchFicMetadata } from './ficParser.js';
 
 /**
  * Batch parses an AO3 series and all its works, storing each as a Recommendation.
@@ -100,4 +101,5 @@ async function batchSeriesRecommendationJob(seriesUrl, user, options = {}, notif
   return { seriesRec, workRecs };
 }
 
-module.exports = batchSeriesRecommendationJob;
+
+export default batchSeriesRecommendationJob;

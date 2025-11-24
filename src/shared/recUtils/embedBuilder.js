@@ -7,8 +7,3 @@ export async function createRecommendationEmbed(rec) {
 export function createHelpPages() {
   // Reminder: This chunk is still living in rec.js. One day I'll migrate it. Maybe.
 }
-
-export function createNavigationButtons(currentPage, totalPages) {
-  // If you see this Or just do it yourself if you're braver than me.
-  }
-};

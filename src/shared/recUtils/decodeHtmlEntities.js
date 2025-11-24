@@ -20,4 +20,5 @@ function decodeHtmlEntities(str) {
         .replace(/&#x201D;/g, '"');
 }
 
-module.exports = decodeHtmlEntities;
+
+export default decodeHtmlEntities;

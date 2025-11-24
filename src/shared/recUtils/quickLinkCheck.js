@@ -3,8 +3,9 @@
  * @param {string} url
  * @returns {Promise<boolean>}
  */
-const https = require('https');
-const http = require('http');
+
+import https from 'https';
+import http from 'http';
 
 async function quickLinkCheck(url) {
     return new Promise((resolve) => {
@@ -81,4 +82,5 @@ async function quickLinkCheck(url) {
     });
 }
 
-module.exports = quickLinkCheck;
+
+export default quickLinkCheck;
