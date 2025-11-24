@@ -1,4 +1,5 @@
-const AO3_FIELD_MAP = require('./ao3/ao3FieldMap');
+
+import AO3_FIELD_MAP from './ao3/ao3FieldMap.js';
 
 function normalizeMetadata(metadata, source) {
     const normalized = {};
@@ -95,4 +96,5 @@ function normalizeMetadata(metadata, source) {
     return normalized;
 }
 
-module.exports = normalizeMetadata;
+
+export default normalizeMetadata;

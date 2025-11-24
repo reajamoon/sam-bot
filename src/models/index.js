@@ -1,6 +1,15 @@
-const { Sequelize } = require('sequelize');
-require('dotenv').config();
 
+import { Sequelize } from 'sequelize';
+import dotenv from 'dotenv';
+dotenv.config();
+
+import UserModel from './User.js';
+import GuildModel from './Guild.js';
+import RecommendationModel from './Recommendation.js';
+import BirthdayMessageModel from './BirthdayMessage.js';
+import ParseQueueModel from './ParseQueue.js';
+import ParseQueueSubscriberModel from './ParseQueueSubscriber.js';
+import ConfigModel from './Config.js';
 
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
     dialect: process.env.NODE_ENV === 'production' ? 'postgres' : 'sqlite',
@@ -14,34 +23,24 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
     }
 });
 
-// Runtime check: never allow SQLite in production
 if (process.env.NODE_ENV === 'production' && sequelize.getDialect() === 'sqlite') {
     throw new Error('FATAL: SQLite is not allowed in production! Check your config and environment variables.');
 }
 
-// Import models
-const User = require('./User')(sequelize);
-const Guild = require('./Guild')(sequelize);
-const Recommendation = require('./Recommendation')(sequelize);
+const User = UserModel(sequelize);
+const Guild = GuildModel(sequelize);
+const Recommendation = RecommendationModel(sequelize);
+const BirthdayMessage = BirthdayMessageModel(sequelize);
+const ParseQueue = ParseQueueModel(sequelize);
+const ParseQueueSubscriber = ParseQueueSubscriberModel(sequelize);
+const Config = ConfigModel(sequelize);
 
-const BirthdayMessage = require('./BirthdayMessage')(sequelize);
-
-const ParseQueue = require('./ParseQueue')(sequelize);
-const ParseQueueSubscriber = require('./ParseQueueSubscriber')(sequelize);
-const Config = require('./Config')(sequelize);
-
-
-// Define associations
 User.belongsToMany(Guild, { through: 'UserGuilds' });
 Guild.belongsToMany(User, { through: 'UserGuilds' });
-
-// ParseQueue <-> ParseQueueSubscriber association for poller
 ParseQueue.hasMany(ParseQueueSubscriber, { foreignKey: 'queue_id', as: 'subscribers' });
 ParseQueueSubscriber.belongsTo(ParseQueue, { foreignKey: 'queue_id' });
 
-
-
-const db = {
+export {
     sequelize,
     Sequelize,
     Config,
@@ -52,5 +51,3 @@ const db = {
     ParseQueue,
     ParseQueueSubscriber
 };
-
-module.exports = db;

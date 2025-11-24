@@ -11,4 +11,4 @@ function normalizeAO3Url(url) {
   return url;
 }
 
-module.exports = normalizeAO3Url;
+export default normalizeAO3Url;

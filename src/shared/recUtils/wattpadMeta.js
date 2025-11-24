@@ -1,10 +1,10 @@
-const updateMessages = require('../text/updateMessages');
+import updateMessages from '../text/updateMessages.js';
 /**
  * Wattpad metadata fetcher and parser
  * @module wattpadMeta
  */
-const { fetchHTML } = require('./fetchHtmlUtil');
-const normalizeMetadata = require('./normalizeMetadata');
+import { fetchHTML } from './fetchHtmlUtil.js';
+import normalizeMetadata from './normalizeMetadata.js';
 
 /**
  * Fetches metadata from Wattpad
@@ -170,6 +170,5 @@ async function fetchWattpadMetadata(url, includeRawHtml = false) {
     }
 }
 
-module.exports = {
-    fetchWattpadMetadata
-};
+
+export { fetchWattpadMetadata };

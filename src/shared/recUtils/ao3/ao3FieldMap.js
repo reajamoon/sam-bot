@@ -38,4 +38,5 @@ const AO3_FIELD_MAP = {
     'hits': 'hits',
 };
 
-module.exports = AO3_FIELD_MAP;
+
+export default AO3_FIELD_MAP;

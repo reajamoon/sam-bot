@@ -1,6 +1,9 @@
 // Finds a rec by ID, URL, or AO3 work number. If you pass in more than one, expect sass.
-const { Op } = require('sequelize');
-const updateMessages = require('../text/updateMessages'); // already correct, no change needed
+
+import { Op } from 'sequelize';
+import updateMessages from '../text/updateMessages.js';
+import normalizeAO3Url from './normalizeAO3Url.js';
+import { Recommendation } from '../../models/index.js';
 
 
 /**
@@ -10,16 +13,8 @@ const updateMessages = require('../text/updateMessages'); // already correct, no
  * @returns {Promise<object>} Recommendation instance
  * @throws {Error} If not found or invalid input
  */
+
 async function findRecommendationByIdOrUrl(interaction, identifier) {
-    const normalizeAO3Url = require('./normalizeAO3Url');
-    const { Recommendation } = require('../../models');
-    console.log('DEBUG Recommendation import:', {
-        type: typeof Recommendation,
-        keys: Recommendation && Object.keys(Recommendation),
-        isFunction: typeof Recommendation === 'function',
-        isObject: typeof Recommendation === 'object',
-        hasFindOne: Recommendation && typeof Recommendation.findOne === 'function'
-    });
     // Debug: log actual value received
     console.log('[findRecommendationByIdOrUrl] identifier:', identifier);
     if (!identifier || typeof identifier !== 'string' || identifier.trim().length === 0) {
@@ -55,4 +50,4 @@ async function findRecommendationByIdOrUrl(interaction, identifier) {
     throw new Error(updateMessages.notFound(identifier));
 }
 
-module.exports = findRecommendationByIdOrUrl;
+export default findRecommendationByIdOrUrl;

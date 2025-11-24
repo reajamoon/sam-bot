@@ -1,5 +1,6 @@
+
 // Utility to fetch a Recommendation with its Series info (and optionally all works in the series)
-const { Recommendation, Series } = require('../models');
+import { Recommendation, Series } from './index.js';
 
 /**
  * Fetch a recommendation by ID, including its series info (if any).
@@ -8,7 +9,7 @@ const { Recommendation, Series } = require('../models');
  * @param {boolean} includeSeriesWorks - If true, also include all works in the series
  * @returns {Promise<Recommendation>} The recommendation with .series (and .series.works if requested)
  */
-async function fetchRecWithSeries(recId, includeSeriesWorks = false) {
+export async function fetchRecWithSeries(recId, includeSeriesWorks = false) {
   const include = [
     {
       model: Series,
@@ -20,5 +21,3 @@ async function fetchRecWithSeries(recId, includeSeriesWorks = false) {
   ];
   return Recommendation.findByPk(recId, { include });
 }
-
-module.exports = { fetchRecWithSeries };

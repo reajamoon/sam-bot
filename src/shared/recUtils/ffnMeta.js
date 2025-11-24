@@ -2,9 +2,10 @@
  * FanFiction.Net metadata fetcher and parser
  * @module FFNetMeta
  */
-const { fetchHTML } = require('./fetchHtmlUtil');
-const updateMessages = require('../text/updateMessages'); // already correct, no change needed
-const normalizeMetadata = require('./normalizeMetadata');
+
+import { fetchHTML } from './fetchHtmlUtil.js';
+import updateMessages from '../text/updateMessages.js';
+import normalizeMetadata from './normalizeMetadata.js';
 
 /**
  * Fetches metadata from FanFiction.Net
@@ -184,6 +185,5 @@ async function fetchFFNetMetadata(url, includeRawHtml = false) {
     }
 }
 
-module.exports = {
-    fetchFFNetMetadata
-};
+
+export { fetchFFNetMetadata };

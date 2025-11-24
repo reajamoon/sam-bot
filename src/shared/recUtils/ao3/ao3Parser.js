@@ -1,7 +1,5 @@
-// AO3 schema validation
-const AO3Schema = require('./ao3Schema');
-// Tag extraction utilities
-const {
+import AO3Schema from './ao3Schema.js';
+import {
     freeformTags,
     archiveWarnings,
     relationshipTags,
@@ -9,15 +7,13 @@ const {
     categoryTags,
     fandomTags,
     requiredTags
-} = require('./parseTagList');
-
-// Universal HTML entity decoder
-const decodeHtmlEntities = require('../decodeHtmlEntities');
+} from './parseTagList.js';
+import decodeHtmlEntities from '../decodeHtmlEntities.js';
+import fs from 'fs';
+import path from 'path';
+import cheerio from 'cheerio';
 
 function parseAO3Metadata(html, url, includeRawHtml = false) {
-    // Debug logging will be done after metadata is defined, only if metadata exists
-    const fs = require('fs');
-    const path = require('path');
     // Check for incomplete HTML (missing </html> or </body>)
     let htmlIncomplete = false;
     if (!html.includes('</html>') || !html.includes('</body>')) {
@@ -36,12 +32,12 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
     // Detect AO3 search results page and treat as error
     const searchWorksTitle = /<title>\s*Search Works \| Archive of Our Own\s*<\/title>/i;
     if (searchWorksTitle.test(html)) {
-    const updateMessages = require('../../text/updateMessages');
+        const updateMessages = await import('../../text/updateMessages.js');
         return {
             error: true,
             message: 'AO3 returned a search heading.',
             url,
-            details: updateMessages.parseError
+            details: updateMessages.default.parseError
         };
     }
 
@@ -50,52 +46,51 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
     const metadata = { url: url };
     try {
         if (!html) return null;
-        const cheerio = require('cheerio');
         const $ = cheerio.load(html);
         // Check for AO3 'New Session' interstitial
         if (html.includes('<title>New Session') || html.includes('Please log in to continue') || html.includes('name="user_session"')) {
-            const updateMessages = require('../../text/updateMessages');
+            const updateMessages = await import('../../text/updateMessages.js');
             return {
                 title: 'Unknown Title',
                 authors: ['Unknown Author'],
                 url: url,
                 error: 'AO3 session required',
-                summary: updateMessages.loginMessage
+                summary: updateMessages.default.loginMessage
             };
         }
         // Only treat as site protection if 'cloudflare' appears in the <title> or in a known error header
         const titleMatch = html.match(/<title>([^<]*)<\/title>/i);
         if (titleMatch && /cloudflare/i.test(titleMatch[1])) {
-            const updateMessages = require('../../text/updateMessages');
+            const updateMessages = await import('../../text/updateMessages.js');
             return {
                 title: 'Unknown Title',
                 authors: ['Unknown Author'],
                 url: url,
                 error: 'Site protection detected',
-                summary: updateMessages.siteProtection
+                summary: updateMessages.default.siteProtection
             };
         }
         const headerMatch = html.match(/<h1[^>]*>([^<]*)<\/h1>/i);
         if (headerMatch && /cloudflare/i.test(headerMatch[1])) {
-            const updateMessages = require('../../text/updateMessages');
+            const updateMessages = await import('../../text/updateMessages.js');
             return {
                 title: 'Unknown Title',
                 authors: ['Unknown Author'],
                 url: url,
                 error: 'Site protection detected',
-                summary: updateMessages.siteProtection
+                summary: updateMessages.default.siteProtection
             };
         }
         const metadata = { url: url };
 
     // Use modular parser for meta group: pass Cheerio root ($) to parse all <dt>/<dd> pairs
-    const { parseMetaGroup } = require('./ao3MetaGroupParser');
+    const { parseMetaGroup } = await import('./ao3MetaGroupParser.js');
     const metaGroupData = parseMetaGroup($);
     // Merge metaGroupData into metadata
     Object.assign(metadata, metaGroupData);
 
     // Stats: use modular parser for stats group
-    const { parseStatsGroup } = require('./ao3StatsGroupParser');
+    const { parseStatsGroup } = await import('./ao3StatsGroupParser.js');
     const { stats, unknownStats } = parseStatsGroup($);
         // These fields are now handled by the modular stats/meta group parsers
         if (Object.keys(stats).length > 0) {
@@ -386,4 +381,5 @@ function parseAO3Metadata(html, url, includeRawHtml = false) {
     }
 }
 
-module.exports = { parseAO3Metadata };
+
+export { parseAO3Metadata };

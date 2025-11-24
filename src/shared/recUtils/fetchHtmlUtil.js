@@ -1,9 +1,10 @@
 // fetchHtmlUtil.js
 // Utility for fetching HTML (plain and with Puppeteer)
 
-const puppeteer = require('puppeteer');
-const https = require('https');
-const http = require('http');
+
+import puppeteer from 'puppeteer';
+import https from 'https';
+import http from 'http';
 
 async function fetchHTMLWithBrowser(url) {
     const browser = await puppeteer.launch({
@@ -39,7 +40,5 @@ function fetchHTML(url) {
     });
 }
 
-module.exports = {
-    fetchHTML,
-    fetchHTMLWithBrowser
-};
+
+export { fetchHTML, fetchHTMLWithBrowser };
