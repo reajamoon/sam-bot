@@ -219,68 +219,69 @@ async function createSeriesEmbed(rec) {
 // Embed for individual works (shows only work info, not series list)
 async function createWorkEmbed(rec) {
     const ratingColors = {
-        'general audiences': 0x43a047,
-        'teen and up audiences': 0xffeb3b,
-        'mature': 0xff9800,
-        'explicit': 0xd32f2f,
-        'not rated': 0x757575,
-        'unrated': 0x757575
-    };
-    let color = 0x333333;
-    if (rec.rating && typeof rec.rating === 'string') {
-        const key = rec.rating.trim().toLowerCase();
-        if (ratingColors[key]) {
-            color = ratingColors[key];
+        // Author line
+        let authorLine = 'Unknown Author';
+        if (Array.isArray(rec.authors) && rec.authors.length > 0) {
+            authorLine = rec.authors.join(', ');
+        } else if (typeof rec.author === 'string' && rec.author.trim()) {
+            authorLine = rec.author.trim();
         }
-    }
-    const embed = new EmbedBuilder()
-        .setTitle(`📖 ${rec.title}`)
-        .setURL(rec.url)
-        .setColor(color)
-        .setTimestamp()
-        .setFooter({
-            text: `From the Profound Bond Library • Recommended by ${rec.recommendedByUsername} • ID: ${rec.id}`
-        });
-    let authorLine = 'Unknown Author';
-    if (Array.isArray(rec.authors) && rec.authors.length > 0) {
-        authorLine = rec.authors.join(', ');
-    } else if (typeof rec.author === 'string' && rec.author.trim()) {
-        authorLine = rec.author.trim();
-    }
-    let desc = `**By:** ${authorLine}`;
-    if (rec.summary) {
-        desc += `\n\n${rec.summary}`;
-    }
-    embed.setDescription(desc);
-    if (rec.rating && typeof rec.rating === 'string') {
-        const ratingKey = rec.rating.trim().toLowerCase();
-        if (ratingEmojis[ratingKey]) {
-            embed.addFields({ name: 'Rating', value: `${ratingEmojis[ratingKey]} ${rec.rating}`, inline: true });
-        } else {
-            embed.addFields({ name: 'Rating', value: rec.rating, inline: true });
+        embed.addFields({ name: '\u200B', value: `**By:** ${authorLine}`, inline: false });
+
+        // Summary blockquote
+        if (rec.summary) {
+            embed.addFields({ name: 'Summary', value: `> ${rec.summary.replace(/\n/g, '\n> ')}`, inline: false });
         }
+
+        // Story Link, Rating, Status row
+        const linkField = { name: '\uD83D\uDD17 Story Link', value: `[Read on Ao3](${rec.url})`, inline: true };
+        let ratingField = { name: 'Rating', value: rec.rating || 'Unknown', inline: true };
+        if (rec.rating && typeof rec.rating === 'string') {
+            const ratingKey = rec.rating.trim().toLowerCase();
+            if (ratingEmojis[ratingKey]) {
+                ratingField.value = `${ratingEmojis[ratingKey]} ${rec.rating}`;
+            }
+        }
+        const statusField = { name: 'Status', value: rec.status || 'Unknown', inline: true };
+        embed.addFields([linkField, ratingField, statusField]);
+
+        // Published, Chapters, Words row
+        embed.addFields([
+            { name: 'Published', value: rec.publishedDate || 'Unknown', inline: true },
+            { name: 'Chapters', value: rec.chapters || 'Unknown', inline: true },
+            { name: 'Words', value: (typeof rec.wordCount === 'number' && rec.wordCount > 0) ? rec.wordCount.toLocaleString() : 'Unknown', inline: true }
+        ]);
+
+        // Major Content Warnings
+        let warnings = typeof rec.getArchiveWarnings === 'function' ? rec.getArchiveWarnings() : [];
+        warnings = warnings.map(w => (typeof w === 'string' ? w.trim() : '')).filter(Boolean);
+        warnings = [...new Set(warnings)];
+        if (warnings.length > 0 && !(warnings.length === 1 && warnings[0].toLowerCase() === 'no archive warnings apply')) {
+            addWarningsField(
+                embed,
+                warnings,
+                '<:warn_yes:1142772202379415622>',
+                '<:warn_maybe:1142772269156933733>',
+                [
+                    'Graphic Depictions of Violence',
+                    'Major Character Death',
+                    'Rape/Non-Con',
+                    'Underage',
+                    'Underage Sex'
+                ]
+            );
+        }
+
+        // Tags
+        addTagsField(embed, rec.tags);
+
+        // Hits, Kudos, Bookmarks row
+        embed.addFields([
+            { name: 'Hits', value: (typeof rec.hits === 'number' && rec.hits > 0) ? rec.hits.toLocaleString() : '0', inline: true },
+            { name: 'Kudos', value: (typeof rec.kudos === 'number' && rec.kudos > 0) ? rec.kudos.toLocaleString() : '0', inline: true },
+            { name: 'Bookmarks', value: (typeof rec.bookmarks === 'number' && rec.bookmarks > 0) ? rec.bookmarks.toLocaleString() : '0', inline: true }
+        ]);
+
+        return embed;
     }
-    addTagsField(embed, rec.tags);
-    // Do NOT show series_works for individual works
-
-    // Major Content Warnings (standalone, not inline with link row)
-    let warnings = typeof rec.getArchiveWarnings === 'function' ? rec.getArchiveWarnings() : [];
-    warnings = warnings.map(w => (typeof w === 'string' ? w.trim() : '')).filter(Boolean);
-    warnings = [...new Set(warnings)];
-    addWarningsField(
-        embed,
-        warnings,
-        '<:warn_yes:1142772202379415622>',
-        '<:warn_maybe:1142772269156933733>',
-        [
-            'Graphic Depictions of Violence',
-            'Major Character Death',
-            'Rape/Non-Con',
-            'Underage',
-            'Underage Sex'
-        ]
-    );
-    return embed;
-}
-
 module.exports = createRecommendationEmbed;
