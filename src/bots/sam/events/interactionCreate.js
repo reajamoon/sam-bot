@@ -1,16 +1,14 @@
-const { Events } = require('discord.js');
-const logger = require('../../../shared/utils/logger');
-
-// Import specialized handlers
-const { handleCommand } = require('../handlers/commandHandler');
-const { handleButton } = require('../handlers/buttonHandler');
-const { handleSelectMenu } = require('../handlers/selectMenuHandler');
-const { handleModal } = require('../handlers/modalHandler');
+import { Events, InteractionFlags } from 'discord.js';
+import logger from '../../../shared/utils/logger.js';
+import { handleCommand } from '../handlers/commandHandler.js';
+import { handleButton } from '../handlers/buttonHandler.js';
+import { handleSelectMenu } from '../handlers/selectMenuHandler.js';
+import { handleModal } from '../handlers/modalHandler.js';
 
 // In-memory set to track processed interaction IDs
 const processedInteractionIds = new Set();
 
-module.exports = {
+export default {
     name: Events.InteractionCreate,
     async execute(interaction) {
         try {
@@ -44,7 +42,6 @@ module.exports = {
             logger.error('Error in interaction handler:', error);
             // Try to respond to the user if we haven't already
             try {
-                const { InteractionFlags } = require('discord.js');
                 const EPHEMERAL_FLAG = typeof InteractionFlags !== 'undefined' && InteractionFlags.Ephemeral ? InteractionFlags.Ephemeral : 64;
                 // Prevent double replies and expired token errors
                 if (typeof interaction.isExpired === 'function' && interaction.isExpired()) {

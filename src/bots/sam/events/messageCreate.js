@@ -1,14 +1,11 @@
-const { Events } = require('discord.js');
-const { User } = require('../../../models');
+import { Events } from 'discord.js';
+import { User } from '../../../models/index.js';
 
-module.exports = {
+export default {
     name: Events.MessageCreate,
     async execute(message) {
         // Don't track bot messages
         if (message.author.bot) return;
-
-    // Guild ID check removed: bot will operate in any server it is invited to
-
         try {
             // Find or create user in database
             const [user, created] = await User.findOrCreate({

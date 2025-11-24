@@ -1,8 +1,8 @@
-const { Events } = require('discord.js');
-const { User, Guild } = require('../../../models');
-const logger = require('../../../shared/utils/logger');
+import { Events } from 'discord.js';
+import { User, Guild } from '../../../models/index.js';
+import logger from '../../../shared/utils/logger.js';
 
-module.exports = {
+export default {
     name: Events.GuildCreate,
     async execute(guild) {
         logger.info(`Joined new guild: ${guild.name} (${guild.id}) with ${guild.memberCount} members`);

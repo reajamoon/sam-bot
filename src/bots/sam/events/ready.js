@@ -1,10 +1,10 @@
-const { Events } = require('discord.js');
-const logger = require('../../../shared/utils/logger');
-const startPoller = require('./startPoller');
-const startBirthdayManager = require('./startBirthdayManager');
-const BirthdayNotificationManager = require('../utils/birthdayNotifications');
+import { Events } from 'discord.js';
+import logger from '../../../shared/utils/logger.js';
+import startPoller from './startPoller.js';
+import startBirthdayManager from './startBirthdayManager.js';
+import BirthdayNotificationManager from '../utils/birthdayNotifications.js';
 
-module.exports = {
+export default {
     name: Events.ClientReady,
     once: true,
     async execute(client) {

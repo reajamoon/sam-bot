@@ -1,6 +1,8 @@
+import { Op } from 'sequelize';
+import { ParseQueue, ParseQueueSubscriber, User, Config, Recommendation } from '../../../models/index.js';
+import createRecommendationEmbed from '../../../shared/recUtils/createRecommendationEmbed.js';
+
 const POLL_INTERVAL_MS = 10000;
-const { ParseQueue, ParseQueueSubscriber, User, Config } = require('../../../models');
-const createRecommendationEmbed = require('../../../shared/recUtils/createRecommendationEmbed');
 
 async function notifyQueueSubscribers(client) {
     try {
@@ -17,7 +19,6 @@ async function notifyQueueSubscribers(client) {
             let embed = null;
             let rec = null;
             if (job.result && job.result.id) {
-                const { Recommendation } = require('../../../models');
                 rec = await Recommendation.findByPk(job.result.id);
             }
             if (rec) {
@@ -47,6 +48,17 @@ async function notifyQueueSubscribers(client) {
                 if (mentionList) contentMsg = `>>> ${mentionList} ` + contentMsg;
             }
             try {
+                console.log('[Poller DEBUG] About to send notification:', {
+                    channelId,
+                    channelFound: !!channel,
+                    clientUser: client.user ? client.user.tag : null,
+                    jobId: job.id,
+                    jobUrl: job.fic_url,
+                    subscribers: subscribers.map(s => s.user_id),
+                    users: users.map(u => u.discordId),
+                    contentMsg,
+                    embedExists: !!embed
+                });
                 await channel.send({ content: contentMsg });
                 if (embed) {
                     await channel.send({ embeds: [embed] });
@@ -63,11 +75,10 @@ async function notifyQueueSubscribers(client) {
     }
 }
 
-module.exports = (client) => {
 
+export default function startPoller(client) {
     // Helper: Notify users if their job was dropped due to being stuck (not normal 3-hour cleanup)
     async function notifyDroppedQueueJobs() {
-        const { Op } = require('sequelize');
         // Only notify for jobs that were stuck in 'pending' or 'processing' and dropped as 'error' with a stuck message
         const droppedJobs = await ParseQueue.findAll({
             where: {
@@ -98,4 +109,4 @@ module.exports = (client) => {
         notifyDroppedQueueJobs();
     }, POLL_INTERVAL_MS || 10000);
     console.log('Fic queue notification poller started.');
-};
+}
