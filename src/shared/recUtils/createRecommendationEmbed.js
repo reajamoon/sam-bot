@@ -1,13 +1,3 @@
-// Helper: Add status field (handles deleted, missing, etc)
-function addStatusField(fields, rec) {
-    if (rec.status) {
-        let statusValue = rec.status;
-        if (rec.deleted) statusValue += ' (Deleted)';
-        fields.push({ name: 'Status', value: statusValue, inline: true });
-    } else if (rec.deleted) {
-        fields.push({ name: 'Status', value: 'Deleted', inline: true });
-    }
-}
 
 import { EmbedBuilder } from 'discord.js';
 import quickLinkCheck from './quickLinkCheck.js';
@@ -90,8 +80,8 @@ function buildStoryLinkText(rec, isLinkWorking, siteInfo) {
         } else if (!isLinkWorking) {
             linkText += ' ⚠';
         }
-        return linkText;
-    }
+    return linkText;
+}
 
 // Helper: Add warnings field for a single work
 function addWorkWarningsField(embed, rec) {
@@ -228,74 +218,38 @@ function addStatsFields(embed, rec) {
                 dateLabel = 'Published';
                 dateValue = rec.publishedDate;
             }
-        } else {
-            // Fallback: just show updated if present
-            dateLabel = 'Updated';
-            dateValue = rec.updatedDate;
-        }
-    } else if (rec.updatedDate) {
-        dateLabel = 'Updated';
-        dateValue = rec.updatedDate;
-    } else if (rec.publishedDate) {
-        dateLabel = 'Published';
-        dateValue = rec.publishedDate;
-    }
-    if (dateLabel && dateValue) {
-        statsFields.push({ name: dateLabel, value: dateValue, inline: true });
-    }
-    if (rec.chapters) statsFields.push({ name: 'Chapters', value: rec.chapters, inline: true });
-    if (rec.wordCount) statsFields.push({ name: 'Words', value: rec.wordCount.toLocaleString(), inline: true });
-    if (statsFields.length > 0) {
-        embed.addFields(statsFields);
-    }
-}
-
-    // Status (inline)
-    if (rec.status) {
-        let statusValue = rec.status;
-        if (rec.deleted) statusValue += ' (Deleted)';
-        linkAndMetaFields.push({ name: 'Status', value: statusValue, inline: true });
-    } else if (rec.deleted) {
-        linkAndMetaFields.push({ name: 'Status', value: 'Deleted', inline: true });
-    }
-    embed.addFields(linkAndMetaFields);
-    // --- Dynamic Published/Updated, Words, Chapters (all inline, same row) ---
-    const statsFields = [];
-    // Determine which date to show and its label
-    let dateLabel = null;
-    let dateValue = null;
-    if (rec.publishedDate && rec.updatedDate) {
-        // Compare as ISO strings if possible, fallback to string compare
-        const pub = new Date(rec.publishedDate);
-        const upd = new Date(rec.updatedDate);
-        if (!isNaN(pub) && !isNaN(upd)) {
-            if (upd > pub) {
+            } else {
+                // Fallback: just show updated if present
                 dateLabel = 'Updated';
                 dateValue = rec.updatedDate;
-            } else {
+            }
+            } else if (rec.updatedDate) {
+                dateLabel = 'Updated';
+                dateValue = rec.updatedDate;
+            } else if (rec.publishedDate) {
                 dateLabel = 'Published';
                 dateValue = rec.publishedDate;
             }
-        } else {
-            // Fallback: just show updated if present
-            dateLabel = 'Updated';
-            dateValue = rec.updatedDate;
-        }
-    } else if (rec.updatedDate) {
-        dateLabel = 'Updated';
-        dateValue = rec.updatedDate;
-    } else if (rec.publishedDate) {
-        dateLabel = 'Published';
-        dateValue = rec.publishedDate;
+            if (dateLabel && dateValue) {
+                statsFields.push({ name: dateLabel, value: dateValue, inline: true });
+            }
+            if (rec.chapters) statsFields.push({ name: 'Chapters', value: rec.chapters, inline: true });
+            if (rec.wordCount) statsFields.push({ name: 'Words', value: rec.wordCount.toLocaleString(), inline: true });
+            if (statsFields.length > 0) {
+                embed.addFields(statsFields);
+            }
+}
+
+// Helper: Add status field (handles deleted, missing, etc)
+function addStatusField(fields, rec) {
+    if (rec.status) {
+        let statusValue = rec.status;
+        if (rec.deleted) statusValue += ' (Deleted)';
+        fields.push({ name: 'Status', value: statusValue, inline: true });
+    } else if (rec.deleted) {
+        fields.push({ name: 'Status', value: 'Deleted', inline: true });
     }
-    if (dateLabel && dateValue) {
-        statsFields.push({ name: dateLabel, value: dateValue, inline: true });
-    }
-    if (rec.chapters) statsFields.push({ name: 'Chapters', value: rec.chapters, inline: true });
-    if (rec.wordCount) statsFields.push({ name: 'Words', value: rec.wordCount.toLocaleString(), inline: true });
-    if (statsFields.length > 0) {
-        embed.addFields(statsFields);
-    }
+}
 
 // Build the base embed structure shared by both work and series recs
 function buildBaseEmbed(rec, color) {
