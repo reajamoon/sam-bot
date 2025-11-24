@@ -1,7 +1,7 @@
-const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
-const { Guild } = require('../../../models');
+import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
+import { Guild } from '../../../models/index.js';
 
-module.exports = {
+export default {
     // Command for subscribing/unsubscribing to birthday notifications
     data: new SlashCommandBuilder()
         .setName('birthday-notifications')

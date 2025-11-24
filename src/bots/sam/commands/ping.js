@@ -1,6 +1,6 @@
-const { SlashCommandBuilder, MessageFlags } = require('discord.js');
+import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 
-module.exports = {
+export default {
     // Command for checking if the bot’s alive and how fast it’s moving
     data: new SlashCommandBuilder()
         .setName('ping')

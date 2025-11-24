@@ -1,8 +1,8 @@
 // Imports for Discord stuff and the Guild model
-const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
-const { Guild } = require('../../../models');
+import { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
+import { Guild } from '../../../models/index.js';
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('birthday-config')
         .setDescription('Configure birthday notifications for Profound Bond')

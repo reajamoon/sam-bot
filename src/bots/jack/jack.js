@@ -1,3 +1,14 @@
+
+
+// Periodic cleanup of old queue jobs
+import { Op } from 'sequelize';
+import { ParseQueue, ParseQueueSubscriber, Config, User, sequelize, Recommendation } from '../../models/index.js';
+import processRecommendationJob from '../../shared/recUtils/processRecommendationJob.js';
+import dotenv from 'dotenv';
+import { getNextAvailableAO3Time, markAO3Requests, MIN_INTERVAL_MS } from '../../shared/recUtils/ao3/ao3QueueRateHelper.js';
+import updateMessages from '../../shared/text/updateMessages.js';
+dotenv.config();
+
 // Optimized: get mention string for subscribers using a user map
 function getTagMentions(subscribers, userMap) {
 	if (!subscribers.length) return '';
@@ -6,13 +17,10 @@ function getTagMentions(subscribers, userMap) {
 		.map(sub => `<@${sub.user_id}>`).join(' ');
 }
 
-// Periodic cleanup of old queue jobs
 async function cleanupOldQueueJobs() {
-	const { Op } = require('sequelize');
 	const now = new Date();
 	// Remove 'done' jobs older than 3 hours
 	const doneCutoff = new Date(now.getTime() - 3 * 60 * 60 * 1000);
-	const { ParseQueue, ParseQueueSubscriber, Config } = require('../../models'); // already correct, no change needed
 	const doneDeleted = await ParseQueue.destroy({ where: { status: 'done', updated_at: { [Op.lt]: doneCutoff } } });
 	if (doneDeleted > 0) {
 		console.log(`[QueueWorker] Cleanup: Removed ${doneDeleted} 'done' jobs older than 3 hours.`);
@@ -30,8 +38,6 @@ async function cleanupOldQueueJobs() {
 	// Batch fetch all subscribers for these jobs
 	const allJobIds = allJobs.map(j => j.id);
 	const allSubscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: allJobIds } });
-	// Batch fetch all users for these subscribers
-	const { User } = require('../../models'); // already correct, no change needed
 	if (stuckJobs.length > 0) {
 		console.log(`[QueueWorker] Cleanup: Found ${stuckJobs.length} stuck 'pending' or 'processing' jobs older than 15 minutes.`);
 	} else {
@@ -60,14 +66,6 @@ async function cleanupOldQueueJobs() {
 	await ParseQueue.destroy({ where: { id: allJobIds } });
 }
 
-// queueWorker.js
-// Background worker to process fic parsing jobs from the ParseQueue
-const { sequelize, ParseQueue, ParseQueueSubscriber, Recommendation, Config } = require('../../models');
-const processRecommendationJob = require('../../shared/recUtils/processRecommendationJob'); // already correct, no change needed
-require('dotenv').config();
-
-const { getNextAvailableAO3Time, markAO3Requests, MIN_INTERVAL_MS } = require('../../shared/recUtils/ao3/ao3QueueRateHelper');
-
 // Estimate AO3 requests for a job (can be improved for series, etc.)
 function estimateAO3Requests(job) {
 	// For AO3 series, estimate 1 + N works; for single fic, 1
@@ -86,8 +84,6 @@ async function processQueueJob(job) {
 		const firstSub = await ParseQueueSubscriber.findOne({ where: { queue_id: job.id }, order: [['created_at', 'ASC']] });
 		let userMap = new Map();
 		if (firstSub) {
-			// Try to get username from User table
-			const { User } = require('../../models');
 			const userRecord = await User.findOne({ where: { discordId: firstSub.user_id } });
 			user = {
 				id: firstSub.user_id,
@@ -108,8 +104,6 @@ async function processQueueJob(job) {
 		// Fetch config and channel once
 		const configEntry = await Config.findOne({ where: { key: 'fic_queue_channel' } });
 		const channelId = configEntry ? configEntry.value : null;
-		// No direct Discord interaction for Jack; notification logic should be handled by Sam.
-		const updateMessages = require('../../shared/text/updateMessages'); // already correct, no change needed
 		await processRecommendationJob({
 			url: job.fic_url,
 			user,
@@ -143,7 +137,7 @@ async function processQueueJob(job) {
 				await job.update({ status: 'done', result: embedOrError.recommendation, error_message: null });
 				// Suppress notification if instant_candidate and within threshold
 				let thresholdMs = 3000; // default 3 seconds
-				const thresholdConfig = await Config.findOne({ where: { key: 'instant_queue_suppress_threshold_ms' } });
+				const thresholdConfig = await Config.findOne({ key: 'instant_queue_suppress_threshold_ms' });
 				if (thresholdConfig && !isNaN(Number(thresholdConfig.value))) {
 					thresholdMs = Number(thresholdConfig.value);
 				}
@@ -153,7 +147,6 @@ async function processQueueJob(job) {
 					await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
 					return;
 				}
-				// No direct Discord interaction for Jack; notification logic should be handled by Sam.
 				// Clean up subscribers after notification
 				await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
 			}
