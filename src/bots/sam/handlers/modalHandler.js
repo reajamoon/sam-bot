@@ -1,10 +1,12 @@
-const { handleBirthdayModal } = require('./modals/birthdayModal');
-const { handleBioModal } = require('./modals/bioModal');
-const { handleTimezoneModal } = require('./modals/timezoneModal');
-const { handlePronounsModal } = require('./modals/pronounsModal');
-const { handleRegionModal } = require('./modals/regionModal');
-const { handleAo3ShareModal } = require('./modals/ao3ShareModal');
-const logger = require('../../../shared/utils/logger');
+import { handleBirthdayModal } from './modals/birthdayModal.js';
+import { handleBioModal } from './modals/bioModal.js';
+import { handleTimezoneModal } from './modals/timezoneModal.js';
+import { handlePronounsModal } from './modals/pronounsModal.js';
+import { handleRegionModal } from './modals/regionModal.js';
+import { handleAo3ShareModal } from './modals/ao3ShareModal.js';
+import logger from '../../../shared/utils/logger.js';
+import { InteractionFlags } from 'discord.js';
+const EPHEMERAL_FLAG = typeof InteractionFlags !== 'undefined' && InteractionFlags.Ephemeral ? InteractionFlags.Ephemeral : 64;
 
 /**
  * Handle modal submissions by delegating to appropriate handlers
@@ -41,12 +43,10 @@ async function handleModal(interaction) {
         else if (customId === 'ao3share_modal') {
             return await handleAo3ShareModal(interaction);
         } else if (customId === 'ao3share_confirm_modal') {
-            const { handleAo3ShareConfirmModal } = require('../../../handlers/modals/ao3ShareConfirmModal');
-            return await handleAo3ShareConfirmModal(interaction);
+            const mod = await import('../../../handlers/modals/ao3ShareConfirmModal.js');
+            return await mod.handleAo3ShareConfirmModal(interaction);
         } else {
             logger.warn(`Unhandled modal interaction: ${customId}`);
-            const { InteractionFlags } = require('discord.js');
-            const EPHEMERAL_FLAG = typeof InteractionFlags !== 'undefined' && InteractionFlags.Ephemeral ? InteractionFlags.Ephemeral : 64;
             await interaction.reply({
                 content: 'This modal interaction is not currently supported.',
                 flags: EPHEMERAL_FLAG
@@ -69,4 +69,4 @@ async function handleModal(interaction) {
     }
 }
 
-module.exports = { handleModal };
+export { handleModal };

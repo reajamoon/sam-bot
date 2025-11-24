@@ -1,9 +1,9 @@
-const logger = require('../../../shared/utils/logger');
+import logger from '../../../shared/utils/logger.js';
 
 /**
  * Handle slash command interactions
  */
-async function handleCommand(interaction) {
+export async function handleCommand(interaction) {
     const command = interaction.client.commands.get(interaction.commandName);
 
     if (!command) {
@@ -41,5 +41,3 @@ async function handleCommand(interaction) {
         }
     }
 }
-
-module.exports = { handleCommand };

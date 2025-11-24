@@ -1,5 +1,7 @@
-const { User } = require('../../../models');
-const logger = require('../../../shared/utils/logger');
+import { User } from '../../../models/index.js';
+import logger from '../../../shared/utils/logger.js';
+import { InteractionFlags, ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
+const EPHEMERAL_FLAG = typeof InteractionFlags !== 'undefined' && InteractionFlags.Ephemeral ? InteractionFlags.Ephemeral : 64;
 
 /**
  * Handle select menu interactions
@@ -32,7 +34,6 @@ async function handleSelectMenu(interaction) {
                 }
 
                 // Create back button to return to Profile Settings with proper message tracking
-                const { ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
                 const backButton = new ActionRowBuilder()
                     .addComponents(
                         new ButtonBuilder()
@@ -63,8 +64,8 @@ async function handleSelectMenu(interaction) {
 
                 // Update the original profile if we found the message ID
                 if (originalMessageId) {
-                    const { updateOriginalProfile } = require('../../utils/updateOriginalProfile');
-                    await updateOriginalProfile(interaction, originalMessageId, 'timezone display change');
+                    const mod = await import('../../utils/updateOriginalProfile.js');
+                    await mod.updateOriginalProfile(interaction, originalMessageId, 'timezone display change');
                 }
 
                 logger.info(`User ${interaction.user.tag} updated timezone display to ${selectedOption}`);
@@ -89,23 +90,20 @@ async function handleSelectMenu(interaction) {
         }
         else {
             logger.warn(`Unhandled select menu interaction: ${interaction.customId}`);
-            const { InteractionFlags } = require('discord.js');
-            const EPHEMERAL_FLAG = typeof InteractionFlags !== 'undefined' && InteractionFlags.Ephemeral ? InteractionFlags.Ephemeral : 64;
             await interaction.reply({
                 content: 'This select menu interaction is not currently supported.',
                 flags: EPHEMERAL_FLAG
             });
         }
-        
+
     } catch (error) {
         logger.error('Error in select menu handler:', error);
-        
+
         try {
             if (!interaction.replied && !interaction.deferred) {
-                const { InteractionFlags } = require('discord.js');
                 await interaction.reply({
                     content: 'Something went wrong processing that selection. Please try again.',
-                    flags: InteractionFlags.Ephemeral
+                    flags: EPHEMERAL_FLAG
                 });
             }
         } catch (responseError) {
@@ -114,4 +112,4 @@ async function handleSelectMenu(interaction) {
     }
 }
 
-module.exports = { handleSelectMenu };
+export { handleSelectMenu };

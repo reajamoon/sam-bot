@@ -1,25 +1,24 @@
 
-const { InteractionFlags } = require('discord.js');
+import { InteractionFlags } from 'discord.js';
 const EPHEMERAL_FLAG = typeof InteractionFlags !== 'undefined' && InteractionFlags.Ephemeral ? InteractionFlags.Ephemeral : 64;
-const { handleProfileButtons } = require('./buttons/profile');
-const { handleNavigationButtons } = require('./buttons/navigation');
-const { handlePrivacyButtons } = require('./buttons/privacyButtons');
-const logger = require('../../../shared/utils/logger');
+import { handleProfileButtons } from './buttons/profile.js';
+import { handleNavigationButtons } from './buttons/navigation.js';
+import { handlePrivacyButtons } from './buttons/privacyButtons.js';
+import logger from '../../../shared/utils/logger.js';
 
 /**
  * Handle button interactions by delegating to appropriate handlers
  */
 async function handleButton(interaction) {
     try {
-            const logger = require('../../../shared/utils/logger');
-            logger.info(`[buttonHandler] Invoked for customId: ${interaction.customId}`);
+        logger.info(`[buttonHandler] Invoked for customId: ${interaction.customId}`);
         const customId = interaction.customId;
     // logger.info(`[ButtonHandler] Received button interaction: customId=${customId}`);
 
         // Rec search pagination buttons
         if (customId && customId.startsWith('recsearch')) {
             // Route to rec.js handler (new location)
-            const rec = require('../commands/rec');
+            const rec = await import('../commands/rec.js');
             await rec.handleButtonInteraction(interaction);
             return;
         }
@@ -66,7 +65,7 @@ async function handleButton(interaction) {
         // Rec help navigation buttons
         if (customId.startsWith('rec_help_')) {
             // logger.info(`[ButtonHandler] Routing to handleHelpNavigation for customId=${customId}`);
-            const rec = require('../commands/rec');
+            const rec = await import('../commands/rec.js');
             await rec.handleHelpNavigation(interaction);
             return;
         }
@@ -109,4 +108,4 @@ async function handleButton(interaction) {
     }
 }
 
-module.exports = { handleButton };
+export { handleButton };
