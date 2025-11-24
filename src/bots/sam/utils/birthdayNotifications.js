@@ -1,6 +1,6 @@
-const { User, Guild, BirthdayMessage } = require('../../../models');
-const { EmbedBuilder } = require('discord.js');
-const logger = require('../../../shared/utils/logger');
+import { User, Guild, BirthdayMessage } from '../../../models/index.js';
+import { EmbedBuilder } from 'discord.js';
+import logger from '../../../shared/utils/logger.js';
 
 class BirthdayNotificationManager {
     constructor(client) {
@@ -40,7 +40,7 @@ class BirthdayNotificationManager {
             // Get all guilds with birthday configuration
             const guilds = await Guild.findAll({
                 where: {
-                    birthdayChannelId: { [require('sequelize').Op.not]: null }
+                    birthdayChannelId: { [(await import('sequelize')).Op.not]: null }
                 }
             });
 
@@ -272,4 +272,4 @@ class BirthdayNotificationManager {
     }
 }
 
-module.exports = BirthdayNotificationManager;
+export default BirthdayNotificationManager;

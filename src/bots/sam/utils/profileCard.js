@@ -1,9 +1,9 @@
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { User } = require('../../../models');
-const { formatBirthdayForProfile } = require('./birthdayFormatter');
-const { getZodiacSign, getChineseZodiacSign } = require('../../../shared/utils/zodiacCalculator');
-const { generateServerStats } = require('../../../shared/utils/serverStats');
-const { buildPrivacySettingsCustomId } = require('../../../shared/utils/messageTracking');
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { User } from '../../../models/index.js';
+import { formatBirthdayForProfile } from './birthdayFormatter.js';
+import { getZodiacSign, getChineseZodiacSign } from '../../../shared/utils/zodiacCalculator.js';
+import { generateServerStats } from '../../../shared/utils/serverStats.js';
+import { buildPrivacySettingsCustomId } from '../../../shared/utils/messageTracking.js';
 
 /**
  * Profile card generation and user management utilities
@@ -280,7 +280,7 @@ function canViewProfile(dbUser, viewerId, profileOwnerId) {
     return !dbUser.profileBlocked;
 }
 
-module.exports = {
+export {
     getOrCreateUser,
     generateProfileCard,
     createProfileButtons,
