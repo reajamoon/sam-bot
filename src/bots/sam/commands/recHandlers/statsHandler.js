@@ -1,5 +1,6 @@
-const { EmbedBuilder, MessageFlags } = require('discord.js');
-const { Recommendation } = require('../../../../models');
+import { EmbedBuilder, MessageFlags } from 'discord.js';
+import { Recommendation } from '../../../../models/index.js';
+import { fn, col, literal } from 'sequelize';
 
 // Shows stats for the PB library.
 async function handleStats(interaction) {
@@ -19,10 +20,10 @@ async function handleStats(interaction) {
     const contributorStats = await Recommendation.findAll({
         attributes: [
             'recommendedByUsername',
-            [require('sequelize').fn('COUNT', require('sequelize').col('recommendedByUsername')), 'count']
+            [fn('COUNT', col('recommendedByUsername')), 'count']
         ],
         group: ['recommendedByUsername'],
-        order: [[require('sequelize').literal('count'), 'DESC']],
+        order: [[literal('count'), 'DESC']],
         limit: 5
     });
     const embed = new EmbedBuilder()
@@ -39,4 +40,4 @@ async function handleStats(interaction) {
     await interaction.editReply({ embeds: [embed] });
 }
 
-module.exports = handleStats;
+export default handleStats;

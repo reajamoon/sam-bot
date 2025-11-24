@@ -1,9 +1,9 @@
-const { MessageFlags } = require('discord.js');
-const { Recommendation } = require('../../../../models');
-const findRecommendationByIdOrUrl = require('../../../../shared/recUtils/findRecommendationByIdOrUrl');
+import { MessageFlags } from 'discord.js';
+import { Recommendation } from '../../../../models.js';
+import findRecommendationByIdOrUrl from '../../../../shared/recUtils/findRecommendationByIdOrUrl.js';
 
 // Removes a rec from the library. Only owner or mods can do it.
-async function handleRemoveRecommendation(interaction) {
+export default async function handleRemoveRecommendation(interaction) {
     // Make sure the interaction didn't time out before starting
     if (Date.now() - interaction.createdTimestamp > 14 * 60 * 1000) { // 14 minutes to be safe
         return await interaction.reply({
@@ -33,7 +33,6 @@ async function handleRemoveRecommendation(interaction) {
         }
         // If this is a series rec, also remove all works in the series
         if (recommendation.series_works && Array.isArray(recommendation.series_works) && recommendation.series_works.length > 0) {
-            const { Recommendation } = require('../../../../models');
             const workUrls = recommendation.series_works.map(w => w.url);
             const worksToRemove = await Recommendation.findAll({ where: { url: workUrls } });
             for (const work of worksToRemove) {
@@ -51,5 +50,3 @@ async function handleRemoveRecommendation(interaction) {
         });
     }
 }
-
-module.exports = handleRemoveRecommendation;

@@ -1,10 +1,9 @@
 // queueHandler.js
 // Handler for /rec queue command: shows the current fic metadata queue
-const { ParseQueue } = require('../../../../models');
-const { EmbedBuilder } = require('discord.js');
+import { ParseQueue } from '../../../../models.js';
+import { EmbedBuilder, MessageFlags } from 'discord.js';
 
-module.exports = async function handleQueue(interaction) {
-  const { MessageFlags } = require('discord.js');
+export default async function handleQueue(interaction) {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   // Get all jobs that are pending or processing, ordered oldest first
   const jobs = await ParseQueue.findAll({
@@ -35,4 +34,4 @@ module.exports = async function handleQueue(interaction) {
   }
 
   await interaction.editReply({ embeds: [embed] });
-};
+}

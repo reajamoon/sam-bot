@@ -1,7 +1,12 @@
-const findRecommendationByIdOrUrl = require('../../../../shared/recUtils/findRecommendationByIdOrUrl');
-const { MessageFlags } = require('discord.js');
-const isValidFanficUrl = require('../../../../shared/recUtils/isValidFanficUrl');
-const processRecommendationJob = require('../../../../shared/recUtils/processRecommendationJob');
+import findRecommendationByIdOrUrl from '../../../../shared/recUtils/findRecommendationByIdOrUrl.js';
+import { MessageFlags } from 'discord.js';
+import isValidFanficUrl from '../../../../shared/recUtils/isValidFanficUrl.js';
+import processRecommendationJob from '../../../../shared/recUtils/processRecommendationJob.js';
+import normalizeAO3Url from '../../../../shared/recUtils/normalizeAO3Url.js';
+import { Recommendation } from '../../../../models/index.js';
+import createOrJoinQueueEntry from '../../../../shared/recUtils/createOrJoinQueueEntry.js';
+import { createRecommendationEmbed } from '../../../../shared/recUtils/asyncEmbeds.js';
+import { fetchRecWithSeries } from '../../../../models/fetchRecWithSeries.js';
 
 // Modular validation helpers
 function validateAttachment(newAttachment, willBeDeleted) {
@@ -22,7 +27,7 @@ function validateAttachment(newAttachment, willBeDeleted) {
     return null;
 }
 
-async function handleUpdateRecommendation(interaction) {
+export default async function handleUpdateRecommendation(interaction) {
         // Restrict manual status setting to mods only
         const newStatus = interaction.options.getString('status');
         if (newStatus) {
@@ -44,7 +49,7 @@ async function handleUpdateRecommendation(interaction) {
             options: interaction.options.data
         });
 
-        // Debug: log all incoming option values for troubleshooting//
+        // Debug: log all incoming option values for troubleshooting
         const debugFields = {
             newTitle: interaction.options.getString('title'),
             newAuthor: interaction.options.getString('author'),
@@ -381,4 +386,4 @@ async function handleUpdateRecommendation(interaction) {
     }
 }
 
-module.exports = handleUpdateRecommendation;
+export default handleUpdateRecommendation;

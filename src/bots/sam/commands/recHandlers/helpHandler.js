@@ -1,3 +1,32 @@
+import { EmbedBuilder, MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+
+
+// Centralized builder for rec help menu button IDs
+function buildRecHelpButtonId(category) {
+    return `rec_help_${category}`;
+}
+
+// Helper: Builds the navigation buttons for the help menu.
+function createNavigationButtons(currentPage, totalPages) {
+    const row = new ActionRowBuilder();
+    const categories = [
+        { id: 'getting_started', label: 'Getting Started', page: 0 },
+        { id: 'finding', label: 'Finding Fics', page: 1 },
+        { id: 'managing', label: 'Managing', page: 2 },
+        { id: 'features', label: 'Features & Help', page: 3 }
+    ];
+    categories.forEach(category => {
+        row.addComponents(
+            new ButtonBuilder()
+                .setCustomId(buildRecHelpButtonId(category.id))
+                .setLabel(category.label)
+                .setStyle(category.page === currentPage ? ButtonStyle.Primary : ButtonStyle.Secondary)
+                .setDisabled(false)
+        );
+    });
+    return row;
+}
+
 // Handles navigation for the rec help menu buttons.
 async function handleHelpNavigation(interaction) {
     try {
@@ -21,7 +50,7 @@ async function handleHelpNavigation(interaction) {
     } catch (error) {
         console.error('Error in handleHelpNavigation:', error);
         try {
-            const { InteractionFlags } = require('discord.js');
+                import { InteractionFlags } from 'discord.js';
             await interaction.reply({
                 content: 'Sorry, something went wrong with the help navigation. Try using `/rec help` again.',
                 flags: InteractionFlags.Ephemeral
@@ -30,13 +59,6 @@ async function handleHelpNavigation(interaction) {
             console.error('Failed to send error message:', replyError);
         }
     }
-}
-
-const { EmbedBuilder, MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-
-// Centralized builder for rec help menu button IDs
-function buildRecHelpButtonId(category) {
-    return `rec_help_${category}`;
 }
 
 // Helper: Creates the help pages for the rec system.
@@ -210,27 +232,6 @@ function createHelpPages() {
     return pages;
 }
 
-// Helper: Builds the navigation buttons for the help menu.
-function createNavigationButtons(currentPage, totalPages) {
-    const row = new ActionRowBuilder();
-    const categories = [
-        { id: 'getting_started', label: 'Getting Started', page: 0 },
-        { id: 'finding', label: 'Finding Fics', page: 1 },
-        { id: 'managing', label: 'Managing', page: 2 },
-        { id: 'features', label: 'Features & Help', page: 3 }
-    ];
-    categories.forEach(category => {
-        row.addComponents(
-            new ButtonBuilder()
-                .setCustomId(buildRecHelpButtonId(category.id))
-                .setLabel(category.label)
-                .setStyle(category.page === currentPage ? ButtonStyle.Primary : ButtonStyle.Secondary)
-                .setDisabled(false)
-        );
-    });
-    return row;
-}
-
 // Main help command handler
 async function handleHelp(interaction) {
     if (Date.now() - interaction.createdTimestamp > 14 * 60 * 1000) {
@@ -249,7 +250,7 @@ async function handleHelp(interaction) {
     });
 }
 
-module.exports = {
+export {
     handleHelp,
     handleHelpNavigation,
     createHelpPages,

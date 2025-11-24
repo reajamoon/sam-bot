@@ -1,7 +1,7 @@
-const { Recommendation } = require('../../../../models');
-const { Op } = require('sequelize');
-const createSearchResultsEmbed = require('../../../../shared/recUtils/createSearchResultsEmbed');
-const { buildSearchPaginationRow } = require('../../../../shared/recUtils/searchPagination');
+import { Recommendation } from '../../../../models/index.js';
+import { Op } from 'sequelize';
+import createSearchResultsEmbed from '../../../../shared/recUtils/createSearchResultsEmbed.js';
+import { buildSearchPaginationRow } from '../../../../shared/recUtils/searchPagination.js';
 
 /**
  * Handles button interactions for search pagination.
@@ -47,4 +47,4 @@ async function handleSearchPagination(interaction) {
     });
 }
 
-module.exports = handleSearchPagination;
+export default handleSearchPagination;

@@ -1,9 +1,14 @@
-const updateMessages = require('../../../../shared/text/updateMessages');
-const isValidFanficUrl = require('../../../../shared/recUtils/isValidFanficUrl');
-const processRecommendationJob = require('../../../../shared/recUtils/processRecommendationJob');
+import updateMessages from '../../../../shared/text/updateMessages.js';
+import isValidFanficUrl from '../../../../shared/recUtils/isValidFanficUrl.js';
+import processRecommendationJob from '../../../../shared/recUtils/processRecommendationJob.js';
+import normalizeAO3Url from '../../../../shared/recUtils/normalizeAO3Url.js';
+import { Recommendation } from '../../../../models/index.js';
+import createOrJoinQueueEntry from '../../../../shared/recUtils/createOrJoinQueueEntry.js';
+import { createRecommendationEmbed } from '../../../../shared/recUtils/asyncEmbeds.js';
+import { fetchRecWithSeries } from '../../../../models/fetchRecWithSeries.js';
 
 // Adds a new fic rec. Checks for duplicates, fetches metadata, and builds the embed.
-async function handleAddRecommendation(interaction) {
+export default async function handleAddRecommendation(interaction) {
   try {
     console.log('[rec add] Handler called', {
       user: interaction.user?.id,
@@ -12,7 +17,6 @@ async function handleAddRecommendation(interaction) {
     });
     await interaction.deferReply();
 
-  const normalizeAO3Url = require('../../../../shared/recUtils/normalizeAO3Url');
     let url = interaction.options.getString('url');
     url = normalizeAO3Url(url);
     const manualTitle = interaction.options.getString('title');
@@ -35,8 +39,7 @@ async function handleAddRecommendation(interaction) {
     }
 
     // --- Fic Parsing Queue Logic ---
-    const { Recommendation } = require('../../../../models');
-    const createOrJoinQueueEntry = require('../../../../shared/recUtils/createOrJoinQueueEntry');
+    // Recommendation and createOrJoinQueueEntry already imported above
     // AO3 series batch parse logic (queue only, never handled by Sam)
     if (/archiveofourown\.org\/series\//.test(url)) {
       // Check if series already exists
@@ -48,7 +51,6 @@ async function handleAddRecommendation(interaction) {
         });
       }
       // Use modular queue utility for series
-      const createOrJoinQueueEntry = require('../../../../shared/recUtils/createOrJoinQueueEntry');
       const { queueEntry, status, message } = await createOrJoinQueueEntry(url, interaction.user.id);
       if (status === 'processing') {
         return await interaction.editReply({
@@ -56,9 +58,6 @@ async function handleAddRecommendation(interaction) {
         });
       } else if (status === 'done' && queueEntry.result) {
         // Return cached result (simulate embed)
-        const { Recommendation } = require('../../../../models');
-        import { createRecommendationEmbed } from '../../../../shared/recUtils/asyncEmbeds.js';
-        const { fetchRecWithSeries } = require('../../../../models/fetchRecWithSeries');
         const rec = await Recommendation.findOne({ where: { url } });
         if (rec) {
           const recWithSeries = await fetchRecWithSeries(rec.id, true);
@@ -122,9 +121,6 @@ async function handleAddRecommendation(interaction) {
       });
     } else if (status === 'done' && queueEntry.result) {
       // Return cached result: fetch Recommendation and build embed directly (no AO3 access)
-      const { Recommendation } = require('../../../../models');
-      import { createRecommendationEmbed } from '../../../../shared/recUtils/asyncEmbeds.js';
-      const { fetchRecWithSeries } = require('../../../../models/fetchRecWithSeries');
       const rec = await Recommendation.findOne({ where: { url } });
       if (rec) {
         const recWithSeries = await fetchRecWithSeries(rec.id, true);
@@ -171,4 +167,4 @@ async function handleAddRecommendation(interaction) {
     return;
   }
 }
-module.exports = handleAddRecommendation;
+export default handleAddRecommendation;

@@ -1,9 +1,8 @@
 // Handler to clear all queue jobs for a fic URL (admin/mod only)
-const { InteractionFlags } = require('discord.js');
-const { ParseQueue } = require('../../../../models');
+import { MessageFlags } from 'discord.js';
+import { ParseQueue, Recommendation } from '../../../../models/index.js';
 
-module.exports = async function handleClearQueue(interaction) {
-  const { MessageFlags } = require('discord.js');
+export default async function handleClearQueue(interaction) {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   // Allow only admins or mods
   if (!interaction.member.permissions.has('ManageGuild') && !interaction.member.permissions.has('ManageMessages')) {
@@ -18,7 +17,6 @@ module.exports = async function handleClearQueue(interaction) {
   let urlsToClear = [url];
   if (/archiveofourown\.org\/series\//.test(url)) {
     try {
-      const { Recommendation } = require('../../../../models');
       const seriesRec = await Recommendation.findOne({ where: { url } });
       if (seriesRec && Array.isArray(seriesRec.series_works)) {
         urlsToClear = [url, ...seriesRec.series_works.map(w => w.url).filter(Boolean)];
@@ -34,4 +32,4 @@ module.exports = async function handleClearQueue(interaction) {
   } else {
     await interaction.editReply({ content: 'No queue entries found for that URL.' });
   }
-};
+}

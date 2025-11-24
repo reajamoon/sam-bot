@@ -1,9 +1,9 @@
 // resetQueueHandler.js
 // Handler for /rec resetqueue command: resets all jobs stuck in 'processing' back to 'pending'
-const { ParseQueue } = require('../../../../models');
+import { ParseQueue } from '../../../../models/index.js';
+import { MessageFlags } from 'discord.js';
 
-module.exports = async function handleResetQueue(interaction) {
-  const { MessageFlags } = require('discord.js');
+export default async function handleResetQueue(interaction) {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   // Allow admins or mods (ManageGuild or ManageMessages)
   if (!interaction.member.permissions.has('ManageGuild') && !interaction.member.permissions.has('ManageMessages')) {
@@ -19,4 +19,4 @@ module.exports = async function handleResetQueue(interaction) {
   } else {
     await interaction.editReply({ content: 'No stuck jobs found. The queue is either empty or already pending.' });
   }
-};
+}
