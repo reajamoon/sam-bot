@@ -1,14 +1,13 @@
 // ao3BrowserManager.js
 // Handles shared Puppeteer browser instance, logging, and resource monitoring for AO3 utilities.
 
-const puppeteer = require('puppeteer');
-
+import puppeteer from 'puppeteer';
 
 let sharedBrowser = null;
 let sharedBrowserUseCount = 0;
 let resetMutex = Promise.resolve();
 
-async function resetSharedBrowser() {
+export async function resetSharedBrowser() {
     let release;
     const lock = new Promise(res => { release = res; });
     const prev = resetMutex;
@@ -26,16 +25,16 @@ async function resetSharedBrowser() {
         release();
     }
 }
-const SHARED_BROWSER_MAX_USES = 25;
+export const SHARED_BROWSER_MAX_USES = 25;
 const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:118.0) Gecko/20100101 Firefox/118.0';
 let currentUserAgent = userAgent;
 
-function logBrowserEvent(msg) {
+export function logBrowserEvent(msg) {
     const now = new Date().toISOString();
     console.log(`[AO3][Browser] ${now} ${msg}`);
 }
 
-async function getSharedBrowser() {
+export async function getSharedBrowser() {
     if (
         sharedBrowser &&
         sharedBrowser.process() &&
@@ -69,7 +68,6 @@ async function getSharedBrowser() {
         throw err;
     }
 }
-// (saveUserAgentMeta removed)
 
 function setupBrowserShutdown() {
     const shutdown = async () => {
@@ -106,13 +104,6 @@ setInterval(async () => {
     }
 }, 10 * 60 * 1000);
 
-function getCurrentUserAgent() {
+export function getCurrentUserAgent() {
     return currentUserAgent;
 }
-
-module.exports = {
-    getSharedBrowser,
-    logBrowserEvent,
-    getCurrentUserAgent,
-    resetSharedBrowser
-};

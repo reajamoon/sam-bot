@@ -1,8 +1,9 @@
 // ao3ShareParser.js
 // Utility to parse AO3 share HTML export
 
-function parseAo3ShareHtml(html) {
-    const updateMessages = require('../text/updateMessages'); // already correct, no change needed
+import updateMessages from '../text/updateMessages.js';
+
+export function parseAo3ShareHtml(html) {
     const result = {};
     let errors = [];
     // More robust: allow for extra whitespace and missing <strong> tags
@@ -52,5 +53,3 @@ function parseAo3ShareHtml(html) {
     }
     return result;
 }
-
-module.exports = { parseAo3ShareHtml };

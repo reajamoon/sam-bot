@@ -1,7 +1,7 @@
 // Utility to extract an array of tag strings from a Cheerio <dd> element
 // Usage: const tags = parseTagList($, ddElement);
 
-const decodeHtmlEntities = require('../decodeHtmlEntities');
+import decodeHtmlEntities from '../decodeHtmlEntities.js';
 
 /**
  * Extracts an array of tag strings from a Cheerio <dd> element containing AO3 tags.
@@ -9,7 +9,7 @@ const decodeHtmlEntities = require('../decodeHtmlEntities');
  * @param {Cheerio} ddElement - The <dd> element containing <a class="tag"> children.
  * @returns {string[]} Array of tag strings.
  */
-function parseTagList($, ddElem) {
+export function parseTagList($, ddElem) {
     if (!ddElem || ddElem.length === 0) return [];
     const tags = [];
     ddElem.find('a.tag').each((i, el) => {
@@ -30,47 +30,35 @@ function excludeChapters($, selector) {
     });
 }
 
-function freeformTags($) {
+export function freeformTags($) {
     return parseTagList($, excludeChapters($, 'dd.freeform.tags'));
 }
 
-function archiveWarnings($) {
+export function archiveWarnings($) {
     return parseTagList($, excludeChapters($, 'dd.warning.tags'));
 }
 
-function relationshipTags($) {
+export function relationshipTags($) {
     return parseTagList($, excludeChapters($, 'dd.relationship.tags'));
 }
 
-function characterTags($) {
+export function characterTags($) {
     return parseTagList($, excludeChapters($, 'dd.character.tags'));
 }
 
-function categoryTags($) {
+export function categoryTags($) {
     return parseTagList($, excludeChapters($, 'dd.category.tags'));
 }
 
-function fandomTags($) {
+export function fandomTags($) {
     return parseTagList($, excludeChapters($, 'dd.fandom.tags'));
 }
 
-function requiredTags($) {
+export function requiredTags($) {
     return parseTagList($, excludeChapters($, 'dd.required.tags'));
 }
 
 // General utility for custom tag class
-function customTags($, dlElem, className) {
+export function customTags($, dlElem, className) {
     return parseTagList($, dlElem.find(`dd.${className}.tags`));
 }
-
-module.exports = {
-    parseTagList,
-    freeformTags,
-    archiveWarnings,
-    relationshipTags,
-    characterTags,
-    categoryTags,
-    fandomTags,
-    requiredTags,
-    customTags,
-};
