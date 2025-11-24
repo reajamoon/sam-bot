@@ -1,9 +1,8 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
-const logger = require('../../../../../shared/utils/logger');
-const { buildButtonId } = require('../../../../../shared/utils/buttonId');
-const { parseProfileSettingsCustomId, getProfileOwnerIdFromInteraction } = require('../../../../../shared/utils/messageTracking');
-const { buildProfileSettingsDoneCustomId } = require('../../../../../shared/utils/messageTracking');
-const { buildModalCustomId, buildSelectMenuCustomId, buildInputCustomId } = require('../../../../../shared/utils/messageTracking');
+
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
+import logger from '../../../../../shared/utils/logger.js';
+import { buildButtonId } from '../../../../../shared/utils/buttonId.js';
+import { parseProfileSettingsCustomId, getProfileOwnerIdFromInteraction, buildProfileSettingsDoneCustomId, buildModalCustomId, buildSelectMenuCustomId, buildInputCustomId } from '../../../../../shared/utils/messageTracking.js';
 
 // Centralized builder for profile settings buttons
 function buildProfileSettingsButtonId(action, userId, messageId) {
@@ -24,9 +23,9 @@ function buildProfileSettingsDoneButtonId(userId, messageId) {
     });
 }
 
-async function handleSettingsMenu(interaction) {
+export async function handleSettingsMenu(interaction) {
     // message tracking
-    const { getProfileMessageId, buildProfileButtonId } = require('../../../../../shared/utils/messageTracking');
+    const { getProfileMessageId, buildProfileButtonId } = await import('../../../../../shared/utils/messageTracking.js');
     const profileOwnerId = interaction.user.id;
     const originalMessageId = getProfileMessageId(interaction, interaction.customId);
 
@@ -169,8 +168,4 @@ async function handleSettingsMenu(interaction) {
             flags: 64
         });
     }
-
-    // ...existing code...
 }
-
-module.exports = { handleSettingsMenu };

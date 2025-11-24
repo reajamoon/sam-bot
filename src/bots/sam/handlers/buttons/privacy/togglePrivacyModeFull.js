@@ -1,13 +1,13 @@
 // Handler for toggling full privacy mode
-const { User } = require('../../../../../models');
-const { parsePrivacySettingsCustomId } = require('../../../../../shared/utils/messageTracking');
-const { getProfileMessageId } = require('../../../utils/profileMessageTracker');
-const { buildPrivacySettingsMenu } = require('./privacyMenu');
-const { performDualUpdate } = require('../../../../../shared/utils/dualUpdate');
-const logger = require('../../../../../shared/utils/logger');
-const { InteractionFlags } = require('discord.js');
+import { User } from '../../../../../models/index.js';
+import { parsePrivacySettingsCustomId } from '../../../../../shared/utils/messageTracking.js';
+import { getProfileMessageId } from '../../../utils/profileMessageTracker.js';
+import { buildPrivacySettingsMenu } from './privacyMenu.js';
+import { performDualUpdate } from '../../../../../shared/utils/dualUpdate.js';
+import logger from '../../../../../shared/utils/logger.js';
+import { InteractionFlags, EmbedBuilder } from 'discord.js';
 
-module.exports = async function handleTogglePrivacyModeFull(interaction) {
+export default async function handleTogglePrivacyModeFull(interaction) {
     // Ephemeral message flag pattern: use InteractionFlags.Ephemeral if available, otherwise fallback to 64.
     // This ensures compatibility across discord.js versions and prevents undefined errors.
     const ephemeralFlag = typeof InteractionFlags !== 'undefined' && InteractionFlags.Ephemeral ? InteractionFlags.Ephemeral : 64;
@@ -73,7 +73,6 @@ module.exports = async function handleTogglePrivacyModeFull(interaction) {
         );
 
         if (bypassDualUpdate) {
-            const { EmbedBuilder } = require('discord.js');
             const warningEmbed = new EmbedBuilder()
                 .setColor(0xFAA61A)
                 .setDescription('⚠️ Your privacy setting was updated, but it won\'t show on your profile until a new profile is generated with `/profile`.');
@@ -101,4 +100,4 @@ module.exports = async function handleTogglePrivacyModeFull(interaction) {
             await interaction.reply({ content: errorMsg, flags: ephemeralFlag });
         }
     }
-};
+}

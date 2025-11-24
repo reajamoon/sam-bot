@@ -1,9 +1,10 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
-const logger = require('../../../../../shared/utils/logger');
-const { buildButtonId, parseButtonId } = require('../../../../../shared/utils/buttonId');
 
-async function handleBackToProfileSettings(interaction) {
-    const { getProfileMessageId, buildProfileButtonId } = require('../../../../../shared/utils/messageTracking');
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
+import logger from '../../../../../shared/utils/logger.js';
+import { buildButtonId, parseButtonId } from '../../../../../shared/utils/buttonId.js';
+
+export async function handleBackToProfileSettings(interaction) {
+    const { getProfileMessageId, buildProfileButtonId } = await import('../../../../../shared/utils/messageTracking.js');
     const targetUserId = interaction.user.id;
     const originalMessageId = getProfileMessageId(interaction, interaction.customId);
     // Validate the messageId if provided
@@ -94,5 +95,3 @@ async function handleBackToProfileSettings(interaction) {
         components: [row1, row2]
     });
 }
-
-module.exports = { handleBackToProfileSettings };

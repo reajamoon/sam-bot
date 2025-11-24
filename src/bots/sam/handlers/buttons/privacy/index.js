@@ -1,16 +1,7 @@
 
-const { buildPrivacySettingsMenu } = require('./privacyMenu');
-const handleToggleBirthdayMentions = require('./toggleBirthdayMentions');
-const handleToggleBirthdayLists = require('./toggleBirthdayLists');
-const handleTogglePrivacyModeFull = require('./togglePrivacyModeFull');
-const handleTogglePrivacyModeAgeHidden = require('./togglePrivacyModeAgeHidden');
-const handleToggleBirthdayHidden = require('./toggleBirthdayHidden');
-
-module.exports = {
-    buildPrivacySettingsMenu,
-    handleToggleBirthdayMentions,
-    handleToggleBirthdayLists,
-    handleTogglePrivacyModeFull,
-    handleTogglePrivacyModeAgeHidden,
-    handleToggleBirthdayHidden,
-};
+export { buildPrivacySettingsMenu } from './privacyMenu.js';
+export { default as handleToggleBirthdayMentions } from './toggleBirthdayMentions.js';
+export { default as handleToggleBirthdayLists } from './toggleBirthdayLists.js';
+export { default as handleTogglePrivacyModeFull } from './togglePrivacyModeFull.js';
+export { default as handleTogglePrivacyModeAgeHidden } from './togglePrivacyModeAgeHidden.js';
+export { default as handleToggleBirthdayHidden } from './toggleBirthdayHidden.js';

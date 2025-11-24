@@ -1,18 +1,17 @@
 // Handler for toggling age-hidden privacy mode
-const { User } = require('../../../../../models');
-const { getProfileMessageId } = require('../../../../../shared/utils/messageTracking');
-const { buildPrivacySettingsMenu } = require('./privacyMenu');
-const { performDualUpdate } = require('../../../../../shared/utils/dualUpdate');
-const logger = require('../../../../../shared/utils/logger');
-const { InteractionFlags } = require('discord.js');
+import { User } from '../../../../../models/index.js';
+import { getProfileMessageId, parsePrivacySettingsCustomId } from '../../../../../shared/utils/messageTracking.js';
+import { buildPrivacySettingsMenu } from './privacyMenu.js';
+import { performDualUpdate } from '../../../../../shared/utils/dualUpdate.js';
+import logger from '../../../../../shared/utils/logger.js';
+import { InteractionFlags, EmbedBuilder } from 'discord.js';
 
-module.exports = async function handleTogglePrivacyModeAgeHidden(interaction) {
+export default async function handleTogglePrivacyModeAgeHidden(interaction) {
     // Ephemeral message flag pattern: use InteractionFlags.Ephemeral if available, otherwise fallback to 64.
     // This ensures compatibility across discord.js versions and prevents undefined errors.
     const ephemeralFlag = typeof InteractionFlags !== 'undefined' && InteractionFlags.Ephemeral ? InteractionFlags.Ephemeral : 64;
     try {
         // Extract the original profile card message ID from the customId only
-        const { parsePrivacySettingsCustomId } = require('../../../../../shared/utils/messageTracking');
         let originalMessageId = null;
         const parsed = parsePrivacySettingsCustomId(interaction.customId);
         if (parsed && parsed.messageId && /^\d{17,19}$/.test(parsed.messageId)) {
@@ -73,7 +72,6 @@ module.exports = async function handleTogglePrivacyModeAgeHidden(interaction) {
         );
 
         if (bypassDualUpdate) {
-            const { EmbedBuilder } = require('discord.js');
             const warningEmbed = new EmbedBuilder()
                 .setColor(0xFAA61A)
                 .setDescription('⚠️ Your privacy mode was updated, but it won\'t show on your profile until a new profile is generated.');
@@ -101,4 +99,4 @@ module.exports = async function handleTogglePrivacyModeAgeHidden(interaction) {
             await interaction.reply({ content: errorMsg, flags: ephemeralFlag });
         }
     }
-};
+}

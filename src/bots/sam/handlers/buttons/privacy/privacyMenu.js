@@ -1,9 +1,11 @@
 
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { buildButtonId } = require('../../../../../shared/utils/buttonId');
-const { buildPrivacySettingsDoneCustomId } = require('../../../../../shared/utils/messageTracking');
-const menuTexts = require('../../../../../shared/text/menuTexts.json').privacy;
-const { encodeMessageId } = require('../../../../../shared/utils/messageTracking');
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { buildButtonId } from '../../../../../shared/utils/buttonId.js';
+import { buildPrivacySettingsDoneCustomId, encodeMessageId } from '../../../../../shared/utils/messageTracking.js';
+import menuTextsAll from '../../../../../shared/text/menuTexts.json' assert { type: 'json' };
+import logger from '../../../../../shared/utils/logger.js';
+
+const menuTexts = menuTextsAll.privacy;
 
 function buildPrivacySettingsButtonId(action, userId, messageId) {
     return buildButtonId({
@@ -23,7 +25,7 @@ function buildPrivacySettingsDoneButtonId(userId, messageId) {
     });
 }
 
-function buildPrivacySettingsMenu(userData, userId, messageId = null, validatedMessageId = null, interaction = null) {
+export function buildPrivacySettingsMenu(userData, userId, messageId = null, validatedMessageId = null, interaction = null) {
     const mentionsEnabled = userData.birthdayMentions !== false;
     const announcementsEnabled = userData.birthdayAnnouncements !== false;
     const privacyModeFull = userData.birthdayAgePrivacy === true;
@@ -32,7 +34,6 @@ function buildPrivacySettingsMenu(userData, userId, messageId = null, validatedM
     const isPrivacyModeStrict = userData.birthdayYearHidden === true;
 
     // Strictly require validatedMessageId or messageId (must be original profile card message ID)
-    const logger = require('../../../../../shared/utils/logger');
     let effectiveMsgId = validatedMessageId || messageId;
     if (!effectiveMsgId || !/^\d{17,19}$/.test(effectiveMsgId)) {
         logger.error('[PrivacyMenu] Missing or invalid original profile card message ID for menu builder', { validatedMessageId, messageId });
@@ -99,5 +100,3 @@ function buildPrivacySettingsMenu(userData, userId, messageId = null, validatedM
     };
     return { components: [row1, row2, row3], embeds: [embed] };
 }
-
-module.exports = { buildPrivacySettingsMenu };
