@@ -59,7 +59,10 @@ function addTagsField(embed, tags) {
 }
 
 async function createRecommendationEmbed(rec) {
-    // Defensive checks for required fields
+    // Always convert Sequelize instance to plain object
+    if (rec && typeof rec.get === 'function') {
+        rec = rec.get({ plain: true });
+    }
     const safeTitle = rec.title || 'Untitled';
     const safeUrl = rec.url || 'https://archiveofourown.org/';
     const safeUsername = rec.recommendedByUsername || 'Unknown';
@@ -98,7 +101,12 @@ async function createSeriesEmbed(rec) {
         .setFooter({
             text: `From the Profound Bond Library • Recommended by ${rec.recommendedByUsername} • ID: ${rec.id}`
         });
-    let authorLine = (rec.authors && Array.isArray(rec.authors)) ? rec.authors.join(', ') : (rec.author || 'Unknown Author');
+    let authorLine = 'Unknown Author';
+    if (Array.isArray(rec.authors) && rec.authors.length > 0) {
+        authorLine = rec.authors.join(', ');
+    } else if (typeof rec.author === 'string' && rec.author.trim()) {
+        authorLine = rec.author.trim();
+    }
     let desc = `**By:** ${authorLine}`;
     let summary = rec.summary;
     if (!summary && Array.isArray(rec.series_works) && rec.series_works.length > 0) {
@@ -237,7 +245,12 @@ async function createWorkEmbed(rec) {
         .setFooter({
             text: `From the Profound Bond Library • Recommended by ${rec.recommendedByUsername} • ID: ${rec.id}`
         });
-    let authorLine = (rec.authors && Array.isArray(rec.authors)) ? rec.authors.join(', ') : (rec.author || 'Unknown Author');
+    let authorLine = 'Unknown Author';
+    if (Array.isArray(rec.authors) && rec.authors.length > 0) {
+        authorLine = rec.authors.join(', ');
+    } else if (typeof rec.author === 'string' && rec.author.trim()) {
+        authorLine = rec.author.trim();
+    }
     let desc = `**By:** ${authorLine}`;
     if (rec.summary) {
         desc += `\n\n${rec.summary}`;

@@ -14,10 +14,11 @@ async function notifyQueueSubscribers(client) {
             const userIds = subscribers.map(s => s.user_id);
             const users = await User.findAll({ where: { discordId: userIds } });
             let embed = null;
-            // Always fetch the Recommendation by rec ID only
-            const { Recommendation } = require('../../../models');
+            // Always fetch Recommendation from the database for DONE jobs
+            let embed = null;
             let rec = null;
             if (job.result && job.result.id) {
+                const { Recommendation } = require('../../../models');
                 rec = await Recommendation.findByPk(job.result.id);
             }
             if (rec) {
@@ -27,17 +28,17 @@ async function notifyQueueSubscribers(client) {
                     console.error('Failed to build embed with createRecommendationEmbed:', err);
                 }
             } else {
-                console.warn(`No Recommendation found for rec ID: ${job.result && job.result.id}`);
+                console.warn(`[Poller] No Recommendation found for rec ID: ${job.result && job.result.id} (job id: ${job.id}, url: ${job.fic_url})`);
             }
             const configEntry = await Config.findOne({ where: { key: 'fic_queue_channel' } });
             const channelId = configEntry ? configEntry.value : null;
             if (!channelId) {
-                console.warn('No fic_queue_channel configured; skipping queue notifications.');
+                console.warn(`[Poller] No fic_queue_channel configured; skipping queue notifications for job id: ${job.id}, url: ${job.fic_url}`);
                 continue;
             }
             const channel = client.channels.cache.get(channelId);
             if (!channel) {
-                console.warn(`Fic queue notification channel ${channelId} not found.`);
+                console.warn(`[Poller] Fic queue notification channel ${channelId} not found; skipping notification for job id: ${job.id}, url: ${job.fic_url}`);
                 continue;
             }
             // For instant_candidate jobs, do not @mention users, but still send embed
@@ -50,9 +51,11 @@ async function notifyQueueSubscribers(client) {
                 await channel.send({ content: contentMsg });
                 if (embed) {
                     await channel.send({ embeds: [embed] });
+                } else {
+                    console.warn(`[Poller] No embed built for job id: ${job.id}, url: ${job.fic_url}`);
                 }
             } catch (err) {
-                console.error('Failed to send fic queue notification:', err);
+                console.error('[Poller] Failed to send fic queue notification:', err, `job id: ${job.id}, url: ${job.fic_url}`);
             }
             await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
         }

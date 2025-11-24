@@ -55,69 +55,6 @@ for (const file of eventFiles) {
     logger.info(`Loaded event: ${event.name}`);
 }
 
-// Poller: Notify queue subscribers for completed jobs
-async function notifyQueueSubscribers() {
-    try {
-        const doneJobs = await ParseQueue.findAll({
-            where: { status: 'done' },
-            include: [{ model: ParseQueueSubscriber, as: 'subscribers' }]
-        });
-        for (const job of doneJobs) {
-            const subscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: job.id } });
-            if (!subscribers.length) continue;
-            // --- Instant candidate suppression logic ---
-            let thresholdMs = 3000; // default 3 seconds
-            const thresholdConfig = await Config.findOne({ where: { key: 'instant_queue_suppress_threshold_ms' } });
-            if (thresholdConfig && !isNaN(Number(thresholdConfig.value))) {
-                thresholdMs = Number(thresholdConfig.value);
-            }
-            const submittedAt = job.submitted_at ? new Date(job.submitted_at) : null;
-            const elapsed = submittedAt ? (Date.now() - submittedAt.getTime()) : null;
-            if (job.instant_candidate && elapsed !== null && elapsed < thresholdMs) {
-                // Clean up subscribers silently, do not notify
-                await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
-                continue;
-            }
-            // --- End instant candidate suppression logic ---
-            const userIds = subscribers.map(s => s.user_id);
-            const users = await User.findAll({ where: { discordId: userIds } });
-            let embed = null;
-            if (job.result && job.result.title) {
-                try {
-                    const rec = { ...job.result, url: job.fic_url, id: job.id };
-                    embed = await createRecommendationEmbed(rec);
-                } catch (err) {
-                    logger.error('Failed to build embed with createRecommendationEmbed:', err);
-                }
-            }
-            const configEntry = await Config.findOne({ where: { key: 'fic_queue_channel' } });
-            const channelId = configEntry ? configEntry.value : null;
-            if (!channelId) {
-                logger.warn('No fic_queue_channel configured; skipping queue notifications.');
-                continue;
-            }
-            const channel = client.channels.cache.get(channelId);
-            if (!channel) {
-                logger.warn(`Fic queue notification channel ${channelId} not found.`);
-                continue;
-            }
-            const mentionList = users.filter(u => u.queueNotifyTag !== false).map(u => `<@${u.discordId}>`).join(' ');
-            try {
-                await channel.send({
-                    content: `>>> ${mentionList ? mentionList + ' ' : ''}Your fic parsing job is done!\n` + (job.fic_url ? `\n<${job.fic_url}>` : ''),
-                });
-                if (embed) {
-                    await channel.send({ embeds: [embed] });
-                }
-            } catch (err) {
-                logger.error('Failed to send fic queue notification:', err);
-            }
-            await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
-        }
-    } catch (err) {
-        logger.error('Error in queue notification poller:', err);
-    }
-}
 
 // Database and bot startup
 async function startBot() {
