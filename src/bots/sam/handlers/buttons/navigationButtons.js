@@ -1,3 +1,3 @@
-const { handleNavigationButtons } = require('./navigation');
+import { handleNavigationButtons } from './navigation/index.js';
 
-module.exports = { handleNavigationButtons };
+export { handleNavigationButtons };

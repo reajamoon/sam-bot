@@ -9,7 +9,7 @@ import { handleInteractionNavigation } from '../../../../shared/utils/interactio
 /**
  * Handle privacy and settings button interactions
  */
-async function handlePrivacyButtons(interaction) {
+export async function handlePrivacyButtons(interaction) {
     // Extract userId and messageId from customId using utility
     const { getProfileOwnerIdFromInteraction } = await import('../../../../shared/utils/messageTracking.js');
     const trackedData = parsePrivacySettingsCustomId(interaction.customId);
@@ -105,5 +105,3 @@ async function handlePrivacyButtons(interaction) {
     }
     // Additional privacy toggle handlers would go here...
 }
-
-export { handlePrivacyButtons, buildPrivacySettingsMenu };
