@@ -1,7 +1,7 @@
 // ao3QueueRateHelper.js
 // Utility for AO3 queue-aware rate limiting
 
-const MIN_INTERVAL_MS = parseInt(process.env.AO3_MIN_REQUEST_INTERVAL_MS, 10) || 6000;
+const MIN_INTERVAL_MS = parseInt(process.env.AO3_MIN_REQUEST_INTERVAL_MS, 10) || 12000;
 let lastRequestTime = 0;
 
 function getNextAvailableAO3Time(numRequests = 1) {
