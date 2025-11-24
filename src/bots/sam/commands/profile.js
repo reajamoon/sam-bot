@@ -1,10 +1,11 @@
-const { SlashCommandBuilder } = require('discord.js');
-const handleProfileHelp = require('./profile/helpHandler');
-const handleProfileSettings = require('./profile/settingsHandler');
-const handlePrivacySettings = require('./profile/privacyHandler');
-const handleProfileView = require('./profile/viewHandler');
 
-module.exports = {
+import { SlashCommandBuilder, InteractionFlags } from 'discord.js';
+import handleProfileHelp from './profile/helpHandler.js';
+import handleProfileSettings from './profile/settingsHandler.js';
+import handlePrivacySettings from './profile/privacyHandler.js';
+import handleProfileView from './profile/viewHandler.js';
+
+export default {
     data: new SlashCommandBuilder()
         .setName('profile')
         .setDescription('View user profile information or get help')
@@ -26,7 +27,6 @@ module.exports = {
         console.log('Profile command starting...');
         const quick = interaction.options.getString('quick');
         if (quick === 'help') {
-            const { InteractionFlags } = require('discord.js');
             const ephemeralFlag = InteractionFlags?.Ephemeral ?? 64;
             await interaction.deferReply({ flags: ephemeralFlag });
             console.log('Profile help deferred as ephemeral');

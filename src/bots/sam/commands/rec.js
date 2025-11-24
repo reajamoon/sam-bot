@@ -3,19 +3,19 @@
  * Main command router for the /rec slash command. Handles routing to subcommand handlers for fanfiction recommendations.
  * @module commands/rec
  */
-const { SlashCommandBuilder, EmbedBuilder, MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { Recommendation } = require('../../../models');
-const handleAddRecommendation = require('./recHandlers/addHandler');
-const handleRemoveRecommendation = require('./recHandlers/removeHandler');
-const handleRandomRecommendation = require('./recHandlers/randomHandler');
-const handleStats = require('./recHandlers/statsHandler');
-const { fetchFicMetadata } = require('../../../shared/recUtils/ficParser');
-const findRecommendationByIdOrUrl = require('../../../shared/recUtils/findRecommendationByIdOrUrl');
-const createRecommendationEmbed = require('../../../shared/recUtils/createRecommendationEmbed');
-const handleUpdateRecommendation = require('./recHandlers/updateHandler');
-const handleSearchRecommendations = require('./recHandlers/searchHandler');
-const { handleHelp, handleHelpNavigation } = require('./recHandlers/helpHandler');
-const quickLinkCheck = require('../../../shared/recUtils/quickLinkCheck');
+import { SlashCommandBuilder, EmbedBuilder, MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { Recommendation } from '../../../models/index.js';
+import handleAddRecommendation from './recHandlers/addHandler.js';
+import handleRemoveRecommendation from './recHandlers/removeHandler.js';
+import handleRandomRecommendation from './recHandlers/randomHandler.js';
+import handleStats from './recHandlers/statsHandler.js';
+import { fetchFicMetadata } from '../../../shared/recUtils/ficParser.js';
+import findRecommendationByIdOrUrl from '../../../shared/recUtils/findRecommendationByIdOrUrl.js';
+import createRecommendationEmbed from '../../../shared/recUtils/createRecommendationEmbed.js';
+import handleUpdateRecommendation from './recHandlers/updateHandler.js';
+import handleSearchRecommendations from './recHandlers/searchHandler.js';
+import { handleHelp, handleHelpNavigation } from './recHandlers/helpHandler.js';
+import quickLinkCheck from '../../../shared/recUtils/quickLinkCheck.js';
 
 /**
  * Main /rec command export object.
@@ -25,7 +25,7 @@ const quickLinkCheck = require('../../../shared/recUtils/quickLinkCheck');
  *   handleHelpNavigation: function(Discord.Interaction): Promise<void>
  * }}
  */
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('rec')
         .setDescription('Manage fanfiction recommendations')
@@ -212,9 +212,9 @@ module.exports = {
 
         const subcommand = interaction.options.getSubcommand();
 
-        const handleQueue = require('./recHandlers/queueHandler');
-        const handleResetQueue = require('./recHandlers/resetQueueHandler');
-        const handleRecNotifyTag = require('./recHandlers/recNotifyTag');
+        const handleQueue = (await import('./recHandlers/queueHandler.js')).default;
+        const handleResetQueue = (await import('./recHandlers/resetQueueHandler.js')).default;
+        const handleRecNotifyTag = (await import('./recHandlers/recNotifyTag.js')).default;
         try {
             switch (subcommand) {
                 case 'notifytag':
@@ -245,7 +245,7 @@ module.exports = {
                         await handleResetQueue(interaction);
                         break;
                 case 'clearqueue': {
-                    const handleClearQueue = require('./recHandlers/clearQueueHandler');
+                    const handleClearQueue = (await import('./recHandlers/clearQueueHandler.js')).default;
                     await handleClearQueue(interaction);
                     break;
                 }
@@ -294,7 +294,7 @@ module.exports = {
     async handleButtonInteraction(interaction) {
         // Only handle recsearch pagination buttons
         if (interaction.customId && interaction.customId.startsWith('recsearch')) {
-            const handleSearchPagination = require('./recHandlers/searchPaginationHandler');
+            const handleSearchPagination = (await import('./recHandlers/searchPaginationHandler.js')).default;
             await handleSearchPagination(interaction);
         }
     },
