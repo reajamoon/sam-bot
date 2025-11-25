@@ -4,7 +4,7 @@ const EPHEMERAL_FLAG = typeof InteractionFlags !== 'undefined' && InteractionFla
 import { User } from '../../../../models/index.js';
 import logger from '../../../../shared/utils/logger.js';
 import { parsePrivacySettingsCustomId, parsePrivacySettingsDoneCustomId, getProfileMessageId } from '../../../../shared/utils/messageTracking.js';
-import { buildPrivacySettingsMenu } from './privacy/index.js';
+import { buildPrivacySettingsMenu } from './privacy/privacyMenu.js';
 import { performDualUpdate } from '../../../../shared/utils/dualUpdate.js';
 import { handleInteractionNavigation } from '../../../../shared/utils/interactionNavigation.js';
 /**
