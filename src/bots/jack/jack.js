@@ -136,7 +136,7 @@ async function processQueueJob(job) {
 				await job.update({ status: 'done', result: embedOrError.recommendation, error_message: null });
 				// Suppress notification if instant_candidate and within threshold
 				let thresholdMs = 3000; // default 3 seconds
-				const thresholdConfig = await Config.findOne({ key: 'instant_queue_suppress_threshold_ms' });
+				const thresholdConfig = await Config.findOne({ where: { key: 'instant_queue_suppress_threshold_ms' } });
 				if (thresholdConfig && !isNaN(Number(thresholdConfig.value))) {
 					thresholdMs = Number(thresholdConfig.value);
 				}
