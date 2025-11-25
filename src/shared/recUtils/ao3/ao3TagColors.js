@@ -60,20 +60,20 @@ export function getAo3TagColor(i, alpha = 1) {
     return `rgba(${r},${g},${b},${alpha})`;
 }
 // Helper for AO3 color interpolation (hex to rgb)
-    export function lerpHexColor(a, b, t, alpha = 1) {
-        const ah = parseInt(a.slice(1), 16), bh = parseInt(b.slice(1), 16);
-        const ar = (ah >> 16) & 255, ag = (ah >> 8) & 255, ab = ah & 255;
-        const br = (bh >> 16) & 255, bg = (bh >> 8) & 255, bb = bh & 255;
-        const r = Math.round(ar + (br - ar) * t);
-        const g = Math.round(ag + (bg - ag) * t);
-        const b = Math.round(ab + (bb - ab) * t);
-        return `rgba(${r},${g},${b},${alpha})`;
-    }
-    export function hexToRgba(hex, alpha = 0.85) {
-        const num = typeof hex === 'number' ? hex : parseInt(hex.replace('#', ''), 16);
-        const r = (num >> 16) & 255;
-        const g = (num >> 8) & 255;
-        const b = num & 255;
-        return `rgba(${r},${g},${b},${alpha})`;
-    }
+export function lerpHexColor(a, b, t, alpha = 1) {
+    const ah = parseInt(a.slice(1), 16), bh = parseInt(b.slice(1), 16);
+    const ar = (ah >> 16) & 255, ag = (ah >> 8) & 255, ab = ah & 255;
+    const br = (bh >> 16) & 255, bg = (bh >> 8) & 255, bb = bh & 255;
+    const r = Math.round(ar + (br - ar) * t);
+    const g = Math.round(ag + (bg - ag) * t);
+    const b = Math.round(ab + (bb - ab) * t);
+    return `rgba(${r},${g},${b},${alpha})`;
+}
+export function hexToRgba(hex, alpha = 0.85) {
+    const num = typeof hex === 'number' ? hex : parseInt(hex.replace('#', ''), 16);
+    const r = (num >> 16) & 255;
+    const g = (num >> 8) & 255;
+    const b = num & 255;
+    return `rgba(${r},${g},${b},${alpha})`;
+}
 export default ao3TagColors;
