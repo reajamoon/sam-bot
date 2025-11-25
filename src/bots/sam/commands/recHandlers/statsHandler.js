@@ -57,6 +57,7 @@ async function handleStats(interaction) {
     const width = 700;
     const height = 350;
     const chartJSNodeCanvas = new ChartJSNodeCanvas({ width, height });
+    // Ratings by percentage (emoji only)
     // Bar chart for recs by year
     if (sortedYears.length > 0) {
         // Blue to green gradient for bars
@@ -211,8 +212,7 @@ async function handleStats(interaction) {
             { name: 'Unique Authors', value: uniqueAuthors.toString(), inline: true },
             { name: 'Total Wordcount', value: totalWordCount.toLocaleString(), inline: true },
             { name: 'Ratings', value: ratingPercentages, inline: true },
-            { name: 'Top 10 Tags', value: topTags, inline: false },
-            { name: 'Recs by Publication Year', value: yearLines, inline: false }
+            { name: 'Top 10 Tags', value: topTags, inline: true }
         );
     if (pieChartPath && chartAttachment) {
         // Pie chart as embed image, bar chart as attachment
