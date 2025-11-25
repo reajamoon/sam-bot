@@ -6,10 +6,12 @@ dotenv.config();
 import UserModel from './User.js';
 import GuildModel from './Guild.js';
 import RecommendationModel from './Recommendation.js';
+
 import BirthdayMessageModel from './BirthdayMessage.js';
 import ParseQueueModel from './ParseQueue.js';
 import ParseQueueSubscriberModel from './ParseQueueSubscriber.js';
 import ConfigModel from './Config.js';
+import SeriesModel from './Series.js';
 
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
     dialect: process.env.NODE_ENV === 'production' ? 'postgres' : 'sqlite',
@@ -33,12 +35,18 @@ const Recommendation = RecommendationModel(sequelize);
 const BirthdayMessage = BirthdayMessageModel(sequelize);
 const ParseQueue = ParseQueueModel(sequelize);
 const ParseQueueSubscriber = ParseQueueSubscriberModel(sequelize);
+
 const Config = ConfigModel(sequelize);
+const Series = SeriesModel(sequelize);
+
 
 User.belongsToMany(Guild, { through: 'UserGuilds' });
 Guild.belongsToMany(User, { through: 'UserGuilds' });
 ParseQueue.hasMany(ParseQueueSubscriber, { foreignKey: 'queue_id', as: 'subscribers' });
 ParseQueueSubscriber.belongsTo(ParseQueue, { foreignKey: 'queue_id' });
+
+// Recommendation.belongsTo(Series, { as: 'series', foreignKey: 'seriesId' });
+// Series.hasMany(Recommendation, { as: 'works', foreignKey: 'seriesId' });
 
 export {
     sequelize,
@@ -49,5 +57,6 @@ export {
     Recommendation,
     BirthdayMessage,
     ParseQueue,
-    ParseQueueSubscriber
+    ParseQueueSubscriber,
+    Series
 };
