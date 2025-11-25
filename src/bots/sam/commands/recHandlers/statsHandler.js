@@ -1,5 +1,9 @@
 import Discord from 'discord.js';
-const { EmbedBuilder, MessageFlags } = Discord;
+const { EmbedBuilder, MessageFlags, AttachmentBuilder } = Discord;
+import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
+import fs from 'fs-extra';
+import path from 'path';
+import { ratingColors as sharedRatingColors } from '../../../../shared/recUtils/createRecommendationEmbed.js';
 import { Recommendation } from '../../../../models/index.js';
 import { fn, col, literal } from 'sequelize';
 
@@ -44,6 +48,112 @@ async function handleStats(interaction) {
     const yearLines = sortedYears.length
         ? sortedYears.map(y => `${y}: ${yearCounts[y]}`).join(' | ')
         : 'No publication dates found.';
+
+    // --- Chart generation for recs by year ---
+    let chartAttachment = null;
+    let pieChartPath = null;
+    let barChartPath = null;
+    let pieChartUrl = null;
+    const width = 700;
+    const height = 350;
+    const chartJSNodeCanvas = new ChartJSNodeCanvas({ width, height });
+    // Bar chart for recs by year
+    if (sortedYears.length > 0) {
+        // Blue to green gradient for bars
+        function lerpColor(a, b, t) {
+            // a, b: [r,g,b], t: 0..1
+            return [
+                Math.round(a[0] + (b[0] - a[0]) * t),
+                Math.round(a[1] + (b[1] - a[1]) * t),
+                Math.round(a[2] + (b[2] - a[2]) * t)
+            ];
+        }
+        const blue = [54, 162, 235];
+        const green = [67, 160, 71];
+        const n = sortedYears.length;
+        const barBgColors = sortedYears.map((_, i) => {
+            const t = n === 1 ? 0 : i / (n - 1);
+            const [r, g, b] = lerpColor(blue, green, t);
+            return `rgba(${r},${g},${b},0.7)`;
+        });
+        const barBorderColors = sortedYears.map((_, i) => {
+            const t = n === 1 ? 0 : i / (n - 1);
+            const [r, g, b] = lerpColor(blue, green, t);
+            return `rgba(${r},${g},${b},1)`;
+        });
+        const barConfig = {
+            type: 'bar',
+            data: {
+                labels: sortedYears.map(String),
+                datasets: [{
+                    label: 'Recs by Year',
+                    data: sortedYears.map(y => yearCounts[y]),
+                    backgroundColor: barBgColors,
+                    borderColor: barBorderColors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: 'Recs by Publication Year' }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Year' } },
+                    y: { title: { display: true, text: 'Count' }, beginAtZero: true, precision: 0 }
+                }
+            }
+        };
+        const barBuffer = await chartJSNodeCanvas.renderToBuffer(barConfig);
+        barChartPath = path.join('/tmp', `rec-stats-year-chart-${Date.now()}.png`);
+        await fs.writeFile(barChartPath, barBuffer);
+        chartAttachment = new AttachmentBuilder(barChartPath, { name: 'recs-by-year.png' });
+    }
+
+    // Pie chart for ratings by percentage
+    const ratingLabels = Object.keys(ratingCounts).map(r => r.charAt(0).toUpperCase() + r.slice(1));
+    const ratingData = Object.values(ratingCounts);
+    // Map normalized rating keys to hex colors from sharedRatingColors, convert to rgba for chartjs
+    function hexToRgba(hex, alpha = 0.85) {
+        const num = typeof hex === 'number' ? hex : parseInt(hex.replace('#', ''), 16);
+        const r = (num >> 16) & 255;
+        const g = (num >> 8) & 255;
+        const b = num & 255;
+        return `rgba(${r},${g},${b},${alpha})`;
+    }
+    const ratingKeys = Object.keys(ratingCounts);
+    const pieColors = ratingKeys.map(key => {
+        const color = sharedRatingColors[key] || 0x757575;
+        return hexToRgba(color);
+    });
+    const pieBorderColors = ratingKeys.map(key => {
+        const color = sharedRatingColors[key] || 0x757575;
+        return hexToRgba(color, 1);
+    });
+    if (ratingLabels.length > 0) {
+        const pieConfig = {
+            type: 'pie',
+            data: {
+                labels: ratingLabels,
+                datasets: [{
+                    data: ratingData,
+                    backgroundColor: pieColors,
+                    borderColor: pieBorderColors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: { display: true, position: 'bottom' },
+                    title: { display: true, text: 'Ratings Distribution' }
+                }
+            }
+        };
+        const pieBuffer = await chartJSNodeCanvas.renderToBuffer(pieConfig);
+        pieChartPath = path.join('/tmp', `rec-stats-ratings-pie-${Date.now()}.png`);
+        await fs.writeFile(pieChartPath, pieBuffer);
+        pieChartUrl = 'attachment://ratings-pie.png';
+    }
 
     // Gather all tags (site tags + additionalTags)
     let allTags = [];
@@ -104,7 +214,23 @@ async function handleStats(interaction) {
             { name: 'Top 10 Tags', value: topTags, inline: false },
             { name: 'Recs by Publication Year', value: yearLines, inline: false }
         );
-    await interaction.editReply({ embeds: [embed] });
+    if (pieChartPath && chartAttachment) {
+        // Pie chart as embed image, bar chart as attachment
+        embed.setImage('attachment://ratings-pie.png');
+        await interaction.editReply({ embeds: [embed], files: [pieChartPath, chartAttachment] });
+        // Clean up temp files
+        try { await fs.unlink(pieChartPath); } catch {}
+        try { await fs.unlink(chartAttachment.attachment); } catch {}
+    } else if (pieChartPath) {
+        embed.setImage('attachment://ratings-pie.png');
+        await interaction.editReply({ embeds: [embed], files: [pieChartPath] });
+        try { await fs.unlink(pieChartPath); } catch {}
+    } else if (chartAttachment) {
+        await interaction.editReply({ embeds: [embed], files: [chartAttachment] });
+        try { await fs.unlink(chartAttachment.attachment); } catch {}
+    } else {
+        await interaction.editReply({ embeds: [embed] });
+    }
 }
 
 export default handleStats;
