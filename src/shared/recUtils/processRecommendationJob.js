@@ -1,4 +1,3 @@
-
 // processRecommendationJob.js
 // Shared utility for creating/updating recommendations (used by command handlers and queue worker)
 
@@ -135,10 +134,22 @@ async function processRecommendationJob({
   }
 
   let recommendation;
-  // If this is an AO3 series, store the works list in series_works
+  // Extract AO3 work ID for this work
+  const ao3ID = extractAO3WorkId(url);
+  // If this is an AO3 series, extract series metadata
   let seriesWorks = null;
+  let seriesMeta = {};
   if (metadata && metadata.type === 'series' && Array.isArray(metadata.works)) {
     seriesWorks = metadata.works;
+    // Extract AO3 series ID from metadata.url or url
+    const ao3SeriesId = extractAO3SeriesId(metadata.url || url);
+    seriesMeta = {
+      ao3SeriesId,
+      authors: metadata.authors || [],
+      workCount: metadata.workCount || (Array.isArray(metadata.works) ? metadata.works.length : null),
+      wordCount: metadata.wordCount || null,
+      status: metadata.status || null
+    };
   }
   if (isUpdate && existingRec) {
     console.log('[PROCESS JOB] archiveWarnings before DB update:', metadata.archiveWarnings);
@@ -198,6 +209,7 @@ async function processRecommendationJob({
     if (existingRec.category !== metadata.category) updateFields.category = metadata.category;
     // Update series_works if this is a series
     if (seriesWorks) updateFields.series_works = seriesWorks;
+    if (existingRec.ao3ID !== ao3ID) updateFields.ao3ID = ao3ID;
 
     // Archive warnings update
     if (Array.isArray(metadata.archiveWarnings)) {
@@ -246,7 +258,8 @@ async function processRecommendationJob({
         bookmarks: metadata.bookmarks,
         comments: metadata.comments,
         category: metadata.category,
-        series_works: seriesWorks
+        series_works: seriesWorks,
+        ao3ID
       });
     } catch (err) {
       console.error('[processRecommendationJob] Error creating recommendation:', {
@@ -272,6 +285,15 @@ async function processRecommendationJob({
     await notify(embed, recommendation, metadata);
   }
   return { embed, recommendation };
+}
+
+function extractAO3WorkId(url) {
+  const match = url && url.match(/\/works\/(\d+)/);
+  return match ? parseInt(match[1], 10) : null;
+}
+function extractAO3SeriesId(url) {
+  const match = url && url.match(/\/series\/(\d+)/);
+  return match ? parseInt(match[1], 10) : null;
 }
 
 export default processRecommendationJob;

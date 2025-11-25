@@ -1,6 +1,6 @@
 import updateMessages from '../../text/updateMessages.js';
-// ao3Fetch.js
-// AO3 login/fallback fetch logic
+import fs from 'fs';
+import path from 'path';
 
 function isAO3LoggedInPage(html) {
     if (!html) return false;
@@ -30,7 +30,6 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
         let loggedIn = false;
         let retried = false;
         ao3Url = url;
-        // fs and path are already imported at the top if needed
         const LOG_FAILED_HTML = true;
         const FAILED_HTML_DIR = path.join(process.cwd(), 'logs', 'ao3_failed_html');
         if (LOG_FAILED_HTML && !fs.existsSync(FAILED_HTML_DIR)) {
