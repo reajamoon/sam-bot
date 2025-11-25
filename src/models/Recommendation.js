@@ -192,10 +192,6 @@ export default (sequelize) => {
         ]
     });
 
-    // Associations
-    Recommendation.belongsTo(Series, { foreignKey: 'seriesId', as: 'series' });
-    Series.hasMany(Recommendation, { foreignKey: 'seriesId', as: 'works' });
-
     // Instance methods
     Recommendation.prototype.getParsedTags = function() {
         const siteTags = Array.isArray(this.tags) ? this.tags : [];
