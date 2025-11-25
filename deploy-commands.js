@@ -14,9 +14,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const commandsPath = join(__dirname, 'src', 'bots', 'sam', 'commands');
 const commandFiles = readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-
-// Grab the SlashCommandBuilder#toJSON() output of each command's data for deployment
-
 for (const file of commandFiles) {
     const commandModule = await import(join(commandsPath, file));
     const command = commandModule.default || commandModule;

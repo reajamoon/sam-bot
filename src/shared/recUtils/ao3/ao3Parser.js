@@ -13,7 +13,7 @@ import fs from 'fs';
 import path from 'path';
 import cheerio from 'cheerio';
 
-function parseAO3Metadata(html, url, includeRawHtml = false) {
+async function parseAO3Metadata(html, url, includeRawHtml = false) {
     // Check for incomplete HTML (missing </html> or </body>)
     let htmlIncomplete = false;
     if (!html.includes('</html>') || !html.includes('</body>')) {

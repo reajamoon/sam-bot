@@ -126,7 +126,7 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
                 attempts++;
             }
             if (ok && html) {
-                let parsed = parseAO3Metadata(html, ao3Url, includeRawHtml);
+                let parsed = await parseAO3Metadata(html, ao3Url, includeRawHtml);
                 // If parser detects AO3 session required, retry login/fetch once
                 if (parsed && parsed.error === 'AO3 session required' && attempts < maxAttempts) {
                     console.warn('[AO3] Parser detected session page after fetch. Retrying login/fetch.');
@@ -143,7 +143,7 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
                     try {
                         ok = await doLoginAndFetch();
                         if (ok && html) {
-                            parsed = parseAO3Metadata(html, ao3Url, includeRawHtml);
+                            parsed = await parseAO3Metadata(html, ao3Url, includeRawHtml);
                         }
                     } catch (err) {
                         lastError = err;
