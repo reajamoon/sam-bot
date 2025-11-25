@@ -170,4 +170,4 @@ export default async function handleSearchRecommendations(interaction) {
         embeds: [embed],
         components: totalPages > 1 ? [row] : []
     });
-
+}
