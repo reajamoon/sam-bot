@@ -1,8 +1,7 @@
 // batchSeriesRecommendationJob.js
 // Handles batch parsing and storing of AO3 series and all works in the series
 
-
-import { Recommendation } from '../../models/index.js';
+import { Recommendation, Series } from '../../models/index.js';
 import processRecommendationJob from './processRecommendationJob.js';
 import { fetchFicMetadata } from './ficParser.js';
 
@@ -38,7 +37,7 @@ async function batchSeriesRecommendationJob(seriesUrl, user, options = {}, notif
     });
   }
 
-  // 3. Determine the true primary work
+  // Determine the true primary work
   // Exclude works with prequel/sequel tags from being primary, unless all have them
   let candidates = workMetas.filter(w => !w.hasPrequel && !w.hasSequel);
   if (candidates.length === 0) candidates = workMetas; // fallback: all have prequel/sequel
@@ -51,14 +50,29 @@ async function batchSeriesRecommendationJob(seriesUrl, user, options = {}, notif
       primaryIdx = c.index;
     }
   }
+  // 3. Upsert Series entry in DB
+  const seriesUpsert = {
+    name: seriesMeta.title || seriesMeta.name || 'Untitled Series',
+    url: seriesUrl,
+    summary: seriesMeta.summary || '',
+    ao3SeriesId: seriesMeta.ao3SeriesId || (seriesMeta.url && seriesMeta.url.match(/series\/(\d+)/)?.[1]),
+    authors: seriesMeta.authors || [],
+    workCount: seriesMeta.workCount || seriesMeta.works.length,
+    wordCount: seriesMeta.wordCount || null,
+    status: seriesMeta.status || null,
+    workIds: Array.isArray(seriesMeta.works) ? seriesMeta.works.map(w => w.url && w.url.match(/works\/(\d+)/)?.[1]).filter(Boolean) : [],
+    series_works: Array.isArray(seriesMeta.works) ? seriesMeta.works.map(w => ({ title: w.title, url: w.url, authors: w.authors })) : []
+  };
+  // Upsert by URL (unique)
+  const [seriesRow] = await Series.upsert(seriesUpsert, { returning: true, conflictFields: ['url'] });
 
-  // 4. Store each work as Recommendation, setting notPrimaryWork flag
+  // 4. Store each work as Recommendation, setting notPrimaryWork flag and linking to Series
   const workRecs = [];
   for (let i = 0; i < workMetas.length; i++) {
     const { work, meta } = workMetas[i];
     const isPrimary = i === primaryIdx;
     // Pass all fields from meta (full fic metadata), plus notPrimaryWork flag
-    const manualFields = { ...meta, notPrimaryWork: !isPrimary };
+    const manualFields = { ...meta, notPrimaryWork: !isPrimary, seriesId: seriesRow.id };
     const { recommendation: workRec, error } = await processRecommendationJob({
       url: work.url,
       user,
@@ -71,34 +85,12 @@ async function batchSeriesRecommendationJob(seriesUrl, user, options = {}, notif
     if (error) throw new Error(`Failed to process work: ${work.title}`);
     workRecs.push(workRec);
   }
-  // 3. Store the series rec itself, referencing all works
-  // Pass all available series-level metadata fields for the series rec
-  const seriesManualFields = {
-    ...seriesMeta,
-    works: seriesMeta.works.map(w => ({ title: w.title, url: w.url, authors: w.authors })),
-    // Pass through tags, rating, wordCount, summary, authors, etc. if present
-    tags: seriesMeta.tags || seriesMeta.freeform_tags || [],
-    rating: seriesMeta.rating || 'Not Rated',
-    wordCount: seriesMeta.wordCount,
-    summary: seriesMeta.summary,
-    authors: seriesMeta.authors,
-    // Add any other fields you want to ensure are present
-  };
-  const { recommendation: seriesRec, error: seriesError } = await processRecommendationJob({
-    url: seriesUrl,
-    user,
-    manualFields: seriesManualFields,
-    additionalTags: options.additionalTags,
-    notes: options.notes,
-    isUpdate: false,
-    notify: notify || null
-  });
-  if (seriesError) throw new Error('Failed to process series rec');
-  // 4. Optionally notify with the series embed
-  if (typeof notify === 'function') {
-    await notify(seriesRec);
+
+  // 5. Optionally notify with the series embed (fetch series rec by primary work)
+  if (typeof notify === 'function' && workRecs.length > 0) {
+    await notify(workRecs[primaryIdx]);
   }
-  return { seriesRec, workRecs };
+  return { seriesRec: workRecs[primaryIdx], workRecs };
 }
 
 

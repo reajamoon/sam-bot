@@ -58,12 +58,14 @@ export async function createRecommendationEmbed(rec) {
 
 // Async embed builder for a series rec
 export async function createSeriesRecommendationEmbed(rec) {
-	// Determine effective rating for the series (highest among works, or series rating)
+	// Use series_works from rec.series if available
+	const series = rec.series || {};
 	let effectiveRating = rec.rating;
-	if ((!effectiveRating || effectiveRating.toLowerCase() === 'unrated' || effectiveRating.toLowerCase() === 'not rated') && Array.isArray(rec.series_works)) {
+	const seriesWorks = Array.isArray(series.series_works) ? series.series_works : [];
+	if ((!effectiveRating || effectiveRating.toLowerCase() === 'unrated' || effectiveRating.toLowerCase() === 'not rated') && seriesWorks.length > 0) {
 		const ratingOrder = ['not rated', 'unrated', 'general audiences', 'teen and up audiences', 'mature', 'explicit'];
 		let maxIdx = 0;
-		for (const work of rec.series_works) {
+		for (const work of seriesWorks) {
 			if (work.rating && typeof work.rating === 'string') {
 				const idx = ratingOrder.indexOf(work.rating.trim().toLowerCase());
 				if (idx > maxIdx) maxIdx = idx;
@@ -98,24 +100,24 @@ export async function createSeriesRecommendationEmbed(rec) {
 	addStatusField(linkAndMetaFields, rec);
 	embed.addFields(linkAndMetaFields);
 	addStatsFields(embed, rec);
-	addSeriesWarningsField(embed, rec);
+	addSeriesWarningsField(embed, { ...rec, series_works: seriesWorks });
 	addTagsField(embed, rec);
 	addNotesField(embed, rec);
 	addEngagementFields(embed, rec);
-	if (Array.isArray(rec.series_works) && rec.series_works.length > 0) {
+	if (seriesWorks.length > 0) {
 		const maxToShow = 5;
 		let worksList = '';
-		for (let i = 0; i < Math.min(rec.series_works.length, maxToShow); i++) {
-			const work = rec.series_works[i];
+		for (let i = 0; i < Math.min(seriesWorks.length, maxToShow); i++) {
+			const work = seriesWorks[i];
 			const title = work.title || `Work #${i + 1}`;
 			const url = work.url || rec.url;
 			worksList += `${i + 1}. [${title}](${url})\n`;
 		}
-		if (rec.series_works.length > maxToShow) {
+		if (seriesWorks.length > maxToShow) {
 			worksList += `${maxToShow}. [and more...](${rec.url})`;
 		}
 		embed.addFields({
-			name: `Works in Series (${rec.series_works.length})`,
+			name: `Works in Series (${seriesWorks.length})`,
 			value: worksList.trim()
 		});
 	}

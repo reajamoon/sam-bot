@@ -38,7 +38,7 @@ function isSeriesRec(rec) {
     if (!rec || typeof rec !== 'object') return false;
     if (rec.type === 'series') return true;
     if (typeof rec.url === 'string' && rec.url.includes('/series/')) return true;
-    if (Array.isArray(rec.series_works) && rec.series_works.length > 0 && !rec.notPrimaryWork) return true;
+    if (rec.series && Array.isArray(rec.series.series_works) && rec.series.series_works.length > 0 && !rec.notPrimaryWork) return true;
     return false;
 }
 
@@ -117,8 +117,8 @@ function addWorkWarningsField(embed, rec) {
 // Helper: Add warnings field for a series (aggregate from all child works)
 function addSeriesWarningsField(embed, rec) {
     let allWarnings = [];
-    if (Array.isArray(rec.series_works)) {
-        for (const work of rec.series_works) {
+    if (rec.series && Array.isArray(rec.series.series_works)) {
+        for (const work of rec.series.series_works) {
             let warnings = typeof work.getArchiveWarnings === 'function' ? work.getArchiveWarnings() : [];
             warnings = warnings.map(w => (typeof w === 'string' ? w.trim() : '')).filter(Boolean);
             allWarnings.push(...warnings);

@@ -8,6 +8,11 @@ export default function SeriesModel(sequelize) {
       allowNull: true,
       comment: 'Array of AO3 work IDs for all works in the series (not all may be imported)'
     },
+    series_works: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      comment: 'Ordered list of works for AO3 series (array of {title, url, authors})'
+    },
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,

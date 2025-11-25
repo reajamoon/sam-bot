@@ -1,7 +1,7 @@
 // processRecommendationJob.js
 // Shared utility for creating/updating recommendations (used by command handlers and queue worker)
 
-import { Recommendation } from '../../models/index.js';
+import { Recommendation, Series } from '../../models/index.js';
 import { fetchFicMetadata } from './ficParser.js';
 import { createRecommendationEmbed } from './asyncEmbeds.js';
 import normalizeAO3Url from './normalizeAO3Url.js';
@@ -136,20 +136,28 @@ async function processRecommendationJob({
   let recommendation;
   // Extract AO3 work ID for this work
   const ao3ID = extractAO3WorkId(url);
-  // If this is an AO3 series, extract series metadata
-  let seriesWorks = null;
-  let seriesMeta = {};
+  // If this is an AO3 series, always upsert Series and link Recommendation
+  let seriesId = null;
   if (metadata && metadata.type === 'series' && Array.isArray(metadata.works)) {
-    seriesWorks = metadata.works;
-    // Extract AO3 series ID from metadata.url or url
-    const ao3SeriesId = extractAO3SeriesId(metadata.url || url);
-    seriesMeta = {
-      ao3SeriesId,
+    const seriesUpsert = {
+      name: metadata.seriesTitle || metadata.title || metadata.name || 'Untitled Series',
+      url: (metadata.series && metadata.series[0] && metadata.series[0].url) || (metadata.seriesUrl) || (metadata.url && metadata.url.includes('/series/') ? metadata.url : null),
+      summary: metadata.seriesSummary || metadata.summary || '',
+      ao3SeriesId: extractAO3SeriesId((metadata.series && metadata.series[0] && metadata.series[0].url) || metadata.url),
       authors: metadata.authors || [],
       workCount: metadata.workCount || (Array.isArray(metadata.works) ? metadata.works.length : null),
       wordCount: metadata.wordCount || null,
-      status: metadata.status || null
+      status: metadata.status || null,
+      workIds: Array.isArray(metadata.works) ? metadata.works.map(w => w.url && w.url.match(/works\/(\d+)/)?.[1]).filter(Boolean) : [],
+      series_works: Array.isArray(metadata.works) ? metadata.works.map(w => ({ title: w.title, url: w.url, authors: w.authors })) : []
     };
+    // Defensive: require a valid URL for upsert
+    if (seriesUpsert.url) {
+      const [seriesRow] = await Series.upsert(seriesUpsert, { returning: true, conflictFields: ['url'] });
+      if (seriesRow && seriesRow.id) {
+        seriesId = seriesRow.id;
+      }
+    }
   }
   if (isUpdate && existingRec) {
     console.log('[PROCESS JOB] archiveWarnings before DB update:', metadata.archiveWarnings);
@@ -207,8 +215,7 @@ async function processRecommendationJob({
     if (existingRec.bookmarks !== metadata.bookmarks) updateFields.bookmarks = metadata.bookmarks;
     if (existingRec.comments !== metadata.comments) updateFields.comments = metadata.comments;
     if (existingRec.category !== metadata.category) updateFields.category = metadata.category;
-    // Update series_works if this is a series
-    if (seriesWorks) updateFields.series_works = seriesWorks;
+    // No longer update series_works. Series linkage is handled by seriesId.
     if (existingRec.ao3ID !== ao3ID) updateFields.ao3ID = ao3ID;
 
     // Archive warnings update
@@ -258,8 +265,8 @@ async function processRecommendationJob({
         bookmarks: metadata.bookmarks,
         comments: metadata.comments,
         category: metadata.category,
-        series_works: seriesWorks,
-        ao3ID
+        ao3ID,
+        ...(seriesId ? { seriesId } : {})
       });
     } catch (err) {
       console.error('[processRecommendationJob] Error creating recommendation:', {
