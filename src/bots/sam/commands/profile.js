@@ -5,7 +5,6 @@ import handleProfileHelp from './profile/helpHandler.js';
 import handleProfileSettings from './profile/settingsHandler.js';
 import handlePrivacySettings from './profile/privacyHandler.js';
 import handleProfileView from './profile/viewHandler.js';
-
 export default {
     data: new SlashCommandBuilder()
         .setName('profile')
