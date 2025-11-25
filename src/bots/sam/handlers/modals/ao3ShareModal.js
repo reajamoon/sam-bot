@@ -1,10 +1,12 @@
+
 // ao3ShareModal.js
 // Handler for AO3 share HTML modal submission
-const { parseAo3ShareHtml } = require('../../../../shared/recUtils/ao3ShareParser');
-const { MessageFlags } = require('discord.js');
+import { parseAo3ShareHtml } from '../../../../shared/recUtils/ao3ShareParser.js';
+import { MessageFlags, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from 'discord.js';
+import logger from '../../../../shared/utils/logger.js';
 
-async function handleAo3ShareModal(interaction) {
-    const logger = require('../../../../shared/utils/logger');
+
+export async function handleAo3ShareModal(interaction) {
     logger.info('AO3 share modal submitted');
     const html = interaction.fields.getTextInputValue('ao3share_html');
     let ficData;
@@ -28,7 +30,6 @@ async function handleAo3ShareModal(interaction) {
         return;
     }
     // Show confirmation modal with pre-filled fields
-    const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
     const confirmModal = new ModalBuilder()
         .setCustomId('ao3share_confirm_modal')
         .setTitle('Confirm AO3 Fic Details');
@@ -89,5 +90,3 @@ async function handleAo3ShareModal(interaction) {
     await interaction.showModal(confirmModal);
     logger.info('AO3 share confirmation modal shown');
 }
-
-module.exports = { handleAo3ShareModal };

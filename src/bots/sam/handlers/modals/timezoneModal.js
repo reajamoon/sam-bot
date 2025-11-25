@@ -1,16 +1,19 @@
-const { User } = require('../../../../models');
-const logger = require('../../../../shared/utils/logger');
+import { User } from '../../../../models/index.js';
+import logger from '../../../../shared/utils/logger.js';
+import { getProfileMessageId } from '../../../shared/utils/messageTracking.js';
+import { MessageFlags, ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
+import { validateTimezone } from '../../../shared/utils/timezoneValidator.js';
+import { generateProfileCard, createProfileButtons } from '../../utils/profileCard.js';
 
 /**
  * Handle timezone modal submission
  * @param {Object} interaction - Discord modal interaction
  * @param {string} originalMessageId - Optional original profile message ID for dual updates
  */
-async function handleTimezoneModal(interaction, originalMessageId = null) {
+export async function handleTimezoneModal(interaction, originalMessageId = null) {
     logger.info(`=== TIMEZONE MODAL START === User: ${interaction.user.tag}, CustomId: ${interaction.customId}`);
     // Extract originalMessageId from customId if not provided
     if (!originalMessageId) {
-    const { getProfileMessageId } = require('../../../shared/utils/messageTracking');
         originalMessageId = getProfileMessageId(interaction, interaction.customId);
     }
 
@@ -19,14 +22,12 @@ async function handleTimezoneModal(interaction, originalMessageId = null) {
 
     // Only deferReply if not ephemeral context
     if (!isEphemeralContext) {
-    const { MessageFlags } = require('discord.js');
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     }
     const timezoneInput = interaction.fields.getTextInputValue('timezone_input').trim();
     logger.info(`Timezone Modal: timezoneInput = "${timezoneInput}"`);
 
     // Helper to build back button with correct ID
-    const { ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
     const buildBackButton = (msgId = originalMessageId) => {
         return new ActionRowBuilder().addComponents(
             new ButtonBuilder()
@@ -73,7 +74,6 @@ async function handleTimezoneModal(interaction, originalMessageId = null) {
     }
 
     // Validate timezone using the new region-based validator
-    const { validateTimezone } = require('../../../shared/utils/timezoneValidator');
     const validation = validateTimezone(timezoneInput);
 
     if (!validation.isValid) {
@@ -182,7 +182,6 @@ async function handleTimezoneModal(interaction, originalMessageId = null) {
                                     avatar: profileOwnerUser.avatar
                                 }
                             });
-                            const { generateProfileCard, createProfileButtons } = require('../../utils/profileCard');
                             const { embed } = await generateProfileCard(profileOwnerUser, user, interaction.client, interaction);
                             const profileButtons = createProfileButtons(interaction.user.id, interaction.user.id, originalMessageId);
                             await originalMessage.edit({
@@ -210,5 +209,3 @@ async function handleTimezoneModal(interaction, originalMessageId = null) {
         }
     }
 }
-
-module.exports = { handleTimezoneModal };

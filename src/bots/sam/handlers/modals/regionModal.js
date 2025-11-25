@@ -1,14 +1,15 @@
-const { MessageFlags } = require('discord.js');
-const { User } = require('../../../../models');
-const logger = require('../../../../shared/utils/logger');
-const { validateRegion } = require('../../../../shared/utils/regionValidator');
+import { MessageFlags, ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
+import { User } from '../../../../models/index.js';
+import logger from '../../../../shared/utils/logger.js';
+import { validateRegion } from '../../../../shared/utils/regionValidator.js';
+import { updateOriginalProfile } from '../../utils/updateOriginalProfile.js';
 
 /**
  * Handle region modal submission
  * @param {Object} interaction - Discord modal interaction
  * @param {string} originalMessageId - Optional original profile message ID for dual updates
  */
-async function handleRegionModal(interaction, originalMessageId = null) {
+export async function handleRegionModal(interaction, originalMessageId = null) {
     logger.info(`=== REGION MODAL START === User: ${interaction.user.tag}, CustomId: ${interaction.customId}`);
     logger.info(`Region Modal: originalMessageId parameter = ${originalMessageId}`);
 
@@ -21,7 +22,6 @@ async function handleRegionModal(interaction, originalMessageId = null) {
 
     if (!regionInput) {
         // Create back button to return to Profile Settings
-        const { ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
         const backButton = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
@@ -52,7 +52,6 @@ async function handleRegionModal(interaction, originalMessageId = null) {
     
     if (!validation.isValid) {
         // Create back button to return to Profile Settings
-        const { ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
         const backButton = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
@@ -114,8 +113,6 @@ async function handleRegionModal(interaction, originalMessageId = null) {
                               `Use **Profile Settings** → **Region** to update it!`;
 
         // Create back button to return to Profile Settings
-        const { ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
-        
         const backButton = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
@@ -136,7 +133,6 @@ async function handleRegionModal(interaction, originalMessageId = null) {
 
         // If we have message tracking, try to update the original profile
         if (originalMessageId) {
-            const { updateOriginalProfile } = require('../../utils/updateOriginalProfile');
             await updateOriginalProfile(interaction, originalMessageId, 'region change');
         }
 
@@ -163,4 +159,3 @@ async function handleRegionModal(interaction, originalMessageId = null) {
     }
 }
 
-module.exports = { handleRegionModal };

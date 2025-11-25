@@ -1,10 +1,16 @@
-
 import { StringSelectMenuBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { buildButtonId } from '../../../../../shared/utils/buttonId.js';
-import { getProfileMessageId, buildProfileButtonId } from '../../../../../shared/utils/messageTracking.js';
+import { buildButtonId } from '../../../../shared/utils/buttonId.js';
 
-async function handleTimezoneDisplay(interaction) {
-    const messageId = getProfileMessageId(interaction, interaction.customId);
+/**
+ * Handler for showing the timezone display preference menu.
+ * @param {Object} interaction - Discord interaction object
+ */
+export async function handleTimezoneDisplay(interaction) {
+    // Extract profile owner ID if present (new format)
+    const profileOwnerId = interaction.customId.includes('_') ? interaction.customId.split('_')[2] : null;
+    // Show timezone display preference menu
+    const menuParts = interaction.customId.split('_');
+    const messageId = menuParts.length >= 4 ? menuParts[3] : '';
     const selectMenu = new StringSelectMenuBuilder()
         .setCustomId(`timezone_display_select_${messageId}`)
         .setPlaceholder('Choose how to display your timezone')
@@ -42,7 +48,13 @@ async function handleTimezoneDisplay(interaction) {
         ]);
 
     const row = new ActionRowBuilder().addComponents(selectMenu);
-    const backButtonCustomId = buildProfileButtonId('back_to_profile_settings', 'profile_settings', interaction.user.id, messageId);
+    // Use centralized builder for Back to Profile Settings button
+    const backButtonCustomId = await buildButtonId({
+        action: 'back_to_profile_settings',
+        context: 'profile_settings',
+        primaryId: interaction.user.id,
+        secondaryId: messageId || ''
+    });
     const backButton = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
@@ -57,7 +69,4 @@ async function handleTimezoneDisplay(interaction) {
         components: [row, backButton],
         embeds: []
     });
-
 }
-
-export { handleTimezoneDisplay };

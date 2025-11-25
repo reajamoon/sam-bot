@@ -1,9 +1,10 @@
+
 // ao3ShareConfirmModal.js
 // Handler for AO3 share confirmation modal submission
-const handleAddRecommendation = require('../../commands/recHandlers/addHandler');
-const { MessageFlags } = require('discord.js');
+import handleAddRecommendation from '../../commands/recHandlers/addHandler.js';
+import { MessageFlags } from 'discord.js';
 
-async function handleAo3ShareConfirmModal(interaction) {
+export async function handleAo3ShareConfirmModal(interaction) {
     // Get all fields from the confirmation modal
     const url = interaction.fields.getTextInputValue('url');
     const title = interaction.fields.getTextInputValue('title');
@@ -48,4 +49,3 @@ async function handleAo3ShareConfirmModal(interaction) {
     await handleAddRecommendation(fakeInteraction);
 }
 
-module.exports = { handleAo3ShareConfirmModal };

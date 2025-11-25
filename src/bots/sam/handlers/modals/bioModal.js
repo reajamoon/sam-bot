@@ -1,13 +1,14 @@
-const { MessageFlags } = require('discord.js');
-const { User } = require('../../../../models');
-const logger = require('../../../../shared/utils/logger');
+import { MessageFlags, ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
+import { User } from '../../../../models/index.js';
+import logger from '../../../../shared/utils/logger.js';
+import { generateProfileCard, createProfileButtons } from '../../utils/profileCard.js';
 
 /**
  * Handle bio modal submission
  * @param {Object} interaction - Discord modal interaction
  * @param {string} originalMessageId - Optional original profile message ID for dual updates
  */
-async function handleBioModal(interaction, originalMessageId = null) {
+export async function handleBioModal(interaction, originalMessageId = null) {
     const bioInput = interaction.fields.getTextInputValue('bio_input').trim();
 
     // Basic validation with error logging
@@ -39,8 +40,6 @@ async function handleBioModal(interaction, originalMessageId = null) {
                               `✅ You can update it anytime through Profile Settings`;
 
         // Create back button to return to Profile Settings
-        const { ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
-        
         const backButton = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
@@ -82,9 +81,6 @@ async function handleBioModal(interaction, originalMessageId = null) {
                                 }
                             });
                             
-                            // Import profile utilities
-                            const { generateProfileCard, createProfileButtons } = require('../../utils/profileCard');
-                            
                             // Generate fresh profile with updated bio
                             const { embed } = await generateProfileCard(profileOwnerUser, user, interaction.client, interaction);
                             const profileButtons = createProfileButtons(interaction.user.id, interaction.user.id, originalMessageId);
@@ -113,5 +109,3 @@ async function handleBioModal(interaction, originalMessageId = null) {
         });
     }
 }
-
-module.exports = { handleBioModal };

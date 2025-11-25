@@ -1,13 +1,14 @@
-const { MessageFlags } = require('discord.js');
-const { User } = require('../../../../models');
-const logger = require('../../../../shared/utils/logger');
+import { MessageFlags, ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
+import { User } from '../../../../models/index.js';
+import logger from '../../../../shared/utils/logger.js';
+import { updateOriginalProfile } from '../../utils/updateOriginalProfile.js';
 
 /**
  * Handle pronouns modal submission
  * @param {Object} interaction - Discord modal interaction
  * @param {string} originalMessageId - Optional original profile message ID for dual updates
  */
-async function handlePronounsModal(interaction, originalMessageId = null) {
+export async function handlePronounsModal(interaction, originalMessageId = null) {
     const pronounsInput = interaction.fields.getTextInputValue('pronouns_input').trim();
 
     // Pronouns can be empty (to remove them), but if provided should be reasonable length
@@ -71,8 +72,6 @@ async function handlePronounsModal(interaction, originalMessageId = null) {
             `✅ You can add them back anytime through Profile Settings`;
 
         // Create back button to return to Profile Settings
-        const { ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
-
         const backButton = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
@@ -91,7 +90,6 @@ async function handlePronounsModal(interaction, originalMessageId = null) {
 
         // If we have message tracking, try to update the original profile
         if (originalMessageId) {
-            const { updateOriginalProfile } = require('../../utils/updateOriginalProfile');
             await updateOriginalProfile(interaction, originalMessageId, 'pronouns change');
         }
 
@@ -105,4 +103,3 @@ async function handlePronounsModal(interaction, originalMessageId = null) {
     }
 }
 
-module.exports = { handlePronounsModal };

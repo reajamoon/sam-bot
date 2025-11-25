@@ -1,13 +1,14 @@
-const { MessageFlags } = require('discord.js');
-const { User } = require('../../../../models');
-const logger = require('../../../../shared/utils/logger');
+import { MessageFlags, ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
+import { User } from '../../../../models/index.js';
+import logger from '../../../../shared/utils/logger.js';
+import { generateProfileCard, createProfileButtons } from '../../utils/profileCard.js';
 
 /**
  * Handle birthday modal submission
  * @param {Object} interaction - Discord modal interaction
  * @param {string} originalMessageId - Optional original profile message ID for dual updates
  */
-async function handleBirthdayModal(interaction, originalMessageId = null) {
+export async function handleBirthdayModal(interaction, originalMessageId = null) {
     const birthdayInput = interaction.fields.getTextInputValue('birthday_input').trim();
 
     // Parse and validate various date formats
@@ -124,8 +125,6 @@ async function handleBirthdayModal(interaction, originalMessageId = null) {
             `✅ You can adjust privacy settings anytime`;
 
         // Create back button to return to Profile Settings
-        const { ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
-
         const backButton = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
@@ -167,9 +166,6 @@ async function handleBirthdayModal(interaction, originalMessageId = null) {
                                 }
                             });
 
-                            // Import profile utilities
-                            const { generateProfileCard, createProfileButtons } = require('../../utils/profileCard');
-
                             // Generate fresh profile with updated birthday
                             const { embed } = await generateProfileCard(profileOwnerUser, user, interaction.client, interaction);
                             const profileButtons = createProfileButtons(interaction.user.id, interaction.user.id, originalMessageId);
@@ -199,4 +195,3 @@ async function handleBirthdayModal(interaction, originalMessageId = null) {
     }
 }
 
-module.exports = { handleBirthdayModal };

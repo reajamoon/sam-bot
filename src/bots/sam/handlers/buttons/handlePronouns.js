@@ -1,12 +1,16 @@
 import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from 'discord.js';
-import { buildModalCustomId, buildInputCustomId, getProfileMessageId } from '../../../../../shared/utils/messageTracking.js';
 
+/**
+ * Handler for the set pronouns button, shows the pronouns modal.
+ * @param {Object} interaction - Discord interaction object
+ */
 export async function handlePronouns(interaction) {
-    const targetUserId = interaction.user.id;
-    const originalMessageId = getProfileMessageId(interaction, interaction.customId);
-
+    // Extract userId and messageId if this is from tracked profile settings
+    const parts = interaction.customId.split('_');
+    const targetUserId = parts.length >= 3 ? parts[2] : interaction.user.id;
+    const originalMessageId = parts.length >= 4 ? parts[3] : null;
     // Build modal custom ID with message tracking if available
-    const modalCustomId = buildModalCustomId('pronouns', originalMessageId);
+    const modalCustomId = originalMessageId ? `pronouns_modal_${originalMessageId}` : 'pronouns_modal';
 
     const modal = new ModalBuilder()
         .setCustomId(modalCustomId)

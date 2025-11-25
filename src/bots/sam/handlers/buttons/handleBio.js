@@ -1,14 +1,16 @@
 import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from 'discord.js';
-import { parseButtonId } from '../../../../../shared/utils/buttonId.js';
-import { parseProfileSettingsCustomId, buildModalCustomId, buildInputCustomId, getProfileMessageId } from '../../../../../shared/utils/messageTracking.js';
+import { parseButtonId } from '../../../../shared/utils/buttonId.js';
 
+/**
+ * Handler for the set bio button, shows the bio modal.
+ * @param {Object} interaction - Discord interaction object
+ */
 export async function handleBio(interaction) {
-    const targetUserId = interaction.user.id;
-    // Use robust utility for messageId
-    const originalMessageId = getProfileMessageId(interaction, interaction.customId);
-
+    const parsed = parseButtonId(interaction.customId);
+    const targetUserId = parsed ? parsed.primaryId : interaction.user.id;
+    const originalMessageId = parsed ? parsed.secondaryId : null;
     // Build modal custom ID with message tracking if available
-    const modalCustomId = buildModalCustomId('bio', originalMessageId);
+    const modalCustomId = originalMessageId ? `bio_modal_${originalMessageId}` : 'bio_modal';
 
     const modal = new ModalBuilder()
         .setCustomId(modalCustomId)

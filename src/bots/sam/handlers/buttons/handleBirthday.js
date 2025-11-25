@@ -1,11 +1,16 @@
 import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from 'discord.js';
-import { buildModalCustomId, buildInputCustomId, getProfileMessageId } from '../../../../../shared/utils/messageTracking.js';
 
+/**
+ * Handler for the set birthday button, shows the birthday modal.
+ * @param {Object} interaction - Discord interaction object
+ */
 export async function handleBirthday(interaction) {
-    const targetUserId = interaction.user.id;
-    const originalMessageId = getProfileMessageId(interaction, interaction.customId);
+    // Extract userId and messageId if this is from tracked profile settings
+    const parts = interaction.customId.split('_');
+    const targetUserId = parts.length >= 3 ? parts[2] : interaction.user.id;
+    const originalMessageId = parts.length >= 4 ? parts[3] : null;
     // Build modal custom ID with message tracking if available
-    const modalCustomId = buildModalCustomId('birthday', originalMessageId);
+    const modalCustomId = originalMessageId ? `birthday_modal_${originalMessageId}` : 'birthday_modal';
 
     const modal = new ModalBuilder()
         .setCustomId(modalCustomId)

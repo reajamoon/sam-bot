@@ -1,8 +1,8 @@
-const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, InteractionFlags } = require('discord.js');
-const logger = require('../../../../../shared/utils/logger');
-const { buildModalCustomId, getProfileMessageId } = require('../../../../../shared/utils/messageTracking');
+import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, InteractionFlags } from 'discord.js';
+import logger from '../../../../../shared/utils/logger.js';
+import { buildModalCustomId, getProfileMessageId } from '../../../../../shared/utils/messageTracking.js';
 
-async function handleTimezone(interaction) {
+export async function handleTimezone(interaction) {
     // Defensive logging
     logger.info(`[handleTimezone] Invoked for customId: ${interaction.customId}`);
     const originalMessageId = getProfileMessageId(interaction, interaction.customId);
@@ -44,5 +44,3 @@ async function handleTimezone(interaction) {
         }
     }
 }
-
-module.exports = { handleTimezone };

@@ -1,17 +1,18 @@
-const { User } = require('../../../../../models');
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { buildButtonId } = require('../../../../../shared/utils/buttonId');
-const { performDualUpdate } = require('../../../../../shared/utils/dualUpdate');
-const { updateOriginalProfile } = require('../../../utils/updateOriginalProfile');
+
+import { User } from '../../../../../models';
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { buildButtonId } from '../../../../../shared/utils/buttonId.js';
+import { performDualUpdate } from '../../../../../shared/utils/dualUpdate.js';
+import { updateOriginalProfile } from '../../../utils/updateOriginalProfile.js';
+import { getProfileMessageId, buildProfileButtonId } from '../../../../../shared/utils/messageTracking.js';
+import logger from '../../../../../shared/utils/logger.js';
 
 async function handleRegionDisplay(interaction) {
-    const { getProfileMessageId, buildProfileButtonId } = require('../../../../../shared/utils/messageTracking');
     const targetUserId = interaction.user.id;
     // extract original profile card message ID
     const originalMessageId = getProfileMessageId(interaction, interaction.customId);
 
     // Debug logging for message ID propagation
-    const logger = require('../../../../../shared/utils/logger');
     logger.info('[RegionDisplay] customId:', { customId: interaction.customId });
     logger.info('[RegionDisplay] originalMessageId:', { originalMessageId });
 
@@ -70,4 +71,4 @@ async function handleRegionDisplay(interaction) {
     );
 }
 
-module.exports = { handleRegionDisplay };
+export { handleRegionDisplay };

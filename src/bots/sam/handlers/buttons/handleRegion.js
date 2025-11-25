@@ -1,14 +1,16 @@
 import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from 'discord.js';
-import { parseButtonId } from '../../../../../shared/utils/buttonId.js';
-import { buildModalCustomId, buildSelectMenuCustomId, buildInputCustomId, getProfileMessageId } from '../../../../../shared/utils/messageTracking.js';
+import { parseButtonId } from '../../../../shared/utils/buttonId.js';
 
+/**
+ * Handler for the set region button, shows the region modal.
+ * @param {Object} interaction - Discord interaction object
+ */
 export async function handleRegion(interaction) {
-    // Always extract the message ID from the incoming customId
-    const targetUserId = interaction.user.id;
-    const originalMessageId = getProfileMessageId(interaction, interaction.customId);
-
-    // When building the modal, always include the extracted message ID
-    const modalCustomId = originalMessageId ? buildModalCustomId('region', originalMessageId) : 'region_modal';
+    const parsed = parseButtonId(interaction.customId);
+    const targetUserId = parsed ? parsed.primaryId : interaction.user.id;
+    const originalMessageId = parsed ? parsed.secondaryId : null;
+    // Build modal custom ID with message tracking if available
+    const modalCustomId = originalMessageId ? `region_modal_${originalMessageId}` : 'region_modal';
 
     const modal = new ModalBuilder()
         .setCustomId(modalCustomId)
