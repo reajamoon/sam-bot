@@ -65,7 +65,12 @@ async function handleRandomRecommendation(interaction) {
     const rec = recommendations[0];
     // Use fetchRecWithSeries to get full rec+series info
     const recWithSeries = await fetchRecWithSeries(rec.id, true);
-    const embed = await createRecommendationEmbed(recWithSeries);
+    let embed = null;
+    if (recWithSeries && recWithSeries.series && Array.isArray(recWithSeries.series.works) && recWithSeries.series.works.length > 0) {
+        embed = await createRecommendationEmbed(null, recWithSeries.series, recWithSeries.series.works);
+    } else {
+        embed = await createRecommendationEmbed(recWithSeries);
+    }
     await interaction.editReply({ embeds: [embed] });
 }
 

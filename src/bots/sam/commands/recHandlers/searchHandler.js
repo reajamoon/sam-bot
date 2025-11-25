@@ -143,7 +143,18 @@ export default async function handleSearchRecommendations(interaction) {
     }
     if (allResults.length === 1) {
         // Show full rec embed for exact match
-        const embed = await createRecommendationEmbed(allResults[0]);
+        const rec = allResults[0];
+        let embed = null;
+        let recWithSeries = null;
+        const { fetchRecWithSeries } = await import('../../../../models/fetchRecWithSeries.js');
+        recWithSeries = await fetchRecWithSeries(rec.id, true);
+        if (recWithSeries) {
+            if (recWithSeries.series && Array.isArray(recWithSeries.series.works) && recWithSeries.series.works.length > 0) {
+                embed = await createRecommendationEmbed(null, recWithSeries.series, recWithSeries.series.works);
+            } else {
+                embed = await createRecommendationEmbed(recWithSeries);
+            }
+        }
         await interaction.editReply({
             content: `Found 1 fic matching your search.`,
             embeds: [embed],

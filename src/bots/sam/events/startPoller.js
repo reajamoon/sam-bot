@@ -16,15 +16,18 @@ async function notifyQueueSubscribers(client) {
             const users = userIds.length ? await User.findAll({ where: { discordId: userIds } }) : [];
             // Always fetch Recommendation from the database for DONE jobs
             let embed = null;
-            let rec = null;
+            let recWithSeries = null;
             if (job.result && job.result.id) {
-                rec = await Recommendation.findByPk(job.result.id);
+                // Use fetchRecWithSeries to get rec, series, and series works
+                const { fetchRecWithSeries } = await import('../../../models/fetchRecWithSeries.js');
+                recWithSeries = await fetchRecWithSeries(job.result.id, true);
             }
-            if (rec) {
-                try {
-                    embed = await createRecommendationEmbed(rec);
-                } catch (err) {
-                    console.error('Failed to build embed with createRecommendationEmbed:', err);
+            if (recWithSeries) {
+                // If this rec has a series and series.works, use series embed mode
+                if (recWithSeries.series && Array.isArray(recWithSeries.series.works) && recWithSeries.series.works.length > 0) {
+                    embed = await createRecommendationEmbed(null, recWithSeries.series, recWithSeries.series.works);
+                } else {
+                    embed = await createRecommendationEmbed(recWithSeries);
                 }
             } else {
                 console.warn(`[Poller] No Recommendation found for rec ID: ${job.result && job.result.id} (job id: ${job.id}, url: ${job.fic_url})`);
