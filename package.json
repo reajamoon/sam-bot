@@ -8,8 +8,8 @@
     "start": "echo \"ERROR: Use PM2 to start the bot (npm run deploy or pm2 start ecosystem.config.js)\" && exit 1",
     "dev": "echo \"ERROR: Use PM2 for development. Do not run nodemon directly.\" && exit 1",
     "test": "echo \"Error: no test specified\" && exit 1",
-      "db:migrate": "npx sequelize-cli db:migrate",
-      "migrate": "dotenv -e .env -- sequelize-cli db:migrate",
+    "db:migrate": "npx sequelize-cli db:migrate",
+    "migrate": "dotenv -e .env -- sequelize-cli db:migrate",
     "db:seed": "npx sequelize-cli db:seed:all",
     "db:reset": "npx sequelize-cli db:migrate:undo:all && npm run db:migrate && npm run db:seed",
     "deploy": "pm2 start ecosystem.config.js --env production"
@@ -45,7 +45,7 @@
     "eslint-plugin-prettier": "^5.5.4",
     "jest": "^30.2.0",
     "nodemon": "^3.0.2",
-    "prettier": "^3.6.2",
+    "prettier": "3.6.2",
     "sequelize-cli": "^6.6.2"
   }
 }

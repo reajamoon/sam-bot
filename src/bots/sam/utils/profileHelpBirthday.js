@@ -2,9 +2,7 @@
 import Discord from 'discord.js';
 const { EmbedBuilder } = Discord;
 import { createHelpWithBackButton } from './profileHelpButtons.js';
-import fs from 'fs';
-import path from 'path';
-const helpTexts = JSON.parse(fs.readFileSync(path.join(path.dirname(import.meta.url.replace('file://', '')), '../../../shared/text/helpTexts.json'), 'utf8'));
+import helpTexts from '../../../shared/text/helpTexts.json' assert { type: 'json' };
 
 /**
  * Create birthday help embed
@@ -18,7 +16,7 @@ function createBirthdayHelp(interaction) {
         .setTitle(birthdayText.title)
         .setDescription(birthdayText.description)
         .addFields(...birthdayText.fields)
-        .setColor(0x5865F2);
+        .setColor(0x333333);
     return createHelpWithBackButton(embed, interaction);
 }
 
