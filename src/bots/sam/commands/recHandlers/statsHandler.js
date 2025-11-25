@@ -10,6 +10,16 @@ import ao3TagColors, { getAo3TagColor, getAo3RatingColor } from '../../../../sha
 
 // Shows stats for the PB library.
 async function handleStats(interaction) {
+        // Helper for AO3 color interpolation (hex to rgb)
+        function lerpHexColor(a, b, t, alpha = 1) {
+            const ah = parseInt(a.slice(1), 16), bh = parseInt(b.slice(1), 16);
+            const ar = (ah >> 16) & 255, ag = (ah >> 8) & 255, ab = ah & 255;
+            const br = (bh >> 16) & 255, bg = (bh >> 8) & 255, bb = bh & 255;
+            const r = Math.round(ar + (br - ar) * t);
+            const g = Math.round(ag + (bg - ag) * t);
+            const b = Math.round(ab + (bb - ab) * t);
+            return `rgba(${r},${g},${b},${alpha})`;
+        }
     // Fetch all recs for stats (must be first)
     const allRecs = await Recommendation.findAll({ attributes: ['tags', 'additionalTags', 'recommendedBy', 'author', 'wordCount', 'title', 'rating', 'publishedDate', 'chapters', 'chapterCount', 'complete', 'publishedDate', 'additionalTags'] });
 
@@ -49,24 +59,13 @@ async function handleStats(interaction) {
         const ao3BlueBorder = getAo3TagColor(4, 1);
         const ao3GreenBorder = getAo3TagColor(6, 1);
         const n = avgYears.length;
-        const lerp = (a, b, t) => {
-            const ah = parseInt(a.slice(1), 16), bh = parseInt(b.slice(1), 16);
-            const ar = (ah >> 16) & 255, ag = (ah >> 8) & 255, ab = ah & 255;
-            const br = (bh >> 16) & 255, bg = (bh >> 8) & 255, bb = bh & 255;
-            const r = Math.round(ar + (br - ar) * t);
-            const g = Math.round(ag + (bg - ag) * t);
-            const b = Math.round(ab + (bb - ab) * t);
-            return [r, g, b];
-        };
         const barBgColors = avgYears.map((_, i) => {
             const t = n === 1 ? 0 : i / (n - 1);
-            const [r, g, b] = lerp(ao3Blue, ao3Green, t);
-            return `rgba(${r},${g},${b},0.7)`;
+            return lerpHexColor(ao3Blue, ao3Green, t, 0.7);
         });
         const barBorderColors = avgYears.map((_, i) => {
             const t = n === 1 ? 0 : i / (n - 1);
-            const [r, g, b] = lerp(ao3BlueBorder, ao3GreenBorder, t);
-            return `rgba(${r},${g},${b},1)`;
+            return lerpHexColor(ao3BlueBorder, ao3GreenBorder, t, 1);
         });
         const avgBarConfig = {
             type: 'bar',
@@ -249,30 +248,11 @@ async function handleStats(interaction) {
         const n = sortedYears.length;
         const barBgColors = sortedYears.map((_, i) => {
             const t = n === 1 ? 0 : i / (n - 1);
-            // Interpolate between AO3 blue and green
-            function lerp(a, b, t) {
-                const ah = parseInt(a.slice(1), 16), bh = parseInt(b.slice(1), 16);
-                const ar = (ah >> 16) & 255, ag = (ah >> 8) & 255, ab = ah & 255;
-                const br = (bh >> 16) & 255, bg = (bh >> 8) & 255, bb = bh & 255;
-                const r = Math.round(ar + (br - ar) * t);
-                const g = Math.round(ag + (bg - ag) * t);
-                const b = Math.round(ab + (bb - ab) * t);
-                return `rgba(${r},${g},${b},0.7)`;
-            }
-            return lerp(ao3Blue, ao3Green, t);
+            return lerpHexColor(ao3Blue, ao3Green, t, 0.7);
         });
         const barBorderColors = sortedYears.map((_, i) => {
             const t = n === 1 ? 0 : i / (n - 1);
-            function lerp(a, b, t) {
-                const ah = parseInt(a.slice(1), 16), bh = parseInt(b.slice(1), 16);
-                const ar = (ah >> 16) & 255, ag = (ah >> 8) & 255, ab = ah & 255;
-                const br = (bh >> 16) & 255, bg = (bh >> 8) & 255, bb = bh & 255;
-                const r = Math.round(ar + (br - ar) * t);
-                const g = Math.round(ag + (bg - ag) * t);
-                const b = Math.round(ab + (bb - ab) * t);
-                return `rgba(${r},${g},${b},1)`;
-            }
-            return lerp(ao3Blue, ao3Green, t);
+            return lerpHexColor(ao3BlueBorder, ao3GreenBorder, t, 1);
         });
         const barConfig = {
             type: 'bar',
