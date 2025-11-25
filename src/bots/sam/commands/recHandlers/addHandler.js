@@ -6,6 +6,7 @@ import { Recommendation } from '../../../../models/index.js';
 import createOrJoinQueueEntry from '../../../../shared/recUtils/createOrJoinQueueEntry.js';
 import { createRecommendationEmbed } from '../../../../shared/recUtils/asyncEmbeds.js';
 import { fetchRecWithSeries } from '../../../../models/fetchRecWithSeries.js';
+import { selectPrimaryWork } from './seriesUtils.js';
 
 // Adds a new fic rec. Checks for duplicates, fetches metadata, and builds the embed.
 export default async function handleAddRecommendation(interaction) {
@@ -43,35 +44,25 @@ export default async function handleAddRecommendation(interaction) {
     // AO3 series batch parse logic (queue only, never handled by Sam)
     if (/archiveofourown\.org\/series\//.test(url)) {
       // Check if series already exists
-      const existingSeries = await Recommendation.findOne({ where: { url } });
+      const { Series } = await import('../../../../models/index.js');
+      const existingSeries = await Series.findOne({ where: { url } });
       if (existingSeries) {
         const addedDate = existingSeries.createdAt ? `<t:${Math.floor(new Date(existingSeries.createdAt).getTime()/1000)}:F>` : '';
         return await interaction.editReply({
-          content: `*${existingSeries.title}* (series) is already in the library${addedDate ? `, since ${addedDate}` : ''}.`
+          content: `*${existingSeries.name || existingSeries.title || 'Series'}* (series) is already in the library${addedDate ? `, since ${addedDate}` : ''}.`
         });
       }
-      // Use modular queue utility for series
+      // Add the series to the processing queue (never fetch AO3 directly)
       const { queueEntry, status, message } = await createOrJoinQueueEntry(url, interaction.user.id);
       if (status === 'processing') {
         return await interaction.editReply({
           content: message || updateMessages.alreadyProcessing
         });
       } else if (status === 'done' && queueEntry.result) {
-        // Return cached result (simulate embed)
-        const rec = await Recommendation.findOne({ where: { url } });
-        if (rec) {
-          const recWithSeries = await fetchRecWithSeries(rec.id, true);
-          const embed = await createRecommendationEmbed(recWithSeries);
-          await interaction.editReply({
-            content: null,
-            embeds: [embed]
-          });
-        } else {
-          await interaction.editReply({
-            content: 'Recommendation found in queue but not in database. Please try again or contact an admin.'
-          });
-        }
-        return;
+        // Series was already processed, but we only care about the entry
+        await interaction.editReply({
+          content: 'Series is already in the queue and ready. No works have been imported. Use `/rec add <work url>` to import works if they require their own recs.'
+        });
       } else if (status === 'error') {
         return await interaction.editReply({
           content: message || updateMessages.errorPreviously
@@ -85,7 +76,7 @@ export default async function handleAddRecommendation(interaction) {
           });
         }
         return await interaction.editReply({
-          content: updateMessages.addedToQueue
+          content: updateMessages.addedToQueue + ' No works have been imported. Use `/rec add <work url>` to import works if they require their own recs.'
         });
       } else {
         // Fallback for any other status

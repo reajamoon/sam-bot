@@ -13,6 +13,8 @@ async function notifyQueueSubscribers(client) {
         for (const job of doneJobs) {
             const subscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: job.id } });
             if (!subscribers.length) continue;
+            // Log when a done job with subscribers is found (not yet marked as sent)
+            console.log(`[Poller] Found done job with subscribers not yet notified: job id ${job.id}, url: ${job.fic_url}, subscribers: [${subscribers.map(s => s.user_id).join(', ')}]`);
             const userIds = subscribers.map(s => s.user_id);
             const users = await User.findAll({ where: { discordId: userIds } });
             // Always fetch Recommendation from the database for DONE jobs

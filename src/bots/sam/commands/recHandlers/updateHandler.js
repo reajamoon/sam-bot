@@ -8,6 +8,7 @@ import { Recommendation } from '../../../../models/index.js';
 import createOrJoinQueueEntry from '../../../../shared/recUtils/createOrJoinQueueEntry.js';
 import { createRecommendationEmbed } from '../../../../shared/recUtils/asyncEmbeds.js';
 import { fetchRecWithSeries } from '../../../../models/fetchRecWithSeries.js';
+import { markPrimaryAndNotPrimaryWorks } from './seriesUtils.js';
 
 // Modular validation helpers
 function validateAttachment(newAttachment, willBeDeleted) {
@@ -100,47 +101,69 @@ export default async function handleUpdateRecommendation(interaction) {
             });
             return;
         }
-        // If this is a series rec, update series_works for all works in the series if needed
-        if (recommendation.series_works && Array.isArray(recommendation.series_works) && recommendation.series_works.length > 0) {
-            const { Recommendation } = await import('../../../../models/index.js');
+        // --- Refactored: Use Series table for batch update of all works in a series ---
+        if (recommendation.seriesId) {
+            const { Series, Recommendation } = await import('../../../../models/index.js');
             const createOrJoinQueueEntry = (await import('../../../../shared/recUtils/createOrJoinQueueEntry.js')).default;
             const { createRecommendationEmbed } = await import('../../../../shared/recUtils/asyncEmbeds.js');
-            const workUrls = recommendation.series_works.map(w => w.url);
-            const worksInDb = await Recommendation.findAll({ where: { url: workUrls } });
-            const worksInDbUrls = new Set(worksInDb.map(w => w.url));
-            // Find new works (in series_works but not in DB)
-            const newWorks = recommendation.series_works.filter(w => w.url && !worksInDbUrls.has(w.url));
-            // Update series_works for all works in DB if changed
-            for (const work of worksInDb) {
-                if (JSON.stringify(work.series_works) !== JSON.stringify(recommendation.series_works)) {
-                    await work.update({ series_works: recommendation.series_works });
-                }
-            }
-            // Queue a metadata refresh for every work in the series
-            for (const url of workUrls) {
+            // Fetch the Series entry
+            const seriesEntry = await Series.findByPk(recommendation.seriesId);
+            if (seriesEntry) {
+                const workIds = Array.isArray(seriesEntry.workIds) ? seriesEntry.workIds : [];
+                const allWorkUrls = workIds.map(id => `https://archiveofourown.org/works/${id}`);
+                const worksInDb = await Recommendation.findAll({ where: { url: allWorkUrls } });
+                const worksInDbUrls = new Set(worksInDb.map(w => w.url));
+                const newWorkUrls = allWorkUrls.filter(url => !worksInDbUrls.has(url));
+
+                // Fetch AO3 series metadata for up-to-date info
+                let seriesMeta = null;
                 try {
-                    await createOrJoinQueueEntry(url, interaction.user.id);
+                    const { fetchAO3SeriesMetadata } = await import('../../../../shared/recUtils/ao3Meta.js');
+                    seriesMeta = await fetchAO3SeriesMetadata(seriesEntry.url);
                 } catch (err) {
-                    console.error('[series update] Failed to queue refresh for', url, err);
+                    console.error('[series update] Failed to fetch AO3 series metadata:', err);
                 }
-            }
-            // If there are new works, show a user-friendly message and update the embed
-            if (newWorks.length > 0) {
-                // Build a custom embed showing all works, marking new ones as pending
+                // Always update the series entry itself (queue)
+                await createOrJoinQueueEntry(seriesEntry.url, interaction.user.id);
+
+                // If there are new works, send an ephemeral message listing them (do not import)
+                if (newWorkUrls.length > 0) {
+                    await interaction.followUp({
+                        content: `New works have been added to this series on AO3 since the last update, but have not been imported.\n\n**New works:**\n${newWorkUrls.map(u => `- <${u}>`).join('\n')}`,
+                        ephemeral: true
+                    });
+                }
+                // If any works in the series are present in Recommendations, ask if user wants to update all works
+                if (worksInDb.length > 0) {
+                    // Send ephemeral confirmation prompt
+                    await interaction.followUp({
+                        content: `There are ${worksInDb.length} works from this series in the library. Would you like to update all of them now?`,
+                        ephemeral: true,
+                        components: [
+                            {
+                                type: 1, // ACTION_ROW
+                                components: [
+                                    {
+                                        type: 2, // BUTTON
+                                        style: 1, // PRIMARY
+                                        custom_id: `update_series_works_${seriesEntry.id}`,
+                                        label: 'Update All Works'
+                                    }
+                                ]
+                            }
+                        ]
+                    });
+                }
+
+                // Always send an updated embed for the series
                 const embed = await createRecommendationEmbed({
                     ...recommendation.toJSON(),
-                    series_works: recommendation.series_works.map(w => {
-                        if (w.url && !worksInDbUrls.has(w.url)) {
-                            return { ...w, title: `${w.title} _(Pending: parsing...)_` };
-                        }
-                        return w;
-                    })
+                    pendingWorks: newWorkUrls
                 });
                 await interaction.editReply({
-                    content: `New works detected in this series! They are being parsed and will appear in the library soon.\n\nThe embed below shows all works, with new ones marked as pending.`,
+                    content: 'Series updated! See below for details.',
                     embeds: [embed]
                 });
-                // Optionally, return here to avoid duplicate reply
                 return;
             }
         }
@@ -157,7 +180,11 @@ export default async function handleUpdateRecommendation(interaction) {
                 if (queueEntry.status === 'pending' || queueEntry.status === 'processing') {
                     const existingSub = await ParseQueueSubscriber.findOne({ where: { queue_id: queueEntry.id, user_id: interaction.user.id } });
                     if (!existingSub) {
-                        await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
+                        try {
+                            await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
+                        } catch (err) {
+                            console.error('[RecHandler] Error adding ParseQueueSubscriber:', err, { queue_id: queueEntry.id, user_id: interaction.user.id });
+                        }
                     }
                     await interaction.editReply({
                         content: 'That fic is already being processed! You’ll get a notification when it’s ready.'
@@ -212,7 +239,11 @@ export default async function handleUpdateRecommendation(interaction) {
                         if (queueEntry.status === 'pending' || queueEntry.status === 'processing') {
                             const existingSub = await ParseQueueSubscriber.findOne({ where: { queue_id: queueEntry.id, user_id: interaction.user.id } });
                             if (!existingSub) {
-                                await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
+                                try {
+                                    await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
+                                } catch (err) {
+                                    console.error('[RecHandler] Error adding ParseQueueSubscriber (race condition):', err, { queue_id: queueEntry.id, user_id: interaction.user.id });
+                                }
                             }
                             await interaction.editReply({
                                 content: 'That fic is already being processed! You’ll get a notification when it’s ready.'
@@ -254,7 +285,11 @@ export default async function handleUpdateRecommendation(interaction) {
                 }
                 throw err;
             }
-            await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
+            try {
+                await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
+            } catch (err) {
+                console.error('[RecHandler] Error adding ParseQueueSubscriber (final unconditional):', err, { queue_id: queueEntry.id, user_id: interaction.user.id });
+            }
             // Poll for instant completion (duration matches suppression threshold in config)
             const { Config } = await import('../../../../models/index.js');
             let pollTimeout = 3000; // default 3 seconds

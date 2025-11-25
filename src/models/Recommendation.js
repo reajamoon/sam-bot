@@ -148,11 +148,12 @@ export default (sequelize) => {
             type: DataTypes.STRING,
             allowNull: true
         },
-        // AO3 series: ordered list of works (array of {title, url, authors})
+        // DEPRECATED: Use Series table and seriesId foreign key instead. Was: ordered list of works (array of {title, url, authors})
         series_works: {
             type: DataTypes.JSONB,
             allowNull: true,
-            defaultValue: null
+            defaultValue: null,
+            comment: 'DEPRECATED: Use Series table and seriesId foreign key instead.'
         },
         // Foreign key to Series
         seriesId: {

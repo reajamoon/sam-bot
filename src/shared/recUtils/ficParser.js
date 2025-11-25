@@ -12,6 +12,7 @@ import { fetchLiveJournalMetadata } from './ljMeta.js';
 import { fetchDreamwidthMetadata } from './dwMeta.js';
 import normalizeMetadata from './normalizeMetadata.js';
 import quickLinkCheck from './quickLinkCheck.js';
+import { isPartOfSeries, markPrimaryAndNotPrimaryWorks } from '../../bots/sam/commands/recHandlers/seriesUtils.js';
 
 /**
  * Fetches fanfiction metadata from supported sites
@@ -34,9 +35,21 @@ async function fetchFicMetadata(url, includeRawHtml = false) {
                 if (/archiveofourown\.org\/series\//.test(url)) {
                     const ao3Meta = await import('./ao3Meta.js');
                     metadata = await ao3Meta.fetchAO3SeriesMetadata(url, includeRawHtml);
+                    if (metadata && Array.isArray(metadata.works) && metadata.works.length > 0) {
+                        // Mark primary and notPrimaryWork for all works in the series
+                        const marked = markPrimaryAndNotPrimaryWorks(metadata.works);
+                        metadata.works = marked.map(m => ({ ...m.work, notPrimaryWork: m.notPrimaryWork }));
+                    }
                     if (metadata) source = 'ao3-series';
                 } else {
                     metadata = await fetchAO3MetadataWithFallback(url, includeRawHtml);
+                    // If this work is part of a series, mark notPrimaryWork if possible
+                    if (metadata && isPartOfSeries(metadata) && Array.isArray(metadata.series[0]?.works)) {
+                        const marked = markPrimaryAndNotPrimaryWorks(metadata.series[0].works);
+                        // Find this work in the series and set notPrimaryWork
+                        const thisWork = marked.find(m => m.work.url === url || m.work.id === metadata.id);
+                        if (thisWork) metadata.notPrimaryWork = thisWork.notPrimaryWork;
+                    }
                     if (metadata) source = 'ao3';
                 }
             } else if (url.includes('fanfiction.net')) {
