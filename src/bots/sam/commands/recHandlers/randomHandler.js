@@ -2,7 +2,7 @@
 import Discord from 'discord.js';
 const { MessageFlags } = Discord;
 import { fetchRecWithSeries } from '../../../../models/fetchRecWithSeries.js';
-import { isSeriesRec, createRecommendationEmbed } from '../../../../shared/recUtils/createRecommendationEmbed.js';
+import createRecommendationEmbed, { isSeriesRec } from '../../../../shared/recUtils/createRecommendationEmbed.js';
 
 // Picks a random fic from the library. Filters by tag if you want.
 async function handleRandomRecommendation(interaction) {
