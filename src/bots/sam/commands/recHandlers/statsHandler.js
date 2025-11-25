@@ -6,6 +6,7 @@ import path from 'path';
 import { ratingColors as sharedRatingColors } from '../../../../shared/recUtils/createRecommendationEmbed.js';
 import { Recommendation } from '../../../../models/index.js';
 import { fn, col, literal } from 'sequelize';
+import normalizeRating from '../../../../shared/recUtils/normalizeRating.js';
 
 // Shows stats for the PB library.
 async function handleStats(interaction) {
@@ -68,8 +69,8 @@ async function handleStats(interaction) {
     };
     const ratingCounts = {};
     for (const rec of allRecs) {
-        const rating = (rec.rating || '').trim().toLowerCase();
-        if (rating) ratingCounts[rating] = (ratingCounts[rating] || 0) + 1;
+        const norm = normalizeRating(rec.rating);
+        ratingCounts[norm] = (ratingCounts[norm] || 0) + 1;
     }
     // Bar chart for recs by year
     if (sortedYears.length > 0) {

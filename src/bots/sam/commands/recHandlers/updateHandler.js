@@ -1,3 +1,4 @@
+
 import findRecommendationByIdOrUrl from '../../../../shared/recUtils/findRecommendationByIdOrUrl.js';
 import Discord from 'discord.js';
 const { MessageFlags } = Discord;
@@ -9,6 +10,7 @@ import createOrJoinQueueEntry from '../../../../shared/recUtils/createOrJoinQueu
 import { createRecommendationEmbed } from '../../../../shared/recUtils/asyncEmbeds.js';
 import { fetchRecWithSeries } from '../../../../models/fetchRecWithSeries.js';
 import { markPrimaryAndNotPrimaryWorks } from './seriesUtils.js';
+import normalizeRating from '../../../../shared/recUtils/normalizeRating.js';
 
 // Modular validation helpers
 function validateAttachment(newAttachment, willBeDeleted) {
@@ -77,7 +79,8 @@ export default async function handleUpdateRecommendation(interaction) {
         const newTitle = interaction.options.getString('title');
         const newAuthor = interaction.options.getString('author');
         const newSummary = interaction.options.getString('summary');
-        const newRating = interaction.options.getString('rating');
+        let newRating = interaction.options.getString('rating');
+        newRating = normalizeRating(newRating);
         const newStatus = interaction.options.getString('status');
         const newWordCount = interaction.options.getInteger('wordcount');
         const newDeleted = interaction.options.getBoolean('deleted');

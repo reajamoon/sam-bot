@@ -1,3 +1,4 @@
+
 import updateMessages from '../../../../shared/text/updateMessages.js';
 import isValidFanficUrl from '../../../../shared/recUtils/isValidFanficUrl.js';
 import processRecommendationJob from '../../../../shared/recUtils/processRecommendationJob.js';
@@ -6,6 +7,7 @@ import { Recommendation } from '../../../../models/index.js';
 import createOrJoinQueueEntry from '../../../../shared/recUtils/createOrJoinQueueEntry.js';
 import { createRecommendationEmbed } from '../../../../shared/recUtils/asyncEmbeds.js';
 import { fetchRecWithSeries } from '../../../../models/fetchRecWithSeries.js';
+import normalizeRating from '../../../../shared/recUtils/normalizeRating.js';
 // import { markPrimaryAndNotPrimaryWorks } from './seriesUtils.js';
 
 // Adds a new fic rec. Checks for duplicates, fetches metadata, and builds the embed.
@@ -24,7 +26,8 @@ export default async function handleAddRecommendation(interaction) {
     const manualAuthor = interaction.options.getString('author');
     const manualSummary = interaction.options.getString('summary');
     const manualWordCount = interaction.options.getInteger('wordcount');
-    const manualRating = interaction.options.getString('rating');
+    let manualRating = interaction.options.getString('rating');
+    manualRating = normalizeRating(manualRating);
     // Robust tag parsing and deduplication
     let additionalTags = interaction.options.getString('tags')
       ? interaction.options.getString('tags').split(',').map(t => t.trim()).filter(Boolean)
