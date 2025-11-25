@@ -126,9 +126,21 @@ async function handleStats(interaction) {
     }
 
     // Pie chart for ratings by percentage
-    const ratingLabels = Object.keys(ratingCounts).map(r => r.charAt(0).toUpperCase() + r.slice(1));
-    const ratingData = Object.values(ratingCounts);
-    // Map normalized rating keys to hex colors from sharedRatingColors, convert to rgba for chartjs
+    // Order: explicit > mature > teen and up audiences > general audiences > not rated
+    const ratingOrder = [
+        'explicit',
+        'mature',
+        'teen and up audiences',
+        'general audiences',
+        'not rated'
+    ];
+    const orderedRatings = ratingOrder.filter(r => ratingCounts[r]).map(r => [r, ratingCounts[r]]);
+    // If any unknown ratings exist, append them
+    Object.entries(ratingCounts).forEach(([r, c]) => {
+        if (!ratingOrder.includes(r)) orderedRatings.push([r, c]);
+    });
+    const ratingLabels = orderedRatings.map(([r]) => r.charAt(0).toUpperCase() + r.slice(1));
+    const ratingData = orderedRatings.map(([, c]) => c);
     function hexToRgba(hex, alpha = 0.85) {
         const num = typeof hex === 'number' ? hex : parseInt(hex.replace('#', ''), 16);
         const r = (num >> 16) & 255;
@@ -136,13 +148,12 @@ async function handleStats(interaction) {
         const b = num & 255;
         return `rgba(${r},${g},${b},${alpha})`;
     }
-    const ratingKeys = Object.keys(ratingCounts);
-    const pieColors = ratingKeys.map(key => {
-        const color = sharedRatingColors[key] || 0x757575;
+    const pieColors = orderedRatings.map(([r]) => {
+        const color = sharedRatingColors[r] || 0x757575;
         return hexToRgba(color);
     });
-    const pieBorderColors = ratingKeys.map(key => {
-        const color = sharedRatingColors[key] || 0x757575;
+    const pieBorderColors = orderedRatings.map(([r]) => {
+        const color = sharedRatingColors[r] || 0x757575;
         return hexToRgba(color, 1);
     });
     if (ratingLabels.length > 0) {
@@ -207,6 +218,7 @@ async function handleStats(interaction) {
         .setDescription(`Our library currently holds **${totalRecs}** carefully curated fanfiction recommendations`)
         .setColor(0x234567)
         .setTimestamp()
+        .setThumbnail(interaction.user.displayAvatarURL({ extension: 'png', size: 128 }))
         .addFields(
             { name: 'Total Wordcount', value: totalWordCount.toLocaleString(), inline: true },
             { name: 'Unique Authors', value: uniqueAuthors.toString(), inline: true },
@@ -216,9 +228,37 @@ async function handleStats(interaction) {
         );
     // Add pie chart as embed image if available
     let pieAttachment = null;
+    let pieThumbAttachment = null;
+    let pieThumbUrl = null;
     if (pieChartPath) {
+        // Create a second pie chart without a legend for thumbnail
+        const pieThumbConfig = {
+            type: 'pie',
+            data: {
+                labels: ratingLabels,
+                datasets: [{
+                    data: ratingData,
+                    backgroundColor: pieColors,
+                    borderColor: pieBorderColors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: { display: false },
+                    title: { display: false }
+                }
+            }
+        };
+        const pieThumbBuffer = await chartJSNodeCanvas.renderToBuffer(pieThumbConfig);
+        const pieThumbPath = path.join('/tmp', `rec-stats-ratings-pie-thumb-${Date.now()}.png`);
+        await fs.writeFile(pieThumbPath, pieThumbBuffer);
+        pieThumbAttachment = new AttachmentBuilder(pieThumbPath, { name: 'ratings-pie-thumb.png' });
+        pieThumbUrl = 'attachment://ratings-pie-thumb.png';
+        // Only set the thumbnail, not the image
+        embed.setThumbnail(pieThumbUrl);
+        // Prepare the original pie chart for follow-up only
         pieAttachment = new AttachmentBuilder(pieChartPath, { name: 'ratings-pie.png' });
-        embed.setImage('attachment://ratings-pie.png');
     }
 
     // Add a button to view charts
@@ -229,14 +269,18 @@ async function handleStats(interaction) {
             .setLabel('View Charts')
             .setStyle(ButtonStyle.Primary)
     );
-    await interaction.editReply({ embeds: [embed], components: [chartsRow], files: pieAttachment ? [pieAttachment] : [] });
+    // Only send the thumbnail pie chart as thumbnail, not as image or in follow-up
+    const filesToSend = [];
+    if (pieThumbAttachment) filesToSend.push(pieThumbAttachment);
+    await interaction.editReply({ embeds: [embed], components: [chartsRow], files: filesToSend });
 
     // Set up a collector for the button
     const filter = i => i.customId === 'view_charts' && i.user.id === interaction.user.id;
     const collector = interaction.channel.createMessageComponentCollector({ filter, time: 60000, max: 1 });
     collector.on('collect', async i => {
-        // Send the charts as a second message
+        // Send the charts as a second message (original pie chart, not the thumbnail)
         const files = [];
+        if (pieAttachment) files.push(pieAttachment);
         if (pieChartPath) files.push(new AttachmentBuilder(pieChartPath, { name: 'ratings-pie.png' }));
         if (chartAttachment) files.push(chartAttachment);
         if (files.length > 0) {
