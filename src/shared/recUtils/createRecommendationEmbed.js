@@ -3,6 +3,7 @@ import Discord from 'discord.js';
 const { EmbedBuilder } = Discord;
 import quickLinkCheck from './quickLinkCheck.js';
 import isValidFanficUrl from './isValidFanficUrl.js';
+import { getAo3RatingColor } from './ao3/ao3TagColors.js';
 
 // Map AO3 normalized rating names to custom emoji
 const ratingEmojis = {
@@ -25,15 +26,6 @@ const majorWarningsList = [
     'Underage Sex'
 ];
 
-// Map fic ratings to embed colors
-export const ratingColors = {
-    'general audiences': 0x43a047,      // Green
-    'teen and up audiences': 0xffeb3b, // Yellow
-    'mature': 0xff9800,                // Orange
-    'explicit': 0xd32f2f,              // Red
-    'not rated': 0x757575,             // Grey
-    'unrated': 0x757575
-};
 
 // Helper to determine if a rec is a series
 function isSeriesRec(rec) {
@@ -46,13 +38,11 @@ function isSeriesRec(rec) {
 
 // Helper: get effective rating and color for a rec
 function getRatingAndColor(rating) {
-    let color = 0x333333; // Default (Dark Grey)
+    let color = getAo3RatingColor('not rated'); // Default (AO3 not rated gray)
     let ratingValue = rating;
     if (typeof rating === 'string') {
         const key = rating.trim().toLowerCase();
-        if (ratingColors[key]) {
-            color = ratingColors[key];
-        }
+        color = getAo3RatingColor(key);
         if (ratingEmojis[key]) {
             ratingValue = `${ratingEmojis[key]} ${rating}`;
         }

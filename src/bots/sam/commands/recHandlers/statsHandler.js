@@ -7,9 +7,156 @@ import { ratingColors as sharedRatingColors } from '../../../../shared/recUtils/
 import { Recommendation } from '../../../../models/index.js';
 import { fn, col, literal } from 'sequelize';
 import normalizeRating from '../../../../shared/recUtils/normalizeRating.js';
+import ao3TagColors, { getAo3TagColor, getAo3RatingColor } from '../../../../shared/recUtils/ao3/ao3TagColors.js';
 
 // Shows stats for the PB library.
 async function handleStats(interaction) {
+        // --- Average wordcount by year chart ---
+        let avgWordcountChartPath = null;
+        let avgWordcountChartAttachment = null;
+        const yearWordcounts = {};
+        const yearWorkCounts = {};
+        for (const rec of allRecs) {
+            if (rec.publishedDate && typeof rec.wordCount === 'number') {
+                const year = new Date(rec.publishedDate).getFullYear();
+                if (!isNaN(year)) {
+                    yearWordcounts[year] = (yearWordcounts[year] || 0) + rec.wordCount;
+                    yearWorkCounts[year] = (yearWorkCounts[year] || 0) + 1;
+                }
+            }
+        }
+        const avgYears = Object.keys(yearWordcounts).map(Number).sort((a, b) => a - b);
+        if (avgYears.length > 0) {
+            const avgWordcounts = avgYears.map(y => yearWordcounts[y] / yearWorkCounts[y]);
+            // Rainbow gradient for bars
+            function rainbowColor(t) {
+                // t: 0..1
+                const a = (1 - t) * 4;
+                const r = Math.round(Math.max(0, 255 * (1 - Math.abs(a - 3))));
+                const g = Math.round(Math.max(0, 255 * (1 - Math.abs(a - 2))));
+                const b = Math.round(Math.max(0, 255 * (1 - Math.abs(a - 1))));
+                return `rgba(${r},${g},${b},0.7)`;
+            }
+            const n = avgYears.length;
+            const rainbowBgColors = avgYears.map((_, i) => rainbowColor(i / Math.max(1, n - 1)));
+            const rainbowBorderColors = avgYears.map((_, i) => rainbowColor(i / Math.max(1, n - 1)).replace('0.7', '1'));
+            const avgBarConfig = {
+                type: 'bar',
+                data: {
+                    labels: avgYears.map(String),
+                    datasets: [{
+                        label: 'Avg Wordcount',
+                        data: avgWordcounts,
+                        backgroundColor: rainbowBgColors,
+                        borderColor: rainbowBorderColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: 'Average Wordcount by Year' }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Year' } },
+                        y: { title: { display: true, text: 'Avg Wordcount' }, beginAtZero: true }
+                    }
+                }
+            };
+            const avgBarBuffer = await chartJSNodeCanvas.renderToBuffer(avgBarConfig);
+            avgWordcountChartPath = path.join('/tmp', `rec-stats-avg-wordcount-year-${Date.now()}.png`);
+            await fs.writeFile(avgWordcountChartPath, avgBarBuffer);
+            avgWordcountChartAttachment = new AttachmentBuilder(avgWordcountChartPath, { name: 'avg-wordcount-by-year.png' });
+        }
+
+        // --- Oneshots vs Chaptered chart ---
+        let oneshotVsChapteredChartPath = null;
+        let oneshotVsChapteredChartAttachment = null;
+        let oneshotCount = 0, chapteredCount = 0;
+        for (const rec of allRecs) {
+            // Assume rec.chapters and rec.complete exist, otherwise treat as oneshot if chapters <= 1
+            const chapters = rec.chapters || rec.chapterCount || 1;
+            const isComplete = rec.complete !== false; // treat undefined as complete
+            if (isComplete) {
+                if (chapters > 1) chapteredCount++;
+                else oneshotCount++;
+            }
+        }
+        const oneshotVsChapteredConfig = {
+            type: 'pie',
+            data: {
+                labels: ['Oneshots', 'Chaptered'],
+                datasets: [{
+                    data: [oneshotCount, chapteredCount],
+                    backgroundColor: ['rgba(67, 160, 71, 0.7)', 'rgba(54, 162, 235, 0.7)'], // green, blue
+                    borderColor: ['rgba(67, 160, 71, 1)', 'rgba(54, 162, 235, 1)'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: { display: true, position: 'bottom' },
+                    title: { display: true, text: 'Oneshots vs. Chaptered' }
+                }
+            }
+        };
+        const oneshotVsChapteredBuffer = await chartJSNodeCanvas.renderToBuffer(oneshotVsChapteredConfig);
+        oneshotVsChapteredChartPath = path.join('/tmp', `rec-stats-oneshot-vs-chaptered-${Date.now()}.png`);
+        await fs.writeFile(oneshotVsChapteredChartPath, oneshotVsChapteredBuffer);
+        oneshotVsChapteredChartAttachment = new AttachmentBuilder(oneshotVsChapteredChartPath, { name: 'oneshot-vs-chaptered.png' });
+
+        // --- Top tags by wordcount chart ---
+        let tagWordcountChartPath = null;
+        let tagWordcountChartAttachment = null;
+        const tagWordcounts = {};
+        for (const rec of allRecs) {
+            let tags = [];
+            if (Array.isArray(rec.tags)) tags.push(...rec.tags);
+            else if (typeof rec.tags === 'string' && rec.tags.trim().startsWith('[')) {
+                try { tags.push(...JSON.parse(rec.tags)); } catch {}
+            }
+            if (Array.isArray(rec.additionalTags)) tags.push(...rec.additionalTags);
+            else if (typeof rec.additionalTags === 'string' && rec.additionalTags.trim().startsWith('[')) {
+                try { tags.push(...JSON.parse(rec.additionalTags)); } catch {}
+            }
+            tags = tags.map(t => (t || '').trim().toLowerCase()).filter(Boolean);
+            for (const tag of tags) {
+                tagWordcounts[tag] = (tagWordcounts[tag] || 0) + (typeof rec.wordCount === 'number' ? rec.wordCount : 0);
+            }
+        }
+        const topTagWordcounts = Object.entries(tagWordcounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10);
+        if (topTagWordcounts.length > 0) {
+            const tagWordcountBarConfig = {
+                type: 'bar',
+                data: {
+                    labels: topTagWordcounts.map(([tag]) => tag),
+                    datasets: [{
+                        label: 'Total Wordcount',
+                        data: topTagWordcounts.map(([, wc]) => wc),
+                        backgroundColor: topTagWordcounts.map((_, i) => getAo3TagColor(i, 0.8)),
+                        borderColor: topTagWordcounts.map((_, i) => getAo3TagColor(i, 1)),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: 'Top Tags by Wordcount' }
+                    },
+                    indexAxis: 'y',
+                    scales: {
+                        x: { title: { display: true, text: 'Wordcount' }, beginAtZero: true },
+                        y: { title: { display: true, text: 'Tag' } }
+                    }
+                }
+            };
+            const tagWordcountBarBuffer = await chartJSNodeCanvas.renderToBuffer(tagWordcountBarConfig);
+            tagWordcountChartPath = path.join('/tmp', `rec-stats-tag-wordcount-${Date.now()}.png`);
+            await fs.writeFile(tagWordcountChartPath, tagWordcountBarBuffer);
+            tagWordcountChartAttachment = new AttachmentBuilder(tagWordcountChartPath, { name: 'top-tags-by-wordcount.png' });
+        }
     if (Date.now() - interaction.createdTimestamp > 14 * 60 * 1000) {
         return await interaction.reply({
             content: 'That interaction took too long to process. Please try the command again.',
@@ -148,14 +295,8 @@ async function handleStats(interaction) {
         const b = num & 255;
         return `rgba(${r},${g},${b},${alpha})`;
     }
-    const pieColors = orderedRatings.map(([r]) => {
-        const color = sharedRatingColors[r] || 0x757575;
-        return hexToRgba(color);
-    });
-    const pieBorderColors = orderedRatings.map(([r]) => {
-        const color = sharedRatingColors[r] || 0x757575;
-        return hexToRgba(color, 1);
-    });
+    const pieColors = orderedRatings.map(([r]) => getAo3RatingColor(r));
+    const pieBorderColors = orderedRatings.map(([r]) => getAo3RatingColor(r));
     if (ratingLabels.length > 0) {
         const pieConfig = {
             type: 'pie',
@@ -232,6 +373,9 @@ async function handleStats(interaction) {
     let pieThumbUrl = null;
     if (pieChartPath) {
         // Create a second pie chart without a legend for thumbnail
+        // Use a small, square canvas for thumbnail
+        const thumbSize = 128;
+        const thumbChartJSNodeCanvas = new ChartJSNodeCanvas({ width: thumbSize, height: thumbSize, backgroundColour: 'transparent' });
         const pieThumbConfig = {
             type: 'pie',
             data: {
@@ -244,20 +388,21 @@ async function handleStats(interaction) {
                 }]
             },
             options: {
+                layout: { padding: 0 },
                 plugins: {
                     legend: { display: false },
                     title: { display: false }
-                }
+                },
+                responsive: false,
+                maintainAspectRatio: false
             }
         };
-        const pieThumbBuffer = await chartJSNodeCanvas.renderToBuffer(pieThumbConfig);
+        const pieThumbBuffer = await thumbChartJSNodeCanvas.renderToBuffer(pieThumbConfig);
         const pieThumbPath = path.join('/tmp', `rec-stats-ratings-pie-thumb-${Date.now()}.png`);
         await fs.writeFile(pieThumbPath, pieThumbBuffer);
         pieThumbAttachment = new AttachmentBuilder(pieThumbPath, { name: 'ratings-pie-thumb.png' });
         pieThumbUrl = 'attachment://ratings-pie-thumb.png';
-        // Only set the thumbnail, not the image
         embed.setThumbnail(pieThumbUrl);
-        // Prepare the original pie chart for follow-up only
         pieAttachment = new AttachmentBuilder(pieChartPath, { name: 'ratings-pie.png' });
     }
 
@@ -281,8 +426,10 @@ async function handleStats(interaction) {
         // Send the charts as a second message (original pie chart, not the thumbnail)
         const files = [];
         if (pieAttachment) files.push(pieAttachment);
-        if (pieChartPath) files.push(new AttachmentBuilder(pieChartPath, { name: 'ratings-pie.png' }));
         if (chartAttachment) files.push(chartAttachment);
+        if (avgWordcountChartAttachment) files.push(avgWordcountChartAttachment);
+        if (oneshotVsChapteredChartAttachment) files.push(oneshotVsChapteredChartAttachment);
+        if (tagWordcountChartAttachment) files.push(tagWordcountChartAttachment);
         if (files.length > 0) {
             await i.reply({ content: 'Here are the charts:', files, ephemeral: true });
         } else {
@@ -291,6 +438,9 @@ async function handleStats(interaction) {
         // Clean up temp files
         try { if (pieChartPath) await fs.unlink(pieChartPath); } catch {}
         try { if (chartAttachment) await fs.unlink(chartAttachment.attachment); } catch {}
+        try { if (avgWordcountChartPath) await fs.unlink(avgWordcountChartPath); } catch {}
+        try { if (oneshotVsChapteredChartPath) await fs.unlink(oneshotVsChapteredChartPath); } catch {}
+        try { if (tagWordcountChartPath) await fs.unlink(tagWordcountChartPath); } catch {}
     });
 }
 
