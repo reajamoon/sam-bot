@@ -7,19 +7,11 @@ import { Recommendation } from '../../../../models/index.js';
 import { fn, col, literal } from 'sequelize';
 import normalizeRating from '../../../../shared/recUtils/normalizeRating.js';
 import ao3TagColors, { getAo3TagColor, getAo3RatingColor } from '../../../../shared/recUtils/ao3/ao3TagColors.js';
+import { lerpHexColor, hexToRgba } from '../../../../shared/recUtils/ao3/ao3TagColors.js';
+
 
 // Shows stats for the PB library.
 async function handleStats(interaction) {
-        // Helper for AO3 color interpolation (hex to rgb)
-        function lerpHexColor(a, b, t, alpha = 1) {
-            const ah = parseInt(a.slice(1), 16), bh = parseInt(b.slice(1), 16);
-            const ar = (ah >> 16) & 255, ag = (ah >> 8) & 255, ab = ah & 255;
-            const br = (bh >> 16) & 255, bg = (bh >> 8) & 255, bb = bh & 255;
-            const r = Math.round(ar + (br - ar) * t);
-            const g = Math.round(ag + (bg - ag) * t);
-            const b = Math.round(ab + (bb - ab) * t);
-            return `rgba(${r},${g},${b},${alpha})`;
-        }
     // Fetch all recs for stats (must be first)
     const allRecs = await Recommendation.findAll({ attributes: ['tags', 'additionalTags', 'recommendedBy', 'author', 'wordCount', 'title', 'rating', 'publishedDate', 'chapters', 'chapterCount', 'complete', 'publishedDate', 'additionalTags'] });
 
@@ -299,13 +291,6 @@ async function handleStats(interaction) {
     });
     const ratingLabels = orderedRatings.map(([r]) => r.charAt(0).toUpperCase() + r.slice(1));
     const ratingData = orderedRatings.map(([, c]) => c);
-    function hexToRgba(hex, alpha = 0.85) {
-        const num = typeof hex === 'number' ? hex : parseInt(hex.replace('#', ''), 16);
-        const r = (num >> 16) & 255;
-        const g = (num >> 8) & 255;
-        const b = num & 255;
-        return `rgba(${r},${g},${b},${alpha})`;
-    }
     const pieColors = orderedRatings.map(([r]) => getAo3RatingColor(r));
     const pieBorderColors = orderedRatings.map(([r]) => getAo3RatingColor(r));
     if (ratingLabels.length > 0) {
