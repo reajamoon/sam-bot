@@ -12,11 +12,8 @@ async function notifyQueueSubscribers(client) {
         });
         for (const job of doneJobs) {
             const subscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: job.id } });
-            if (!subscribers.length) continue;
-            // Log when a done job with subscribers is found (not yet marked as sent)
-            console.log(`[Poller] Found done job with subscribers not yet notified: job id ${job.id}, url: ${job.fic_url}, subscribers: [${subscribers.map(s => s.user_id).join(', ')}]`);
             const userIds = subscribers.map(s => s.user_id);
-            const users = await User.findAll({ where: { discordId: userIds } });
+            const users = userIds.length ? await User.findAll({ where: { discordId: userIds } }) : [];
             // Always fetch Recommendation from the database for DONE jobs
             let embed = null;
             let rec = null;
@@ -45,10 +42,12 @@ async function notifyQueueSubscribers(client) {
             }
             // For instant_candidate jobs, do not @mention users, but still send embed
             let contentMsg = `Your fic parsing job is done!\n` + (job.fic_url ? `\n<${job.fic_url}>` : '');
-            if (!job.instant_candidate) {
+            if (!job.instant_candidate && users.length) {
                 const mentionList = users.filter(u => u.queueNotifyTag !== false).map(u => `<@${u.discordId}>`).join(' ');
                 if (mentionList) contentMsg = `>>> ${mentionList} ` + contentMsg;
             }
+            // Always log when a done job is being processed for notification
+            console.log(`[Poller] Processing done job: job id ${job.id}, url: ${job.fic_url}, subscribers: [${subscribers.map(s => s.user_id).join(', ')}]`);
             try {
                 console.log('[Poller DEBUG] About to send notification:', {
                     channelId,
@@ -70,7 +69,9 @@ async function notifyQueueSubscribers(client) {
             } catch (err) {
                 console.error('[Poller] Failed to send fic queue notification:', err, `job id: ${job.id}, url: ${job.fic_url}`);
             }
-            await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
+            if (subscribers.length) {
+                await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
+            }
         }
     } catch (err) {
         console.error('Error in queue notification poller:', err);
