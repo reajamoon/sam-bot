@@ -26,7 +26,7 @@ const majorWarningsList = [
 ];
 
 // Map fic ratings to embed colors
-const ratingColors = {
+export const ratingColors = {
     'general audiences': 0x43a047,      // Green
     'teen and up audiences': 0xffeb3b, // Yellow
     'mature': 0xff9800,                // Orange
