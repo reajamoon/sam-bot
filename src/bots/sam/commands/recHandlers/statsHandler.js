@@ -424,9 +424,9 @@ async function handleStats(interaction) {
         if (oneshotVsChapteredChartAttachment) files.push(oneshotVsChapteredChartAttachment);
         if (tagWordcountChartAttachment) files.push(tagWordcountChartAttachment);
         if (files.length > 0) {
-            await i.reply({ content: 'Here are the charts:', files, ephemeral: true });
+            await i.reply({ content: 'Here are the charts:', files, flags: MessageFlags.Ephemeral });
         } else {
-            await i.reply({ content: 'No charts available.', ephemeral: true });
+            await i.reply({ content: 'No charts available.', flags: MessageFlags.Ephemeral });
         }
         // Clean up temp files
         try { if (pieChartPath) await fs.unlink(pieChartPath); } catch {}
