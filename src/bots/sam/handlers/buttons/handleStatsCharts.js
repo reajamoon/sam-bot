@@ -4,6 +4,7 @@ const { AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = Disc
 import { getStatsChartCache } from '../../utils/statsChartCache.js';
 import { buildStatsButtonId, parseStatsButtonId } from '../../utils/statsButtonId.new.js';
 import handleStats from '../../commands/recHandlers/statsHandler.js';
+import { encodeMessageId } from '../../../../shared/utils/messageTracking.js';
 
 // Handles the "View Charts" and "Back to Stats" buttons for stats
 export async function handleStatsChartsButton(interaction, options = {}) {
