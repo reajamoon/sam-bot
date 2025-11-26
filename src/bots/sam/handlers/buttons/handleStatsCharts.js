@@ -23,7 +23,6 @@ export async function handleStatsChartsButton(interaction, options = {}) {
         }
     }
     // Always use stats:<decodedMessageId> as the cache key
-    const chartCacheKey = decodedMessageId ? `stats:${decodedMessageId}` : null;
     console.log('[handleStatsChartsButton] Using decoded messageId for cache and message ops:', decodedMessageId);
 
     // Helper to update the correct message
