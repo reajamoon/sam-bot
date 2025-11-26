@@ -24,6 +24,8 @@ export async function handleStatsChartsButton(interaction, options = {}) {
     }
     // Always use stats:<decodedMessageId> as the cache key
     console.log('[handleStatsChartsButton] Using decoded messageId for cache and message ops:', decodedMessageId);
+    // Track the numeric messageId for use in the back button
+    const numericMessageId = decodedMessageId;
 
     // Helper to update the correct message
     async function updateTargetMessage(payload) {
@@ -61,7 +63,7 @@ export async function handleStatsChartsButton(interaction, options = {}) {
         .map(f => new AttachmentBuilder(f.path, { name: f.name }));
     const backRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId(`stats_charts_back:${encodeMessageId(decodedMessageId)}`)
+            .setCustomId(`stats_charts_back:${encodeMessageId(numericMessageId)}`)
             .setLabel('Back to Stats')
             .setStyle(ButtonStyle.Secondary)
     );
