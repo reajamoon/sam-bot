@@ -4,7 +4,7 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.addColumn('Users', 'permissionLevel', {
+    await queryInterface.addColumn('users', 'permissionLevel', {
       type: Sequelize.ENUM('superadmin', 'admin', 'mod', 'member', 'non_member'),
       allowNull: false,
       defaultValue: 'member',
@@ -13,7 +13,7 @@ module.exports = {
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.removeColumn('Users', 'permissionLevel');
-    await queryInterface.sequelize.query('DROP TYPE IF EXISTS "enum_Users_permissionLevel";');
+    await queryInterface.removeColumn('users', 'permissionLevel');
+    await queryInterface.sequelize.query('DROP TYPE IF EXISTS "enum_users_permissionLevel";');
   }
 };
