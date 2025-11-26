@@ -434,7 +434,7 @@ async function handleStats(interaction) {
     const cacheKey = `stats:${messageId}`;
     setStatsChartCache(cacheKey, chartFiles);
 
-    // Now build the button with the correct messageId
+    // Always build the button with the correct messageId
     const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = Discord;
     const chartsRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
@@ -442,8 +442,9 @@ async function handleStats(interaction) {
             .setLabel('View Charts')
             .setStyle(ButtonStyle.Primary)
     );
-    // Edit the reply to add the button
+    // Always edit the reply to add the button, even if no charts
     await sentMsg.edit({ components: [chartsRow] });
+    console.log('[handleStats] Added View Charts button to message:', sentMsg.id);
 }
 
 export default handleStats;
