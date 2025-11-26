@@ -9,6 +9,4 @@ function setModLock(rec, field, value) {
     rec[lockField] = value;
 }
 
-module.exports = {
-    setModLock,
-};
+export { setModLock };
