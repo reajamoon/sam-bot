@@ -7,6 +7,7 @@ import { Recommendation } from '../../../../models/index.js';
 import { fn, col, literal } from 'sequelize';
 import normalizeRating from '../../../../shared/recUtils/normalizeRating.js';
 import ao3TagColors, { getAo3TagColor, getAo3RatingColor, lerpHexColor } from '../../../../shared/recUtils/ao3/ao3TagColors.js';
+import { buildStatsButtonId } from '../../utils/statsButtonId.js';
 
 
 // Shows stats for the PB library.
@@ -403,7 +404,7 @@ async function handleStats(interaction) {
     const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = Discord;
     const chartsRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId('view_charts')
+            .setCustomId(buildStatsButtonId('charts'))
             .setLabel('View Charts')
             .setStyle(ButtonStyle.Primary)
     );
@@ -411,30 +412,20 @@ async function handleStats(interaction) {
     const filesToSend = [];
     if (pieThumbAttachment) filesToSend.push(pieThumbAttachment);
     await interaction.editReply({ embeds: [embed], components: [chartsRow], files: filesToSend });
-
-    // Set up a collector for the button
-    const filter = i => i.customId === 'view_charts' && i.user.id === interaction.user.id;
-    const collector = interaction.channel.createMessageComponentCollector({ filter, time: 60000, max: 1 });
-    collector.on('collect', async i => {
-        // Send the charts as a second message (original pie chart, not the thumbnail)
-        const files = [];
-        if (pieAttachment) files.push(pieAttachment);
-        if (chartAttachment) files.push(chartAttachment);
-        if (avgWordcountChartAttachment) files.push(avgWordcountChartAttachment);
-        if (oneshotVsChapteredChartAttachment) files.push(oneshotVsChapteredChartAttachment);
-        if (tagWordcountChartAttachment) files.push(tagWordcountChartAttachment);
-        if (files.length > 0) {
-            await i.reply({ content: 'Here are the charts:', files, flags: MessageFlags.Ephemeral });
-        } else {
-            await i.reply({ content: 'No charts available.', flags: MessageFlags.Ephemeral });
-        }
-        // Clean up temp files
-        try { if (pieChartPath) await fs.unlink(pieChartPath); } catch {}
-        try { if (chartAttachment) await fs.unlink(chartAttachment.attachment); } catch {}
-        try { if (avgWordcountChartPath) await fs.unlink(avgWordcountChartPath); } catch {}
-        try { if (oneshotVsChapteredChartPath) await fs.unlink(oneshotVsChapteredChartPath); } catch {}
-        try { if (tagWordcountChartPath) await fs.unlink(tagWordcountChartPath); } catch {}
-    });
+    // Chart files for button handler context (to be passed by main handler)
+    interaction.statsChartFiles = {
+        pieAttachment,
+        chartAttachment,
+        avgWordcountChartAttachment,
+        oneshotVsChapteredChartAttachment,
+        tagWordcountChartAttachment,
+        // For cleanup, also pass paths if needed
+        pieChartPath,
+        barChartPath,
+        avgWordcountChartPath,
+        oneshotVsChapteredChartPath,
+        tagWordcountChartPath
+    };
 }
 
 export default handleStats;
