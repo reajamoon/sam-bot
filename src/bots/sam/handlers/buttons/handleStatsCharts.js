@@ -61,8 +61,7 @@ export async function handleStatsChartsButton(interaction, options = {}) {
         .map(f => new AttachmentBuilder(f.path, { name: f.name }));
     const backRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId(buildStatsButtonId(cacheKey, messageId ? messageId : (interaction.message && interaction.message.id ? interaction.message.id : ''))
-                .replace('stats_charts:', 'stats_charts_back:'))
+            .setCustomId(buildStatsButtonId('', decodedMessageId).replace('stats_charts:', 'stats_charts_back:'))
             .setLabel('Back to Stats')
             .setStyle(ButtonStyle.Secondary)
     );
