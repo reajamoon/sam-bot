@@ -76,7 +76,7 @@ export default (sequelize) => {
   }, {
     sequelize,
     modelName: 'ModLock',
-    tableName: 'ModLocks',
+    tableName: 'modlocks',
     indexes: [
       { fields: ['recommendationId', 'field'] },
     ],
