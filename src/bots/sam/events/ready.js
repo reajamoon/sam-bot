@@ -19,7 +19,7 @@ export default {
             //     emoji: { id: '466121531274035213', name: 'PB_samthunk', animated: false }
             //     }
             //     ],
-              activities: [{ name: 'Hello world', type: 3 }],
+              activities: [{ name: 'The Family Business', type: 5 }],
                 status: 'online'
             });
         // Start poller and birthday manager
