@@ -14,8 +14,13 @@ import logger from '../../../shared/utils/logger.js';
  * Handle button interactions by delegating to appropriate handlers
  */
 async function handleButton(interaction) {
-    // Stats charts button
-    if (interaction.customId && interaction.customId.startsWith('stats_charts')) {
+    // Stats charts button (including back button)
+    if (interaction.customId && (interaction.customId.startsWith('stats_charts') || interaction.customId.startsWith('stats_charts_back:'))) {
+        // For back button, let the handler decide what to do
+        if (interaction.customId.startsWith('stats_charts_back:')) {
+            await handleStatsChartsButton(interaction);
+            return;
+        }
         // Extract cache key from customId
         const { context: cacheKey } = parseStatsButtonId(interaction.customId);
         const files = cacheKey ? getStatsChartCache(cacheKey) : [];
