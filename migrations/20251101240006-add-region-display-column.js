@@ -2,7 +2,7 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.addColumn('Users', 'regionDisplay', {
+    await queryInterface.addColumn('users', 'regionDisplay', {
       type: Sequelize.BOOLEAN,
       defaultValue: true,
       allowNull: false,
@@ -11,6 +11,6 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.removeColumn('Users', 'regionDisplay');
+    await queryInterface.removeColumn('users', 'regionDisplay');
   }
 };

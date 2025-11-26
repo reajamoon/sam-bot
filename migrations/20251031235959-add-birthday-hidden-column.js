@@ -3,7 +3,7 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up (queryInterface, Sequelize) {
-    await queryInterface.addColumn('Users', 'birthdayHidden', {
+    await queryInterface.addColumn('users', 'birthdayHidden', {
       type: Sequelize.BOOLEAN,
       allowNull: false,
       defaultValue: false
@@ -11,6 +11,6 @@ module.exports = {
   },
 
   async down (queryInterface, Sequelize) {
-    await queryInterface.removeColumn('Users', 'birthdayHidden');
+    await queryInterface.removeColumn('users', 'birthdayHidden');
   }
 };

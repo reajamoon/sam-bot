@@ -3,7 +3,7 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable('Config', {
+    await queryInterface.createTable('config', {
       key: {
         type: Sequelize.STRING,
         allowNull: false,
@@ -17,6 +17,6 @@ module.exports = {
     });
   },
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable('Config');
+    await queryInterface.dropTable('config');
   },
 };

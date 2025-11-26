@@ -3,7 +3,7 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable('ParseQueueSubscribers', {
+    await queryInterface.createTable('parsequeuesubscribers', {
       id: {
         allowNull: false,
         autoIncrement: true,
@@ -14,7 +14,7 @@ module.exports = {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
-          model: 'ParseQueue',
+          model: 'parsequeue',
           key: 'id',
         },
         onDelete: 'CASCADE',
@@ -36,6 +36,6 @@ module.exports = {
     });
   },
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable('ParseQueueSubscribers');
+    await queryInterface.dropTable('parsequeuesubscribers');
   },
 };

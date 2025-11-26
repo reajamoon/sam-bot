@@ -3,7 +3,7 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable('ParseQueue', {
+    await queryInterface.createTable('parsequeue', {
       id: {
         allowNull: false,
         autoIncrement: true,
@@ -45,6 +45,6 @@ module.exports = {
     });
   },
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable('ParseQueue');
+    await queryInterface.dropTable('parsequeue');
   },
 };

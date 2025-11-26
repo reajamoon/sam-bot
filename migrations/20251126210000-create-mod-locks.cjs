@@ -3,7 +3,7 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable('ModLocks', {
+    await queryInterface.createTable('modlocks', {
       id: {
         type: Sequelize.INTEGER,
         autoIncrement: true,
@@ -13,7 +13,7 @@ module.exports = {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
-          model: 'Recommendations',
+          model: 'recommendations',
           key: 'id',
         },
         onDelete: 'CASCADE',

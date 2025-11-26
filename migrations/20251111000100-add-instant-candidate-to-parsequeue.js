@@ -2,7 +2,7 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.addColumn("ParseQueue", "instant_candidate", {
+    await queryInterface.addColumn("parsequeue", "instant_candidate", {
       type: Sequelize.BOOLEAN,
       allowNull: false,
       defaultValue: false,
@@ -11,6 +11,6 @@ module.exports = {
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.removeColumn("ParseQueue", "instant_candidate");
+    await queryInterface.removeColumn("parsequeue", "instant_candidate");
   }
 };
