@@ -40,6 +40,12 @@ export default (sequelize) => {
             type: DataTypes.INTEGER,
             defaultValue: 0
         },
+        permissionLevel: {
+            type: DataTypes.ENUM('superadmin', 'admin', 'mod', 'member', 'non_member'),
+            allowNull: false,
+            defaultValue: 'member',
+            comment: 'Role-based permission level.'
+        },
         level: {
             type: DataTypes.INTEGER,
             defaultValue: 1

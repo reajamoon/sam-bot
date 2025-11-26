@@ -10,6 +10,36 @@ import { createRecommendationEmbed } from '../../../../shared/recUtils/asyncEmbe
 import { fetchRecWithSeries } from '../../../../models/fetchRecWithSeries.js';
 import { markPrimaryAndNotPrimaryWorks } from './seriesUtils.js';
 import normalizeRating from '../../../../shared/recUtils/normalizeRating.js';
+import { setModLock } from '../../../../shared/utils/modLockUtils.js';
+
+// Helper to deduplicate and lowercase tags
+function cleanTags(tags) {
+    if (!tags) return [];
+    return Array.from(new Set(tags.map(t => t.toLowerCase().trim()).filter(Boolean)));
+}
+
+// Helper to upsert UserFicMetadata
+async function upsertUserFicMetadata({ userID, ao3ID, seriesId, newTitle, newAuthor, newSummary, newTags, newRating, newWordCount, newChapters, newStatus, newArchiveWarnings, newSeriesName, newSeriesPart, newSeriesUrl, additionalTagsToSend, newNotes }) {
+    await UserFicMetadata.upsert({
+        userID,
+        ao3ID,
+        seriesId,
+        manual_title: newTitle || null,
+        manual_authors: newAuthor ? [newAuthor] : null,
+        manual_summary: newSummary || null,
+        manual_tags: cleanTags(newTags),
+        manual_rating: newRating || null,
+        manual_wordcount: newWordCount || null,
+        manual_chapters: newChapters || null,
+        manual_status: newStatus || null,
+        manual_archive_warnings: cleanTags(newArchiveWarnings),
+        manual_seriesName: newSeriesName || null,
+        manual_seriesPart: newSeriesPart || null,
+        manual_seriesUrl: newSeriesUrl || null,
+        additional_tags: cleanTags(additionalTagsToSend),
+        rec_note: newNotes || null
+    });
+}
 
 // Modular validation helpers
 function validateAttachment(newAttachment, willBeDeleted) {
@@ -31,86 +61,54 @@ function validateAttachment(newAttachment, willBeDeleted) {
 }
 
 export default async function handleUpdateRecommendation(interaction) {
-        // Restrict manual status setting to mods only
-        const newStatus = interaction.options.getString('status');
-        if (newStatus) {
-            // Check for mod permissions (ManageMessages or Administrator)
-            const member = interaction.member;
-            const isMod = member && (member.permissions.has('ManageMessages') || member.permissions.has('Administrator'));
-            if (!isMod) {
-                await interaction.editReply({
-                    content: 'You do not have permission to manually set fic status. Only moderators can use this option.',
-                    flags: MessageFlags.Ephemeral
-                });
-                return;
-            }
-        }
-    try {
-        console.log('[rec update] Handler called', {
-            user: interaction.user?.id,
-            identifier: interaction.options.getString('identifier'),
-            options: interaction.options.data
-        });
-        // Debug: log all incoming option values for troubleshooting
-        // const debugFields = {
-        //     newTitle: interaction.options.getString('title'),
-        //     newAuthor: interaction.options.getString('author'),
-        //     newSummary: interaction.options.getString('summary'),
-        //     newRating: interaction.options.getString('rating'),
-        //     newStatus: interaction.options.getString('status'),
-        //     newWordCount: interaction.options.getInteger('wordcount'),
-        //     newTags: interaction.options.getString('tags'),
-        //     newNotes: interaction.options.getString('notes'),
-        //     newChapters: interaction.options.getString('chapters'),
-        //     newArchiveWarnings: interaction.options.getString('archive_warnings'),
-        //     newSeriesName: interaction.options.getString('series_name'),
-        //     newSeriesPart: interaction.options.getInteger('series_part'),
-        //     newSeriesUrl: interaction.options.getString('series_url'),
-        //     appendAdditional: interaction.options.getBoolean('append')
-        // };
-        // console.log('[rec update] Option values:', debugFields);
-        await interaction.deferReply();
-        const identifier = interaction.options.getString('identifier');
-        if (!identifier) {
+    // Restrict manual status setting to mods only
+    const newStatus = interaction.options.getString('status');
+    if (newStatus) {
+        // Check for mod permissions (ManageMessages or Administrator)
+        const member = interaction.member;
+        const isMod = member && (member.permissions.has('ManageMessages') || member.permissions.has('Administrator'));
+        if (!isMod) {
             await interaction.editReply({
-                content: 'You must provide an identifier (fic ID, AO3 WorkId, or URL).'
+                content: 'You do not have permission to manually set fic status. Only moderators can use this option.',
+                flags: MessageFlags.Ephemeral
             });
             return;
         }
-        let newUrl = interaction.options.getString('new_url');
-        if (newUrl) newUrl = normalizeAO3Url(newUrl);
-        const newTitle = interaction.options.getString('title');
-        const newAuthor = interaction.options.getString('author');
-        const newSummary = interaction.options.getString('summary');
-        let newRating = interaction.options.getString('rating');
-        newRating = normalizeRating(newRating);
-        const newStatus = interaction.options.getString('status');
-        const newWordCount = interaction.options.getInteger('wordcount');
-        const newDeleted = interaction.options.getBoolean('deleted');
-        const newAttachment = interaction.options.getAttachment('attachment');
-        // Robust tag parsing and deduplication
-        let newTags = interaction.options.getString('tags')
-            ? interaction.options.getString('tags').split(',').map(tag => tag.trim()).filter(Boolean)
-            : null;
-        if (newTags) {
-            newTags = Array.from(new Set(newTags.map(t => t.toLowerCase())));
-        }
-        const newNotes = interaction.options.getString('notes');
-        const newChapters = interaction.options.getString('chapters');
-        const newArchiveWarnings = interaction.options.getString('archive_warnings')
-            ? interaction.options.getString('archive_warnings').split(',').map(w => w.trim()).filter(Boolean)
-            : null;
-        const newSeriesName = interaction.options.getString('series_name');
-        const newSeriesPart = interaction.options.getInteger('series_part');
-        const newSeriesUrl = interaction.options.getString('series_url');
-        // Support append mode for additional tags
-        const appendAdditional = interaction.options.getBoolean('append');
+    }
+    let newUrl = interaction.options.getString('new_url');
+    if (newUrl) newUrl = normalizeAO3Url(newUrl);
+    const newTitle = interaction.options.getString('title');
+    const newAuthor = interaction.options.getString('author');
+    const newSummary = interaction.options.getString('summary');
+    let newRating = interaction.options.getString('rating');
+    newRating = normalizeRating(newRating);
+    // newStatus already defined above
+    const newWordCount = interaction.options.getInteger('wordcount');
+    const newDeleted = interaction.options.getBoolean('deleted');
+    const newAttachment = interaction.options.getAttachment('attachment');
+    let newTags = cleanTags(
+        interaction.options.getString('tags')
+            ? interaction.options.getString('tags').split(',')
+            : []
+    );
+    const newNotes = interaction.options.getString('notes');
+    const newChapters = interaction.options.getString('chapters');
+    let newArchiveWarnings = cleanTags(
+        interaction.options.getString('archive_warnings')
+            ? interaction.options.getString('archive_warnings').split(',')
+            : []
+    );
+    const newSeriesName = interaction.options.getString('series_name');
+    const newSeriesPart = interaction.options.getInteger('series_part');
+    const newSeriesUrl = interaction.options.getString('series_url');
+    // Support append mode for additional tags
+    const appendAdditional = interaction.options.getBoolean('append');
 
+    try {
         const recommendation = await findRecommendationByIdOrUrl(interaction, identifier, null, null);
         if (!recommendation) {
             await interaction.editReply({
-                content: `I couldn't find a recommendation with identifier \
-\`${identifier}\` in our library. Use \`/rec stats\` to see what's available.`
+                content: `I couldn't find a recommendation with identifier \`${identifier}\` in our library. Use \`/rec stats\` to see what's available.`
             });
             return;
         }
@@ -471,7 +469,7 @@ export default async function handleUpdateRecommendation(interaction) {
                 });
                 return;
             }
-// (removed stray spread operator code)
+
         }
         // Always deduplicate and clean
         additionalTagsToSend = Array.from(new Set((additionalTagsToSend || []).map(t => t.toLowerCase())));
@@ -515,49 +513,6 @@ export default async function handleUpdateRecommendation(interaction) {
                 }
             }
         });
-        if (recommendation.seriesId && seriesEntry) {
-  // Series rec upsert
-  await UserFicMetadata.upsert({
-    userID: interaction.user.id,
-    ao3ID: null,
-    seriesId: seriesEntry.id,
-    manual_title: newTitle || null,
-    manual_authors: newAuthor ? [newAuthor] : null,
-    manual_summary: newSummary || null,
-    manual_tags: newTags || [],
-    manual_rating: newRating || null,
-    manual_wordcount: newWordCount || null,
-    manual_chapters: newChapters || null,
-    manual_status: newStatus || null,
-    manual_archive_warnings: newArchiveWarnings || [],
-    manual_seriesName: newSeriesName || null,
-    manual_seriesPart: newSeriesPart || null,
-    manual_seriesUrl: newSeriesUrl || null,
-    additional_tags: additionalTagsToSend || [],
-    rec_note: newNotes || null
-  });
-} else {
-  // Work rec upsert
-  await UserFicMetadata.upsert({
-    userID: interaction.user.id,
-    ao3ID: recommendation.ao3ID,
-    seriesId: recommendation.seriesId || null,
-    manual_title: newTitle || null,
-    manual_authors: newAuthor ? [newAuthor] : null,
-    manual_summary: newSummary || null,
-    manual_tags: newTags || [],
-    manual_rating: newRating || null,
-    manual_wordcount: newWordCount || null,
-    manual_chapters: newChapters || null,
-    manual_status: newStatus || null,
-    manual_archive_warnings: newArchiveWarnings || [],
-    manual_seriesName: newSeriesName || null,
-    manual_seriesPart: newSeriesPart || null,
-    manual_seriesUrl: newSeriesUrl || null,
-    additional_tags: additionalTagsToSend || [],
-    rec_note: newNotes || null
-  });
-}
     } catch (error) {
         console.error('[rec update] Error:', error);
         await interaction.editReply({
