@@ -81,9 +81,11 @@ export async function handleStatsChartsButton(interaction, options = {}) {
             .setLabel('Back to Stats')
             .setStyle(ButtonStyle.Secondary)
     );
+    console.log('[handleStatsChartsButton] files array before sending:', files);
     const payload = files.length > 0
         ? { content: 'Here are the charts:', embeds: [], files, components: [backRow], attachments: [] }
         : { content: 'No charts available.', embeds: [], files: [], components: [backRow], attachments: [] };
+    console.log('[handleStatsChartsButton] payload before sending:', payload);
     try {
         await updateTargetMessage(payload);
     } catch (err) {
