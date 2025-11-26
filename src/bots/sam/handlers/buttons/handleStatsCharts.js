@@ -12,6 +12,7 @@ export async function handleStatsChartsButton(interaction, options = {}) {
     // Always extract the last part as the base64-encoded messageId
     const customId = interaction.customId;
     const parts = customId.split(':');
+    // Always use the last part as the base64-encoded messageId
     const encodedMessageId = parts[parts.length - 1];
     let decodedMessageId = null;
     if (encodedMessageId) {
@@ -21,7 +22,7 @@ export async function handleStatsChartsButton(interaction, options = {}) {
             console.error('[handleStatsChartsButton] Failed to decode messageId from base64:', encodedMessageId, e);
         }
     }
-    // Always use stats:<decodedMessageId> as the cache key
+    // Force the cache key to always be stats:<decodedMessageId>
     const chartCacheKey = decodedMessageId ? `stats:${decodedMessageId}` : null;
     console.log('[handleStatsChartsButton] Using decoded messageId for cache and message ops:', decodedMessageId);
 
