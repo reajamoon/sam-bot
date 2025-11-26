@@ -9,8 +9,7 @@ import handleStats from '../../commands/recHandlers/statsHandler.js';
 export async function handleStatsChartsButton(interaction, options = {}) {
     // Determine if this is a back button or a view charts button
     const isBack = interaction.customId && interaction.customId.startsWith('stats_charts_back:');
-    // Parse context and messageId from customId
-    // For both normal and back buttons, always extract the last part as the base64-encoded messageId
+    // Always extract the last part as the base64-encoded messageId
     const customId = interaction.customId;
     const parts = customId.split(':');
     const encodedMessageId = parts[parts.length - 1];
@@ -22,7 +21,7 @@ export async function handleStatsChartsButton(interaction, options = {}) {
             console.error('[handleStatsChartsButton] Failed to decode messageId from base64:', encodedMessageId, e);
         }
     }
-    // Use only the decoded messageId (numeric string) for cache and message operations
+    // Always use stats:<decodedMessageId> as the cache key
     const chartCacheKey = decodedMessageId ? `stats:${decodedMessageId}` : null;
     console.log('[handleStatsChartsButton] Using decoded messageId for cache and message ops:', decodedMessageId);
 
