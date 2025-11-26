@@ -12,7 +12,7 @@ export default {
         console.log(`Hey, it's Sam. I'm online and ready to help out.`);
         // Set bot status
         client.user.setPresence({
-                activities: [{ emoji: ':PB_samthunk:466121531274035213', state: 'The Family Business', type: 4 }],
+                activities: [{ state: 'The Family Business', type: 4 }],
                 status: 'online'
             });
         // Start poller and birthday manager
