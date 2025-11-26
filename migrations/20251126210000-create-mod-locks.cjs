@@ -63,10 +63,10 @@ module.exports = {
         defaultValue: Sequelize.fn('NOW'),
       },
     });
-    await queryInterface.addIndex('ModLocks', ['recommendationId', 'field']);
+      await queryInterface.addIndex('modlocks', ['recommendationId', 'field']);
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable('ModLocks');
+      await queryInterface.dropTable('modlocks');
   },
 };
