@@ -55,7 +55,8 @@ export async function handleStatsChartsButton(interaction, options = {}) {
     }
 
     // Normal "View Charts" button: replace the message with the chart images and a back button
-    const fileMetas = options.files || getStatsChartCache(chartCacheKey) || [];
+    // Always use stats:<decodedMessageId> as the cache key
+    const fileMetas = options.files || (decodedMessageId ? getStatsChartCache(`stats:${decodedMessageId}`) : null) || [];
     const files = fileMetas
         .filter(f => f && f.path && f.name)
         .map(f => new AttachmentBuilder(f.path, { name: f.name }));
