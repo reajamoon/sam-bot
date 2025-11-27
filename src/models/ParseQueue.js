@@ -8,7 +8,7 @@ export default (sequelize) => {
       unique: true,
     },
     status: {
-      type: DataTypes.ENUM('pending', 'processing', 'done', 'error'),
+      type: DataTypes.ENUM('pending', 'processing', 'done', 'error', 'nOTP'),
       allowNull: false,
       defaultValue: 'pending',
     },
