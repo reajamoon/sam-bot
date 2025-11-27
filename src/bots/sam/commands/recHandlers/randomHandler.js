@@ -32,12 +32,27 @@ function filterRecommendations(recs, { allowWIP, allowDeleted, allowAbandoned, r
     return filtered;
 }
 
-// Helper: filter by tag with advanced AND/OR logic
+// Helper: get tags from specified fields for flexible filtering
+function getAllTagsFromFields(rec, tagFields = ['tags', 'additionalTags']) {
+    const allTags = [];
+    
+    for (const field of tagFields) {
+        const fieldTags = Array.isArray(rec[field]) ? rec[field] : [];
+        allTags.push(...fieldTags);
+    }
+    
+    return allTags.map(tag => tag.toLowerCase());
+}
+
+// Helper: filter by tag with advanced AND/OR/NOT logic
 function filterByTag(recs, tagFilter) {
     if (!tagFilter) return recs;
     
-    // Parse advanced tag syntax: support both 'canon divergence AND bottom dean OR angst'
-    // and legacy 'canon divergence+bottom dean, angst'
+    // Parse advanced tag syntax: support 'angst AND hurt/comfort NOT major character death'
+    // and legacy 'angst+hurt/comfort, -major character death'
+    // Search across all relevant tag fields for comprehensive filtering
+    const searchTagFields = ['tags', 'archive_warnings', 'character_tags', 'fandom_tags', 'additionalTags'];
+    
     let orGroups;
     if (tagFilter.includes(' OR ')) {
         // New syntax: split on OR first
@@ -48,28 +63,62 @@ function filterByTag(recs, tagFilter) {
     }
     
     return recs.filter(rec => {
-        const allTags = Array.isArray(rec.getParsedTags?.()) ? rec.getParsedTags() : [];
-        const tagStrings = allTags.map(tag => tag.toLowerCase());
+        const tagStrings = getAllTagsFromFields(rec, searchTagFields);
         
         // Check if rec matches any OR group
         return orGroups.some(group => {
-            if (group.includes(' AND ')) {
-                // New syntax: AND group
-                const andTags = group.split(' AND ').map(t => t.trim().toLowerCase()).filter(Boolean);
-                return andTags.every(tag => 
-                    tagStrings.some(recTag => recTag.includes(tag))
-                );
-            } else if (group.includes('+')) {
-                // Legacy syntax: + for AND
-                const andTags = group.split('+').map(t => t.trim().toLowerCase()).filter(Boolean);
-                return andTags.every(tag => 
-                    tagStrings.some(recTag => recTag.includes(tag))
-                );
-            } else {
-                // Single tag: just check if it matches any tag
-                const tag = group.toLowerCase();
-                return tagStrings.some(recTag => recTag.includes(tag));
+            let workingGroup = group;
+            const requiredTags = [];
+            const excludedTags = [];
+            
+            // Extract NOT terms (new syntax)
+            const notMatches = workingGroup.match(/\bNOT\s+([^\s]+(?:\s+[^\s]+)*?)(?=\s+(?:AND|OR|$)|$)/g);
+            if (notMatches) {
+                for (const notMatch of notMatches) {
+                    const notTag = notMatch.replace(/^NOT\s+/, '').trim().toLowerCase();
+                    if (notTag) excludedTags.push(notTag);
+                    workingGroup = workingGroup.replace(notMatch, '').trim();
+                }
             }
+            
+            // Extract legacy NOT terms (- prefix)
+            const legacyNotMatches = workingGroup.match(/-([^,+\s]+)/g);
+            if (legacyNotMatches) {
+                for (const legacyNotMatch of legacyNotMatches) {
+                    const notTag = legacyNotMatch.substring(1).toLowerCase();
+                    if (notTag) excludedTags.push(notTag);
+                    workingGroup = workingGroup.replace(legacyNotMatch, '').trim();
+                }
+            }
+            
+            // Clean up the working group
+            workingGroup = workingGroup.replace(/\s+/g, ' ').trim();
+            
+            // Parse required tags
+            if (workingGroup.includes(' AND ')) {
+                // New syntax: AND group
+                const andTags = workingGroup.split(' AND ').map(t => t.trim().toLowerCase()).filter(Boolean);
+                requiredTags.push(...andTags);
+            } else if (workingGroup.includes('+')) {
+                // Legacy syntax: + for AND
+                const andTags = workingGroup.split('+').map(t => t.trim().toLowerCase()).filter(Boolean);
+                requiredTags.push(...andTags);
+            } else if (workingGroup.length) {
+                // Single tag
+                requiredTags.push(workingGroup.toLowerCase());
+            }
+            
+            // Check required tags (all must be present)
+            const hasAllRequired = requiredTags.length === 0 || requiredTags.every(tag => 
+                tagStrings.some(recTag => recTag.includes(tag))
+            );
+            
+            // Check excluded tags (none must be present)
+            const hasNoExcluded = excludedTags.length === 0 || !excludedTags.some(tag => 
+                tagStrings.some(recTag => recTag.includes(tag))
+            );
+            
+            return hasAllRequired && hasNoExcluded;
         });
     });
 }

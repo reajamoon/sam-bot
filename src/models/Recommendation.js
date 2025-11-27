@@ -170,10 +170,21 @@ export default (sequelize) => {
     });
 
     // Instance methods
+    // For embed display: only include freeform tags and user-added tags
     Recommendation.prototype.getParsedTags = function() {
         const siteTags = Array.isArray(this.tags) ? this.tags : [];
         const userTags = Array.isArray(this.additionalTags) ? this.additionalTags : [];
         return [...siteTags, ...userTags];
+    };
+
+    // For flexible tag searching: specify which tag fields to include
+    Recommendation.prototype.getTagsFromFields = function(tagFields = ['tags', 'additionalTags']) {
+        const allTags = [];
+        for (const field of tagFields) {
+            const fieldTags = Array.isArray(this[field]) ? this[field] : [];
+            allTags.push(...fieldTags);
+        }
+        return allTags;
     };
 
     Recommendation.prototype.getArchiveWarnings = function() {

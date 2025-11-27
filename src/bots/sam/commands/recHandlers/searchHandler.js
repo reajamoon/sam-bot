@@ -58,9 +58,12 @@ export default async function handleSearchRecommendations(interaction) {
         });
     }
     if (tagsQuery) {
-        // Advanced: support both AND/OR keywords and legacy +/, syntax
-        // Examples: 'canon divergence AND bottom dean OR angst' or 'canon divergence+bottom dean, angst'
+        // Advanced: support AND/OR/NOT keywords and legacy +/, syntax
+        // Examples: 'angst AND hurt/comfort NOT major character death' or 'angst+hurt/comfort, -major character death'
+        // Search across relevant tag fields: tags, archive_warnings, character_tags, fandom_tags, additionalTags
         // Use safe JSONB operators to prevent SQL injection
+        
+        const searchTagFields = ['tags', 'archive_warnings', 'character_tags', 'fandom_tags', 'additionalTags'];
         
         let orGroups;
         if (tagsQuery.includes(' OR ')) {
@@ -73,41 +76,82 @@ export default async function handleSearchRecommendations(interaction) {
         
         const tagOrClauses = [];
         for (const group of orGroups) {
-            if (group.includes(' AND ')) {
+            const groupClauses = [];
+            let workingGroup = group;
+            
+            // Handle NOT clauses first (both new and legacy syntax)
+            const notClauses = [];
+            
+            // Extract NOT terms (new syntax)
+            const notMatches = workingGroup.match(/\bNOT\s+([^\s]+(?:\s+[^\s]+)*?)(?=\s+(?:AND|OR|$)|$)/g);
+            if (notMatches) {
+                for (const notMatch of notMatches) {
+                    const notTag = notMatch.replace(/^NOT\s+/, '').trim().toLowerCase();
+                    if (notTag) {
+                        // Search across all relevant tag fields for NOT clause
+                        const notConditions = getTagSearchConditions(notTag, Op.notILike, searchTagFields);
+                        notClauses.push({ [Op.and]: notConditions });
+                    }
+                    workingGroup = workingGroup.replace(notMatch, '').trim();
+                }
+            }
+            
+            // Extract legacy NOT terms (- prefix)
+            const legacyNotMatches = workingGroup.match(/-([^,+\s]+)/g);
+            if (legacyNotMatches) {
+                for (const legacyNotMatch of legacyNotMatches) {
+                    const notTag = legacyNotMatch.substring(1).toLowerCase();
+                    if (notTag) {
+                        // Search across all relevant tag fields for NOT clause
+                        const notConditions = getTagSearchConditions(notTag, Op.notILike, searchTagFields);
+                        notClauses.push({ [Op.and]: notConditions });
+                    }
+                    workingGroup = workingGroup.replace(legacyNotMatch, '').trim();
+                }
+            }
+            
+            // Clean up the working group
+            workingGroup = workingGroup.replace(/\s+/g, ' ').trim();
+            
+            if (workingGroup.includes(' AND ')) {
                 // New syntax: AND group
-                const andTags = group.split(' AND ').map(t => t.trim().toLowerCase()).filter(Boolean);
+                const andTags = workingGroup.split(' AND ').map(t => t.trim().toLowerCase()).filter(Boolean);
                 if (andTags.length > 0) {
-                    const andClauses = andTags.map(tag => 
-                        sequelize.where(
-                            sequelize.fn('jsonb_array_elements_text', sequelize.col('tags')),
-                            { [Op.iLike]: `%${tag}%` }
-                        )
-                    );
-                    tagOrClauses.push({ [Op.and]: andClauses });
+                    const andClauses = andTags.map(tag => {
+                        // Search across all relevant tag fields for positive match
+                        const tagConditions = getTagSearchConditions(tag, Op.iLike, searchTagFields);
+                        return { [Op.or]: tagConditions };
+                    });
+                    groupClauses.push({ [Op.and]: andClauses });
                 }
-            } else if (group.includes('+')) {
+            } else if (workingGroup.includes('+')) {
                 // Legacy syntax: + for AND
-                const andTags = group.split('+').map(t => t.trim().toLowerCase()).filter(Boolean);
+                const andTags = workingGroup.split('+').map(t => t.trim().toLowerCase()).filter(Boolean);
                 if (andTags.length > 0) {
-                    const andClauses = andTags.map(tag => 
-                        sequelize.where(
-                            sequelize.fn('jsonb_array_elements_text', sequelize.col('tags')),
-                            { [Op.iLike]: `%${tag}%` }
-                        )
-                    );
-                    tagOrClauses.push({ [Op.and]: andClauses });
+                    const andClauses = andTags.map(tag => {
+                        // Search across all relevant tag fields for positive match
+                        const tagConditions = getTagSearchConditions(tag, Op.iLike, searchTagFields);
+                        return { [Op.or]: tagConditions };
+                    });
+                    groupClauses.push({ [Op.and]: andClauses });
                 }
-            } else if (group.length) {
+            } else if (workingGroup.length) {
                 // Single tag
-                const tag = group.toLowerCase();
-                tagOrClauses.push(
-                    sequelize.where(
-                        sequelize.fn('jsonb_array_elements_text', sequelize.col('tags')),
-                        { [Op.iLike]: `%${tag}%` }
-                    )
-                );
+                const tag = workingGroup.toLowerCase();
+                // Search across all relevant tag fields for positive match
+                const tagConditions = getTagSearchConditions(tag, Op.iLike, searchTagFields);
+                groupClauses.push({ [Op.or]: tagConditions });
+            }
+            
+            // Combine positive and negative clauses for this group
+            const allGroupClauses = [...groupClauses, ...notClauses];
+            if (allGroupClauses.length === 1) {
+                tagOrClauses.push(allGroupClauses[0]);
+            } else if (allGroupClauses.length > 1) {
+                tagOrClauses.push({ [Op.and]: allGroupClauses });
             }
         }
+        
         if (tagOrClauses.length === 1) {
             whereClauses.push(tagOrClauses[0]);
         } else if (tagOrClauses.length > 1) {

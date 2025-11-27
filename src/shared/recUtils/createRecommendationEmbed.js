@@ -175,10 +175,38 @@ function addTagsField(embed, rec) {
     }
 }
 
-// Helper: Add notes field
+// Helper: Get a random user note if any exist
+function getRandomUserNote(rec) {
+    if (!rec.userMetadata || !Array.isArray(rec.userMetadata) || rec.userMetadata.length === 0) {
+        return null;
+    }
+    
+    // Filter for notes that exist and aren't empty
+    const notesWithText = rec.userMetadata.filter(metadata => 
+        metadata.rec_note && typeof metadata.rec_note === 'string' && metadata.rec_note.trim().length > 0
+    );
+    
+    if (notesWithText.length === 0) {
+        return null;
+    }
+    
+    // Randomly select one note
+    const randomIndex = Math.floor(Math.random() * notesWithText.length);
+    return notesWithText[randomIndex].rec_note.trim();
+}
+
+// Helper: Add notes field (both original notes and user notes)
 function addNotesField(embed, rec) {
+    const userNote = getRandomUserNote(rec);
+    
+    // Original recommender notes (deprecated but may still exist)
     if (rec.notes) {
         embed.addFields({ name: 'Recommender Notes', value: `>>> ${rec.notes}` });
+    }
+    
+    // User notes from UserFicMetadata
+    if (userNote) {
+        embed.addFields({ name: '📝 Reader Note', value: `>>> ${userNote}` });
     }
 }
 
