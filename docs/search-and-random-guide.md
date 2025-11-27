@@ -45,13 +45,28 @@ Both commands support sophisticated tag filtering using AND/OR/NOT logic across 
 - **OR logic**: `fluff, hurt/comfort` (using comma)
 - **NOT logic**: `hurt/comfort, -major character death` (using - symbol for exclusion)
 
+### Smart Tag Matching
+
+The system includes intelligent tag matching for common variations:
+
+**AU (Alternate Universe) Support:**
+- `AU` and `Alternate Universe` are treated as synonyms
+- `AU: Coffee Shop` matches `Alternate Universe: Coffee Shop` and vice versa
+- Standalone AU suffixes like `Coffee Shop` will also match `AU: Coffee Shop` and `Alternate Universe: Coffee Shop`
+
+**Examples:**
+- Searching for `AU` finds fics tagged with "AU", "Alternate Universe", "AU: Modern", "Alternate Universe: College", etc.
+- Searching for `Coffee Shop` finds fics tagged with "Coffee Shop", "AU: Coffee Shop", "Alternate Universe: Coffee Shop"
+- Searching for `AU: Modern` finds fics tagged with "AU: Modern", "Alternate Universe: Modern", and "Modern" (if in AU context)
+
 ### Examples
 ```
 /rec search tags: angst AND hurt/comfort NOT major character death
 /rec search tags: fluff OR humor NOT crack
-/rec search tags: canon divergence AND bottom dean NOT top sam
+/rec search tags: AU AND coffee shop  // finds both "AU: Coffee Shop" and "Alternate Universe: Coffee Shop"
+/rec search tags: coffee shop NOT angst  // finds "Coffee Shop", "AU: Coffee Shop", etc.
 /rec random tags: hurt/comfort NOT angst, domestic fluff
-/rec search tags: dean winchester AND sam winchester NOT wincest
+/rec search tags: hurt!dean AND protective!castiel NOT established relationship
 /rec search tags: major character death AND happy ending  // archive warning + tag
 /rec search tags: castiel NOT graphic depictions of violence  // character + archive warning
 ```
@@ -128,8 +143,8 @@ Old-style searches still work if you prefer them:
 - `/rec random tag:crack OR humor allowwip:true` - funny fics including WIPs
 
 **Author exploration:**
-- `/rec search author:mishacollins tags:fluff` - fluffy fics by mishacollins-type authors
-- `/rec search author:dean title:coffee` - coffee-themed fics by dean-type authors
+- `/rec search author:misha tags:fluff` - fluffy fics by authors with "misha" in their name
+- `/rec search author:dean title:coffee` - coffee-themed fics by authors with "dean" in their name
 
 ---
 

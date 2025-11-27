@@ -4,6 +4,7 @@ const { MessageFlags } = Discord;
 import { fetchRecWithSeries } from '../../../../models/fetchRecWithSeries.js';
 import { fetchAllRecsWithSeries } from '../../../../models/fetchAllRecsWithSeries.js';
 import createRecommendationEmbed, { isSeriesRec } from '../../../../shared/recUtils/createRecommendationEmbed.js';
+import { matchesTagWithSynonyms } from '../../../../utils/tagUtils.js';
 
 
 // Helper: filter recommendations for risky/normal mode
@@ -108,14 +109,14 @@ function filterByTag(recs, tagFilter) {
                 requiredTags.push(workingGroup.toLowerCase());
             }
             
-            // Check required tags (all must be present)
+            // Check required tags (all must be present) with AU synonym support
             const hasAllRequired = requiredTags.length === 0 || requiredTags.every(tag => 
-                tagStrings.some(recTag => recTag.includes(tag))
+                matchesTagWithSynonyms(tagStrings, tag)
             );
             
-            // Check excluded tags (none must be present)
+            // Check excluded tags (none must be present) with AU synonym support
             const hasNoExcluded = excludedTags.length === 0 || !excludedTags.some(tag => 
-                tagStrings.some(recTag => recTag.includes(tag))
+                matchesTagWithSynonyms(tagStrings, tag)
             );
             
             return hasAllRequired && hasNoExcluded;
@@ -168,8 +169,16 @@ async function handleRandomRecommendation(interaction) {
         }
         let embed = null;
         try {
+            // Check if this is a series rec and fetch series with user metadata
             if (recWithSeries && recWithSeries.series && Array.isArray(recWithSeries.series.works) && recWithSeries.series.works.length > 0) {
-                embed = await createRecommendationEmbed(null, recWithSeries.series, recWithSeries.series.works);
+                const { fetchSeriesWithUserMetadata } = await import('../../../../models/fetchSeriesWithUserMetadata.js');
+                const seriesWithUserMetadata = await fetchSeriesWithUserMetadata(recWithSeries.series.id);
+                if (seriesWithUserMetadata) {
+                    embed = await createRecommendationEmbed(null, seriesWithUserMetadata, seriesWithUserMetadata.works);
+                } else {
+                    // Fallback to regular series embed
+                    embed = await createRecommendationEmbed(null, recWithSeries.series, recWithSeries.series.works);
+                }
             } else {
                 embed = await createRecommendationEmbed(recWithSeries);
             }

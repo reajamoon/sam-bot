@@ -25,9 +25,12 @@ export async function fetchRecWithSeries(recId, includeSeriesWorks = false) {
       model: UserFicMetadata,
       as: 'userMetadata',
       where: {
-        rec_note: { [Op.not]: null }
+        [Op.or]: [
+          { rec_note: { [Op.not]: null } },
+          { additional_tags: { [Op.not]: null } }
+        ]
       },
-      required: false // LEFT JOIN to include recs even without notes
+      required: false // LEFT JOIN to include recs even without notes/tags
     }
   ];
   return Recommendation.findByPk(recId, { include });

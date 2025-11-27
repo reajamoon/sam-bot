@@ -5,6 +5,7 @@ import { Op, literal } from 'sequelize';
 import createSearchResultsEmbed from '../../../../shared/recUtils/createSearchResultsEmbed.js';
 import createRecommendationEmbed from '../../../../shared/recUtils/createRecommendationEmbed.js';
 import { buildSearchPaginationRow } from '../../../../shared/recUtils/searchPagination.js';
+import { createTagSearchConditions } from '../../../../utils/tagUtils.js';
 
 export default async function handleSearchRecommendations(interaction) {
     if (Date.now() - interaction.createdTimestamp > 14 * 60 * 1000) {
@@ -89,7 +90,7 @@ export default async function handleSearchRecommendations(interaction) {
                     const notTag = notMatch.replace(/^NOT\s+/, '').trim().toLowerCase();
                     if (notTag) {
                         // Search across all relevant tag fields for NOT clause
-                        const notConditions = getTagSearchConditions(notTag, Op.notILike, searchTagFields);
+                        const notConditions = createTagSearchConditions(notTag, Op.notILike, searchTagFields);
                         notClauses.push({ [Op.and]: notConditions });
                     }
                     workingGroup = workingGroup.replace(notMatch, '').trim();
@@ -103,7 +104,7 @@ export default async function handleSearchRecommendations(interaction) {
                     const notTag = legacyNotMatch.substring(1).toLowerCase();
                     if (notTag) {
                         // Search across all relevant tag fields for NOT clause
-                        const notConditions = getTagSearchConditions(notTag, Op.notILike, searchTagFields);
+                        const notConditions = createTagSearchConditions(notTag, Op.notILike, searchTagFields);
                         notClauses.push({ [Op.and]: notConditions });
                     }
                     workingGroup = workingGroup.replace(legacyNotMatch, '').trim();
@@ -119,7 +120,7 @@ export default async function handleSearchRecommendations(interaction) {
                 if (andTags.length > 0) {
                     const andClauses = andTags.map(tag => {
                         // Search across all relevant tag fields for positive match
-                        const tagConditions = getTagSearchConditions(tag, Op.iLike, searchTagFields);
+                        const tagConditions = createTagSearchConditions(tag, Op.iLike, searchTagFields);
                         return { [Op.or]: tagConditions };
                     });
                     groupClauses.push({ [Op.and]: andClauses });
@@ -130,7 +131,7 @@ export default async function handleSearchRecommendations(interaction) {
                 if (andTags.length > 0) {
                     const andClauses = andTags.map(tag => {
                         // Search across all relevant tag fields for positive match
-                        const tagConditions = getTagSearchConditions(tag, Op.iLike, searchTagFields);
+                        const tagConditions = createTagSearchConditions(tag, Op.iLike, searchTagFields);
                         return { [Op.or]: tagConditions };
                     });
                     groupClauses.push({ [Op.and]: andClauses });
@@ -139,7 +140,7 @@ export default async function handleSearchRecommendations(interaction) {
                 // Single tag
                 const tag = workingGroup.toLowerCase();
                 // Search across all relevant tag fields for positive match
-                const tagConditions = getTagSearchConditions(tag, Op.iLike, searchTagFields);
+                const tagConditions = createTagSearchConditions(tag, Op.iLike, searchTagFields);
                 groupClauses.push({ [Op.or]: tagConditions });
             }
             
@@ -192,8 +193,17 @@ export default async function handleSearchRecommendations(interaction) {
         const { fetchRecWithSeries } = await import('../../../../models/fetchRecWithSeries.js');
         recWithSeries = await fetchRecWithSeries(rec.id, true);
         if (recWithSeries) {
+            // Check if this is a series rec and fetch series with user metadata
             if (recWithSeries.series && Array.isArray(recWithSeries.series.works) && recWithSeries.series.works.length > 0) {
-                searchEmbed = await createRecommendationEmbed(null, recWithSeries.series, recWithSeries.series.works);
+                const { fetchSeriesWithUserMetadata } = await import('../../../../models/fetchSeriesWithUserMetadata.js');
+                const seriesWithUserMetadata = await fetchSeriesWithUserMetadata(recWithSeries.series.id);
+                
+                if (seriesWithUserMetadata) {
+                    searchEmbed = await createRecommendationEmbed(null, seriesWithUserMetadata, seriesWithUserMetadata.works);
+                } else {
+                    // Fallback to regular series embed
+                    searchEmbed = await createRecommendationEmbed(null, recWithSeries.series, recWithSeries.series.works);
+                }
             } else {
                 searchEmbed = await createRecommendationEmbed(recWithSeries);
             }
@@ -217,8 +227,19 @@ export default async function handleSearchRecommendations(interaction) {
     if (tagsQuery) searchSummary.push(`tags: "${tagsQuery}"`);
     if (ratingQuery) searchSummary.push(`rating: "${ratingQuery}"`);
     if (summaryQuery) searchSummary.push(`summary: "${summaryQuery}"`);
+    
+    // Encode all query parameters for pagination
+    const queryParams = {
+        titleQuery: titleQuery || null,
+        authorQuery: authorQuery || null,
+        tagsQuery: tagsQuery || null,
+        ratingQuery: ratingQuery || null,
+        summaryQuery: summaryQuery || null
+    };
+    const encodedQuery = encodeURIComponent(JSON.stringify(queryParams));
+    
     const resultsEmbed = createSearchResultsEmbed(recs, page, totalPages, searchSummary.join(', '));
-    const row = buildSearchPaginationRow(page, totalPages, `recsearch:${titleQuery || ''}`);
+    const row = buildSearchPaginationRow(page, totalPages, `recsearch:${encodedQuery}`);
     const totalResults = allResults.length;
     await interaction.editReply({
         content: `Found **${totalResults}** fic${totalResults === 1 ? '' : 's'} matching your search.`,

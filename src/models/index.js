@@ -57,8 +57,10 @@ Series.hasMany(Recommendation, { foreignKey: 'seriesId', as: 'works' });
 UserFicMetadata.belongsTo(User, { foreignKey: 'userID', targetKey: 'discordId', as: 'user', constraints: false });
 // Not a true FK, but allows eager loading if needed
 UserFicMetadata.belongsTo(Recommendation, { foreignKey: 'ao3ID', targetKey: 'ao3ID', as: 'fic', constraints: false });
+UserFicMetadata.belongsTo(Series, { foreignKey: 'seriesId', targetKey: 'id', as: 'series', constraints: false });
 User.hasMany(UserFicMetadata, { foreignKey: 'userID', sourceKey: 'discordId', as: 'ficMetadata' });
 Recommendation.hasMany(UserFicMetadata, { foreignKey: 'ao3ID', sourceKey: 'ao3ID', as: 'userMetadata' });
+Series.hasMany(UserFicMetadata, { foreignKey: 'seriesId', sourceKey: 'id', as: 'userMetadata' });
 BirthdayMessage.belongsTo(User, { foreignKey: 'userId', targetKey: 'discordId', as: 'user', constraints: false });
 User.hasMany(BirthdayMessage, { foreignKey: 'userId', sourceKey: 'discordId', as: 'birthdayMessages' });
 ModLock.associate({ Recommendation, User });

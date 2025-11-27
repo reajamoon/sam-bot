@@ -142,12 +142,23 @@ function addSeriesWarningsField(embed, rec) {
     }
 }
 
-// Helper: Add tags field (dedupes, normalizes, concatenates)
+// Helper: Add tags field (dedupes, normalizes, concatenates all tag sources)
 function addTagsField(embed, rec) {
     const freeformTags = Array.isArray(rec.tags) ? rec.tags : [];
-    const additionalTags = Array.isArray(rec.additionalTags) ? rec.additionalTags : [];
+    
+    // Get additional tags from all UserFicMetadata entries
+    const userAdditionalTags = [];
+    if (rec.userMetadata && Array.isArray(rec.userMetadata)) {
+        for (const userMeta of rec.userMetadata) {
+            if (userMeta.additional_tags && Array.isArray(userMeta.additional_tags)) {
+                userAdditionalTags.push(...userMeta.additional_tags);
+            }
+        }
+    }
+    
+    // Normalize and deduplicate all tag sources
     const normalizedTagMap = new Map();
-    for (const tag of [...freeformTags, ...additionalTags]) {
+    for (const tag of [...freeformTags, ...userAdditionalTags]) {
         if (typeof tag === 'string') {
             const norm = tag.trim().toLowerCase();
             if (norm && !normalizedTagMap.has(norm)) {
@@ -155,6 +166,7 @@ function addTagsField(embed, rec) {
             }
         }
     }
+    
     const allTags = Array.from(normalizedTagMap.values());
     if (allTags.length > 0) {
         let tagString = '';
@@ -171,6 +183,17 @@ function addTagsField(embed, rec) {
         embed.addFields({
             name: 'Tags',
             value: tagString
+        });
+    }
+}
+
+// Helper: Add series field for works that belong to a series
+function addSeriesField(embed, rec) {
+    if (rec.series && rec.part && rec.series.name && rec.series.url) {
+        embed.addFields({
+            name: '',
+            value: `[Part ${rec.part} of ${rec.series.name}](${rec.series.url})`,
+            inline: false
         });
     }
 }
@@ -360,40 +383,101 @@ async function createRecommendationEmbed(rec, series = null, seriesWorks = null)
                 embed.addFields({ name: 'Major Content Warnings', value: fieldValue });
             }
         }
-        // Works in Series field (from series.workIds and seriesWorks)
-        if (Array.isArray(series.workIds) && series.workIds.length > 0 && Array.isArray(seriesWorks)) {
-            const maxToShow = 5;
+        // Works in Series field - show first 5 works with titles and links
+        let worksToDisplay = [];
+        
+        // First try to use series.series_works (direct from AO3 parsing)
+        if (series.series_works && Array.isArray(series.series_works)) {
+            worksToDisplay = series.series_works.slice(0, 5);
+        } 
+        // Fallback to seriesWorks (from database relationship) if series_works not available
+        else if (Array.isArray(seriesWorks) && seriesWorks.length > 0) {
+            worksToDisplay = seriesWorks.slice(0, 5);
+        }
+        // Last resort: use workIds if available
+        else if (Array.isArray(series.workIds) && series.workIds.length > 0) {
+            worksToDisplay = series.workIds.slice(0, 5).map((workId, index) => ({
+                title: `Work #${index + 1}`,
+                url: `https://archiveofourown.org/works/${workId}`
+            }));
+        }
+        
+        if (worksToDisplay.length > 0) {
             let worksList = '';
-            for (let i = 0; i < Math.min(series.workIds.length, maxToShow); i++) {
-                const workMeta = seriesWorks.find(w => w.ao3ID == series.workIds[i] || w.url?.includes(`/works/${series.workIds[i]}`));
-                const title = (workMeta && workMeta.title) || `Work #${i + 1}`;
-                const url = workMeta && workMeta.url ? workMeta.url : `https://archiveofourown.org/works/${series.workIds[i]}`;
+            const totalWorks = series.workCount || series.workIds?.length || seriesWorks?.length || worksToDisplay.length;
+            
+            // If more than 5 works exist, show first 4 + "and X more" message
+            // If 5 or fewer works exist, show all of them
+            const worksToShow = totalWorks > 5 ? 4 : Math.min(5, worksToDisplay.length);
+            
+            for (let i = 0; i < worksToShow; i++) {
+                const work = worksToDisplay[i];
+                const title = work.title || `Work #${i + 1}`;
+                const url = work.url || (work.ao3ID ? `https://archiveofourown.org/works/${work.ao3ID}` : `https://archiveofourown.org/works/${work}`);
                 worksList += `${i + 1}. [${title}](${url})\n`;
             }
-            if (series.workIds.length > maxToShow) {
-                worksList += `${maxToShow}. [and more...](${series.url})`;
+            
+            if (totalWorks > 5) {
+                worksList += `... and ${totalWorks - 4} more works - [View all](${series.url})`;
             }
+            
             embed.addFields({
-                name: `Works in Series (${series.workIds.length})`,
+                name: `Works in Series (${totalWorks})`,
                 value: worksList.trim()
             });
         }
-        // Tags: aggregate from seriesWorks
-        if (Array.isArray(seriesWorks) && seriesWorks.length > 0) {
-            const tagSet = new Set();
-            for (const work of seriesWorks) {
-                if (Array.isArray(work.tags)) for (const t of work.tags) tagSet.add(t);
-                if (Array.isArray(work.additionalTags)) for (const t of work.additionalTags) tagSet.add(t);
+        // Tags: aggregate from seriesWorks and user additional tags
+        if (Array.isArray(seriesWorks) && seriesWorks.length > 0 || (series.userMetadata && Array.isArray(series.userMetadata))) {
+            const normalizedTagMap = new Map();
+            
+            // Get tags from works in the series
+            if (Array.isArray(seriesWorks)) {
+                for (const work of seriesWorks) {
+                    // Only use freeform tags from works (not deprecated additionalTags)
+                    if (Array.isArray(work.tags)) {
+                        for (const tag of work.tags) {
+                            if (typeof tag === 'string') {
+                                const norm = tag.trim().toLowerCase();
+                                if (norm && !normalizedTagMap.has(norm)) {
+                                    normalizedTagMap.set(norm, tag.trim());
+                                }
+                            }
+                        }
+                    }
+                }
             }
-            if (tagSet.size > 0) {
-                let tagString = Array.from(tagSet).join(', ');
+            
+            // Get additional tags from UserFicMetadata for this series
+            if (series.userMetadata && Array.isArray(series.userMetadata)) {
+                for (const userMeta of series.userMetadata) {
+                    if (userMeta.additional_tags && Array.isArray(userMeta.additional_tags)) {
+                        for (const tag of userMeta.additional_tags) {
+                            if (typeof tag === 'string') {
+                                const norm = tag.trim().toLowerCase();
+                                if (norm && !normalizedTagMap.has(norm)) {
+                                    normalizedTagMap.set(norm, tag.trim());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if (normalizedTagMap.size > 0) {
+                let tagString = Array.from(normalizedTagMap.values()).join(', ');
                 if (tagString.length > 1021) tagString = tagString.substring(0, 1021) + '...';
                 embed.addFields({ name: 'Tags', value: tagString });
             }
         }
-        // Notes
+        // Notes: original series notes and random user note
         if (series.notes) {
             embed.addFields({ name: 'Recommender Notes', value: `>>> ${series.notes}` });
+        }
+        
+        // User notes from UserFicMetadata
+        const userNote = getRandomUserNote(series);
+        if (userNote) {
+            embed.addFields({ name: '📝 Reader Note', value: `>>> ${userNote}` });
         }
         // Engagement: aggregate from seriesWorks
         if (Array.isArray(seriesWorks) && seriesWorks.length > 0) {
@@ -431,6 +515,7 @@ async function createRecommendationEmbed(rec, series = null, seriesWorks = null)
             value: `>>> ${summaryText}`
         });
     }
+    addSeriesField(embed, rec);
     const isLinkWorking = rec.deleted ? false : await quickLinkCheck(rec.url);
     const siteInfo = isValidFanficUrl(rec.url);
     const linkText = buildStoryLinkText(rec, isLinkWorking, siteInfo);
@@ -464,6 +549,7 @@ export {
     getRatingAndColor,
     addWorkWarningsField,
     addSeriesWarningsField,
+    addSeriesField,
     addTagsField,
     addNotesField,
     addEngagementFields,
