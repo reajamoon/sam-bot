@@ -6,11 +6,52 @@ const POLL_INTERVAL_MS = 10000;
 
 async function notifyQueueSubscribers(client) {
     try {
+        // Notify for completed jobs
         const doneJobs = await ParseQueue.findAll({
             where: { status: 'done' },
             include: [{ model: ParseQueueSubscriber, as: 'subscribers' }]
         });
         for (const job of doneJobs) {
+                    // Notify for jobs that failed Dean/Cas validation (nOTP)
+                    const nOTPJobs = await ParseQueue.findAll({
+                        where: { status: 'nOTP' },
+                        include: [{ model: ParseQueueSubscriber, as: 'subscribers' }]
+                    });
+                    for (const job of nOTPJobs) {
+                        const subscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: job.id } });
+                        const userIds = subscribers.map(s => s.user_id);
+                        const users = userIds.length ? await User.findAll({ where: { discordId: userIds } }) : [];
+                        // Fetch modmail channel from config
+                        const modmailConfig = await Config.findOne({ where: { key: 'modmail_channel_id' } });
+                        const modmailChannelId = modmailConfig ? modmailConfig.value : null;
+                        if (!modmailChannelId) {
+                            console.warn(`[Poller] No modmail_channel_id configured; skipping modmail notification for nOTP job id: ${job.id}, url: ${job.fic_url}`);
+                            continue;
+                        }
+                        const modmailChannel = client.channels.cache.get(modmailChannelId);
+                        if (!modmailChannel) {
+                            console.warn(`[Poller] Modmail channel ${modmailChannelId} not found; skipping notification for nOTP job id: ${job.id}, url: ${job.fic_url}`);
+                            continue;
+                        }
+                        // Compose modmail message in Sam's voice
+                        let contentMsg = `Hey mods, I caught a fic that doesn't fit our Dean/Cas or gen Supernatural guidelines. Can you take a look?`;
+                        contentMsg += `\n\n🔗 <${job.fic_url}>`;
+                        if (job.validation_reason) contentMsg += `\n**Validation reason:** ${job.validation_reason}`;
+                        if (users.length) {
+                            const mentionList = users.filter(u => u.queueNotifyTag !== false).map(u => `<@${u.discordId}>`).join(' ');
+                            if (mentionList) contentMsg += `\n**Submitted by:** ${mentionList}`;
+                        }
+                        contentMsg += `\n\nIf this was flagged by mistake, you can approve it manually. Otherwise, let the user know what needs to change!`;
+                        try {
+                            await modmailChannel.send({ content: contentMsg });
+                        } catch (err) {
+                            console.error('[Poller] Failed to send modmail notification for nOTP job:', err, `job id: ${job.id}, url: ${job.fic_url}`);
+                        }
+                        if (subscribers.length) {
+                            await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
+                        }
+                        await ParseQueue.destroy({ where: { id: job.id } });
+                    }
             const subscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: job.id } });
             const userIds = subscribers.map(s => s.user_id);
             const users = userIds.length ? await User.findAll({ where: { discordId: userIds } }) : [];

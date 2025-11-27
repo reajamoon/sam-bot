@@ -42,6 +42,10 @@ export default (sequelize) => {
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    validation_reason: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
   }, {
       timestamps: true,
       tableName: 'ParseQueue',

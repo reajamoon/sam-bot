@@ -12,6 +12,7 @@ import ParseQueueSubscriberModel from './ParseQueueSubscriber.js';
 import ConfigModel from './Config.js';
 import SeriesModel from './Series.js';
 import ModLockModel from './ModLock.js';
+import ModmailRelayModel from './ModmailRelay.js';
 
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
     dialect: process.env.NODE_ENV === 'production' ? 'postgres' : 'sqlite',
@@ -39,6 +40,12 @@ const UserFicMetadata = UserFicMetadataModel(sequelize);
 const Config = ConfigModel(sequelize);
 const Series = SeriesModel(sequelize);
 const ModLock = ModLockModel(sequelize);
+const ModmailRelay = ModmailRelayModel(sequelize);
+
+// ModmailRelay associations
+ModmailRelay.belongsTo(User, { foreignKey: 'user_id', targetKey: 'discordId', as: 'user', constraints: false });
+ModmailRelay.belongsTo(Recommendation, { foreignKey: 'fic_url', targetKey: 'url', as: 'recommendation', constraints: false });
+ModmailRelay.belongsTo(Series, { foreignKey: 'fic_url', targetKey: 'url', as: 'series', constraints: false });
 
 
 User.belongsToMany(Guild, { through: 'UserGuilds' });
@@ -69,5 +76,6 @@ export {
     ParseQueueSubscriber,
     Series,
     UserFicMetadata,
-    ModLock
+    ModLock,
+    ModmailRelay
 };

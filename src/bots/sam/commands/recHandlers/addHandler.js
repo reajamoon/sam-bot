@@ -2,7 +2,7 @@ import updateMessages from '../../../../shared/text/updateMessages.js';
 import isValidFanficUrl from '../../../../shared/recUtils/isValidFanficUrl.js';
 import processRecommendationJob from '../../../../shared/recUtils/processRecommendationJob.js';
 import normalizeAO3Url from '../../../../shared/recUtils/normalizeAO3Url.js';
-import { Recommendation, UserFicMetadata } from '../../../../models/index.js';
+import { Recommendation, UserFicMetadata, Config } from '../../../../models/index.js';
 import { User } from '../../../../models/index.js';
 import createOrJoinQueueEntry from '../../../../shared/recUtils/createOrJoinQueueEntry.js';
 import { createRecommendationEmbed } from '../../../../shared/recUtils/asyncEmbeds.js';
@@ -10,10 +10,12 @@ import { fetchRecWithSeries } from '../../../../models/fetchRecWithSeries.js';
 import normalizeRating from '../../../../shared/recUtils/normalizeRating.js';
 import { getLockedFieldsForRec } from '../../../../shared/getLockedFieldsForRec.js';
 import { isFieldGloballyModlocked } from '../../../../shared/modlockUtils.js';
+import { validateDeanCasRec } from '../../../../shared/recUtils/ao3/validateDeanCasRec.js';
 // import { markPrimaryAndNotPrimaryWorks } from './seriesUtils.js';
 
 // Adds a new fic rec. Checks for duplicates, fetches metadata, and builds the embed.
 export default async function handleAddRecommendation(interaction) {
+
       // Check if a previously deleted fic exists (by ao3ID)
       let previouslyDeleted = false;
       if (ao3ID) {
@@ -115,9 +117,34 @@ export default async function handleAddRecommendation(interaction) {
       }); // Not in updateMessages, but could be added if reused
     }
 
-    // --- Fic Parsing Queue Logic ---
-    // Recommendation and createOrJoinQueueEntry already imported above
-    // AO3 series batch parse logic (queue only, never handled by Sam)
+    // --- AO3 fandom/ship validation ---
+    // You must extract fandomTags and relationshipTags from the interaction or fetched metadata.
+    // For this example, assume they are provided as options (replace with actual extraction as needed):
+    // e.g. interaction.options.getString('fandom_tags'), interaction.options.getString('relationship_tags')
+    let fandomTags = interaction.options.getString('fandom_tags');
+    let relationshipTags = interaction.options.getString('relationship_tags');
+    if (typeof fandomTags === 'string') fandomTags = fandomTags.split(',').map(t => t.trim()).filter(Boolean);
+    if (typeof relationshipTags === 'string') relationshipTags = relationshipTags.split(',').map(t => t.trim()).filter(Boolean);
+    // If you fetch these from AO3 metadata, replace above with actual source.
+    if (fandomTags && relationshipTags) {
+      const validation = validateDeanCasRec(fandomTags, relationshipTags);
+      if (!validation.valid) {
+        // Post to mod mail (replace with your actual mod mail channel logic)
+        // Fetch modmail channel ID from Config table
+        let modMailChannelId = null;
+        const configEntry = await Config.findOne({ where: { key: 'modmail_channel_id' } });
+        if (configEntry) modMailChannelId = configEntry.value;
+        if (interaction.client && modMailChannelId) {
+          const channel = await interaction.client.channels.fetch(modMailChannelId).catch(() => null);
+          if (channel) {
+            await channel.send(`Rec by <@${interaction.user.id}> failed validation: ${validation.reason}\nURL: ${url}`);
+          }
+        }
+        return await interaction.editReply({
+          content: `This fic does not meet the library's requirements: ${validation.reason}. It has been sent to the mods for review.`,
+        });
+      }
+    }
     if (/archiveofourown\.org\/series\//.test(url)) {
       // Check if series already exists
       const { Series } = await import('../../../../models/index.js');

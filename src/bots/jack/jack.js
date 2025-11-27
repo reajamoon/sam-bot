@@ -111,7 +111,18 @@ async function processQueueJob(job) {
 			notes,
 			isUpdate,
 			existingRec,
-			notify: async (embedOrError) => {
+			notify: async (embedOrError, recommendation, metadata) => {
+				// Handle AO3 validation failure (status: 'nOTP')
+				if (metadata && metadata.status === 'nOTP') {
+					await job.update({
+						status: 'nOTP',
+						validation_reason: metadata.validation_reason || 'Failed Dean/Cas validation',
+						error_message: null,
+						result: null
+					});
+					await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
+					return;
+				}
 				if (!embedOrError || embedOrError.error) {
 					// Bump-to-back logic for AO3 login/session errors
 					const errMsg = embedOrError?.error || '';
@@ -133,15 +144,15 @@ async function processQueueJob(job) {
 					await job.update({ status: 'error', error_message: errMsg || 'Unknown error' });
 					return;
 				}
-				   // Always set result to a valid Recommendation object with id
-				   let recObj = embedOrError && embedOrError.recommendation;
-				   if (!recObj || !recObj.id) {
-					   // Fallback: try to fetch from DB by URL
-					   recObj = await Recommendation.findOne({ where: { url: job.fic_url } });
-				   }
-				   // Only store minimal info needed for poller (id)
-				   const resultPayload = recObj && recObj.id ? { id: recObj.id } : null;
-				   await job.update({ status: 'done', result: resultPayload, error_message: null });
+				// Always set result to a valid Recommendation object with id
+				let recObj = embedOrError && embedOrError.recommendation;
+				if (!recObj || !recObj.id) {
+					// Fallback: try to fetch from DB by URL
+					recObj = await Recommendation.findOne({ where: { url: job.fic_url } });
+				}
+				// Only store minimal info needed for poller (id)
+				const resultPayload = recObj && recObj.id ? { id: recObj.id } : null;
+				await job.update({ status: 'done', result: resultPayload, error_message: null, validation_reason: null });
 				// Suppress notification if instant_candidate and within threshold
 				let thresholdMs = 3000; // default 3 seconds
 				const thresholdConfig = await Config.findOne({ where: { key: 'instant_queue_suppress_threshold_ms' } });

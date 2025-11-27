@@ -7,6 +7,18 @@ export default {
     .setName('modutility')
     .setDescription('Moderator utility commands for rec modlocking and admin actions.')
     .addSubcommand(sub =>
+          .addSubcommand(sub =>
+            sub.setName('overridenotp')
+              .setDescription('Approve and requeue a fic flagged as nOTP (Dean/Cas validation fail)')
+              .addStringOption(opt =>
+                opt.setName('fic_url')
+                  .setDescription('The AO3 fic or series URL to approve and requeue')
+                  .setRequired(true))
+              .addStringOption(opt =>
+                opt.setName('note')
+                  .setDescription('Optional note for mods or the submitter (will appear in modmail)')
+                  .setRequired(false))
+          )
       sub.setName('setmodlock')
         .setDescription('Set a modlock on a recommendation field')
         .addStringOption(opt =>
@@ -37,8 +49,80 @@ export default {
           opt.setName('fields')
             .setDescription('Comma-separated list of globally locked fields')
             .setRequired(true))
+    )
+    .addSubcommand(sub =>
+      sub.setName('modmailchannelset')
+        .setDescription('Set the modmail channel ID to this channel (superadmin only)')
     ),
   async execute(interaction) {
+        if (sub === 'overridenotp') {
+          if (!isMod) {
+            return await interaction.reply({ content: 'Only moderators can use this command.', ephemeral: true });
+          }
+          const ficUrl = interaction.options.getString('fic_url');
+          const note = interaction.options.getString('note');
+          // Try to find the fic in the queue (nOTP or pending)
+          let job = await ParseQueue.findOne({ where: { fic_url: ficUrl } });
+          if (!job) {
+            return await interaction.reply({ content: `No queue entry found for <${ficUrl}>.`, ephemeral: true });
+          }
+          // Only allow override if status is nOTP or error
+          if (!['nOTP', 'error'].includes(job.status)) {
+            return await interaction.reply({ content: `This fic is not flagged as nOTP or error. Current status: ${job.status}`, ephemeral: true });
+          }
+          // Find the original submitter (requested_by)
+          const originalSubmitterId = job.requested_by;
+          // Set status to pending, clear validation_reason, and requeue
+          await job.update({
+            status: 'pending',
+            validation_reason: null,
+            error_message: null
+          });
+          // Remove all old subscribers, add the original submitter as subscriber if they want notifications
+          await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
+          let notifyUser = true;
+          let submitter = await User.findOne({ where: { discordId: originalSubmitterId } });
+          if (submitter && submitter.queueNotifyTag === false) notifyUser = false;
+          if (notifyUser && originalSubmitterId) {
+            await ParseQueueSubscriber.create({ queue_id: job.id, user_id: originalSubmitterId });
+          }
+          // Notify modmail channel
+          const modmailConfig = await Config.findOne({ where: { key: 'modmail_channel_id' } });
+          const modmailChannelId = modmailConfig ? modmailConfig.value : null;
+          if (modmailChannelId) {
+            const modmailChannel = interaction.client.channels.cache.get(modmailChannelId);
+            if (modmailChannel) {
+              let modmailMsg = `✅ Okay, I just approved and requeued this fic after a mod review: <${ficUrl}>\nSubmitted by: <@${originalSubmitterId}>\nApproved by: <@${interaction.user.id}>`;
+              if (note) modmailMsg += `\nNote: ${note}`;
+              modmailMsg += `\n> If you have questions or want to leave a note for the submitter, just reply in this thread and I’ll send it along.`;
+              // Start a thread for this modmail message
+              const threadName = ficUrl.length > 80 ? ficUrl.slice(0, 77) + '...' : ficUrl;
+              const modmailMsgObj = await modmailChannel.send({ content: modmailMsg });
+              try {
+                await modmailMsgObj.startThread({
+                  name: `Fic: ${threadName}`,
+                  autoArchiveDuration: 1440 // 24 hours
+                });
+              } catch (err) {
+                // If thread creation fails, just leave the message in channel
+              }
+            }
+          }
+          // DM the original submitter
+          try {
+            if (originalSubmitterId) {
+              const dmUser = await interaction.client.users.fetch(originalSubmitterId);
+              if (dmUser) {
+                await dmUser.send({
+                  content: `Hey, just a heads up: your fic <${ficUrl}> was reviewed and approved by a mod. I’ve put it back in the queue for you, so you’ll get updates as it moves through the stacks. Thanks for sticking with it. - Sam`
+                });
+              }
+            }
+          } catch (err) {
+            // Ignore DM errors
+          }
+          return await interaction.reply({ content: `Fic <${ficUrl}> has been approved and requeued.`, ephemeral: true });
+        }
     // Permission check: Only allow users with at least mod-level permissions
     const userId = interaction.user.id;
     let user = await User.findOne({ where: { discordId: userId } });
@@ -59,7 +143,23 @@ export default {
         isSuperadmin = true;
       }
     }
+    // Logging for upsert/debug
+    if (!user) {
+      console.log(`[modutility] User not found in DB, will create: ${userId}`);
+    } else if (!user.permissionLevel) {
+      console.log(`[modutility] User found but missing permissionLevel, will update: ${userId}`);
+    } else {
+      console.log(`[modutility] User found with permissionLevel: ${userId} (${user.permissionLevel})`);
+    }
     const sub = interaction.options.getSubcommand();
+    if (sub === 'modmailchannelset') {
+      if (!isSuperadmin) {
+        return await interaction.reply({ content: 'Only superadmins can set the modmail channel.', ephemeral: true });
+      }
+      const channelId = interaction.channelId;
+      await Config.upsert({ key: 'modmail_channel_id', value: channelId });
+      return await interaction.reply({ content: `Set modmail channel ID to this channel (${channelId}).`, ephemeral: true });
+    }
     if (sub === 'setgloballocks') {
       if (!isSuperadmin) {
         return await interaction.reply({ content: 'Only superadmins can set global modlocked fields.', ephemeral: true });

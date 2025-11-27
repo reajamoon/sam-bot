@@ -1,4 +1,5 @@
 import updateMessages from '../../text/updateMessages.js';
+import { validateDeanCasRec } from './validateDeanCasRec.js';
 import fs from 'fs';
 import path from 'path';
 import { prewarmSharedBrowser } from './ao3BrowserManager.js';
@@ -173,6 +174,27 @@ async function fetchAO3MetadataWithFallback(url, includeRawHtml = false) {
                         }
                     }
                     attempts++;
+                }
+                // --- Dean/Cas validation: set nOTP status if invalid ---
+                if (parsed && parsed.fandom_tags && parsed.relationship_tags) {
+                    const validation = validateDeanCasRec(parsed.fandom_tags, parsed.relationship_tags);
+                    if (!validation.valid) {
+                        parsed.status = 'nOTP';
+                        // Attach more context if possible
+                        let reason = validation.reason;
+                        if (!reason) {
+                            // Defensive: fallback if utility returns no reason
+                            reason = 'Failed Dean/Cas validation.';
+                        } else {
+                            // If a specific tag caused the failure, include the tag and all tags for context
+                            if (reason.startsWith('Detected Multishipping:')) {
+                                reason += ` | Relationship tags: [${parsed.relationship_tags.join(', ')}]`;
+                            } else if (reason.startsWith('Missing Supernatural')) {
+                                reason += ` | Fandom tags: [${parsed.fandom_tags.join(', ')}]`;
+                            }
+                        }
+                        parsed.validation_reason = reason;
+                    }
                 }
                 return parsed;
             }
