@@ -58,17 +58,37 @@ export default async function handleSearchRecommendations(interaction) {
         });
     }
     if (tagsQuery) {
-        // Advanced: allow mixing AND (+) and OR (,) logic
+        // Advanced: support both AND/OR keywords and legacy +/, syntax
+        // Examples: 'canon divergence AND bottom dean OR angst' or 'canon divergence+bottom dean, angst'
         // Use safe JSONB operators to prevent SQL injection
-        // Example: 'canon divergence+bottom dean winchester, angst' means (canon divergence AND bottom dean winchester) OR (angst)
-        const orGroups = tagsQuery.split(',').map(group => group.trim()).filter(Boolean);
+        
+        let orGroups;
+        if (tagsQuery.includes(' OR ')) {
+            // New syntax: split on OR first
+            orGroups = tagsQuery.split(' OR ').map(group => group.trim()).filter(Boolean);
+        } else {
+            // Legacy syntax: split on comma
+            orGroups = tagsQuery.split(',').map(group => group.trim()).filter(Boolean);
+        }
+        
         const tagOrClauses = [];
         for (const group of orGroups) {
-            if (group.includes('+')) {
-                // AND group: all tags must be present (all must match)
+            if (group.includes(' AND ')) {
+                // New syntax: AND group
+                const andTags = group.split(' AND ').map(t => t.trim().toLowerCase()).filter(Boolean);
+                if (andTags.length > 0) {
+                    const andClauses = andTags.map(tag => 
+                        sequelize.where(
+                            sequelize.fn('jsonb_array_elements_text', sequelize.col('tags')),
+                            { [Op.iLike]: `%${tag}%` }
+                        )
+                    );
+                    tagOrClauses.push({ [Op.and]: andClauses });
+                }
+            } else if (group.includes('+')) {
+                // Legacy syntax: + for AND
                 const andTags = group.split('+').map(t => t.trim().toLowerCase()).filter(Boolean);
                 if (andTags.length > 0) {
-                    // All tags in this group must be present (AND)
                     const andClauses = andTags.map(tag => 
                         sequelize.where(
                             sequelize.fn('jsonb_array_elements_text', sequelize.col('tags')),
@@ -78,7 +98,7 @@ export default async function handleSearchRecommendations(interaction) {
                     tagOrClauses.push({ [Op.and]: andClauses });
                 }
             } else if (group.length) {
-                // Single tag (OR): match if any tag matches
+                // Single tag
                 const tag = group.toLowerCase();
                 tagOrClauses.push(
                     sequelize.where(

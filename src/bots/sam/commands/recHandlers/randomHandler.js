@@ -36,9 +36,16 @@ function filterRecommendations(recs, { allowWIP, allowDeleted, allowAbandoned, r
 function filterByTag(recs, tagFilter) {
     if (!tagFilter) return recs;
     
-    // Parse advanced tag syntax: 'canon divergence+bottom dean, angst'
-    // means (canon divergence AND bottom dean) OR (angst)
-    const orGroups = tagFilter.split(',').map(group => group.trim()).filter(Boolean);
+    // Parse advanced tag syntax: support both 'canon divergence AND bottom dean OR angst'
+    // and legacy 'canon divergence+bottom dean, angst'
+    let orGroups;
+    if (tagFilter.includes(' OR ')) {
+        // New syntax: split on OR first
+        orGroups = tagFilter.split(' OR ').map(group => group.trim()).filter(Boolean);
+    } else {
+        // Legacy syntax: split on comma
+        orGroups = tagFilter.split(',').map(group => group.trim()).filter(Boolean);
+    }
     
     return recs.filter(rec => {
         const allTags = Array.isArray(rec.getParsedTags?.()) ? rec.getParsedTags() : [];
@@ -46,8 +53,14 @@ function filterByTag(recs, tagFilter) {
         
         // Check if rec matches any OR group
         return orGroups.some(group => {
-            if (group.includes('+')) {
-                // AND group: all tags must be present
+            if (group.includes(' AND ')) {
+                // New syntax: AND group
+                const andTags = group.split(' AND ').map(t => t.trim().toLowerCase()).filter(Boolean);
+                return andTags.every(tag => 
+                    tagStrings.some(recTag => recTag.includes(tag))
+                );
+            } else if (group.includes('+')) {
+                // Legacy syntax: + for AND
                 const andTags = group.split('+').map(t => t.trim().toLowerCase()).filter(Boolean);
                 return andTags.every(tag => 
                     tagStrings.some(recTag => recTag.includes(tag))
