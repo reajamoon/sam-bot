@@ -103,7 +103,7 @@ async function processQueueJob(job) {
 		// Fetch config and channel once
 		const configEntry = await Config.findOne({ where: { key: 'fic_queue_channel' } });
 		const channelId = configEntry ? configEntry.value : null;
-		await processRecommendationJob({
+		const result = await processRecommendationJob({
 			url: job.fic_url,
 			user,
 			manualFields: {},
@@ -169,6 +169,21 @@ async function processQueueJob(job) {
 				await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
 			}
 		});
+		// Fallback: If job is still processing and result.error is present, set error/nOTP
+		const freshJob = await ParseQueue.findByPk(job.id);
+		if (freshJob && freshJob.status === 'processing' && result && result.error) {
+			if (result.error.toLowerCase().includes('dean/cas') || result.error.toLowerCase().includes('validation')) {
+				await freshJob.update({
+					status: 'nOTP',
+					validation_reason: result.error,
+					error_message: null,
+					result: null
+				});
+				await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
+			} else {
+				await freshJob.update({ status: 'error', error_message: result.error });
+			}
+		}
 	} catch (err) {
 		await job.update({ status: 'error', error_message: err.message });
 		console.error('[QueueWorker] Error processing job:', err);
