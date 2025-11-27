@@ -1,6 +1,6 @@
 
 import { SlashCommandBuilder } from 'discord.js';
-import { Recommendation, ModLock, User, Config } from '../../../models/index.js';
+import { Recommendation, ModLock, User, Config, ParseQueue, ParseQueueSubscriber } from '../../../models/index.js';
 
 export default {
   data: new SlashCommandBuilder()
