@@ -16,43 +16,6 @@ import { validateDeanCasRec } from '../../../../shared/recUtils/ao3/validateDean
 // Adds a new fic rec. Checks for duplicates, fetches metadata, and builds the embed.
 export default async function handleAddRecommendation(interaction) {
 
-      // Check if a previously deleted fic exists (by ao3ID)
-      let previouslyDeleted = false;
-      if (ao3ID) {
-        // Find any recs that ever existed for this ao3ID (including soft-deleted if you add that in future)
-        const prevRec = await Recommendation.findOne({ where: { ao3ID } });
-        if (!prevRec) {
-          // Check for any modlocks for this ao3ID (from previously deleted recs)
-          const { ModLock } = await import('../../../../models/index.js');
-          const locks = await ModLock.findAll({
-            where: { locked: true },
-            include: [{
-              model: Recommendation,
-              as: 'recommendation',
-              where: { ao3ID },
-              required: true
-            }]
-          });
-          if (locks.length > 0) {
-            previouslyDeleted = true;
-          }
-        }
-      }
-
-      // If previously deleted, DM all superadmins
-      if (previouslyDeleted && interaction.client) {
-        const superadmins = await User.findAll({ where: { permissionLevel: 'superadmin' } });
-        for (const admin of superadmins) {
-          try {
-            const userObj = await interaction.client.users.fetch(admin.discordId);
-            if (userObj) {
-              await userObj.send(`A fic with AO3 ID ${ao3ID} was re-added, but modlocks exist from a previously deleted rec. Please review and fix metadata if needed.`);
-            }
-          } catch (err) {
-            console.error('Failed to DM superadmin:', admin.discordId, err);
-          }
-        }
-      }
   try {
     console.log('[rec add] Handler called', {
       user: interaction.user?.id,
@@ -60,8 +23,6 @@ export default async function handleAddRecommendation(interaction) {
       options: interaction.options.data
     });
     await interaction.deferReply();
-
-
     let url = interaction.options.getString('url');
     url = normalizeAO3Url(url);
     const manualTitle = interaction.options.getString('title');
@@ -83,13 +44,48 @@ export default async function handleAddRecommendation(interaction) {
     // Deduplicate, case-insensitive
     additionalTags = Array.from(new Set(additionalTags.map(t => t.toLowerCase())));
     const notes = interaction.options.getString('notes');
-
     // --- ModLock enforcement for re-adds ---
     // We'll check for modlocks by ao3ID if this is a new rec
     let ao3ID = null;
     const ao3Match = url.match(/archiveofourown\.org\/(works|series)\/(\d+)/);
     if (ao3Match) {
       ao3ID = parseInt(ao3Match[2], 10);
+    }
+    // Check if a previously deleted fic exists (by ao3ID)
+    let previouslyDeleted = false;
+    if (ao3ID) {
+      // Find any recs that ever existed for this ao3ID (including soft-deleted if you add that in future)
+      const prevRec = await Recommendation.findOne({ where: { ao3ID } });
+      if (!prevRec) {
+        // Check for any modlocks for this ao3ID (from previously deleted recs)
+        const { ModLock } = await import('../../../../models/index.js');
+        const locks = await ModLock.findAll({
+          where: { locked: true },
+          include: [{
+            model: Recommendation,
+            as: 'recommendation',
+            where: { ao3ID },
+            required: true
+          }]
+        });
+        if (locks.length > 0) {
+          previouslyDeleted = true;
+        }
+      }
+    }
+    // If previously deleted, DM all superadmins
+    if (previouslyDeleted && interaction.client) {
+      const superadmins = await User.findAll({ where: { permissionLevel: 'superadmin' } });
+      for (const admin of superadmins) {
+        try {
+          const userObj = await interaction.client.users.fetch(admin.discordId);
+          if (userObj) {
+            await userObj.send(`A fic with AO3 ID ${ao3ID} was re-added, but modlocks exist from a previously deleted rec. Please review and fix metadata if needed.`);
+          }
+        } catch (err) {
+          console.error('Failed to DM superadmin:', admin.discordId, err);
+        }
+      }
     }
     let modLocksByField = {};
     // If rec exists, get per-rec locks and merge with global locks
@@ -110,13 +106,11 @@ export default async function handleAddRecommendation(interaction) {
         modLocksByField[field] = true;
       }
     }
-
     if (!url || !isValidFanficUrl(url)) {
       return await interaction.editReply({
         content: 'Please provide a valid fanfiction URL (AO3, FFNet, Wattpad, etc.)'
       }); // Not in updateMessages, but could be added if reused
     }
-
     // --- AO3 fandom/ship validation ---
     // You must extract fandomTags and relationshipTags from the interaction or fetched metadata.
     // For this example, assume they are provided as options (replace with actual extraction as needed):
@@ -364,29 +358,26 @@ export default async function handleAddRecommendation(interaction) {
         if (!modLocksByField['publishedDate'] && validString(interaction.options.getString('publishedDate'), rec.publishedDate)) recFields.publishedDate = interaction.options.getString('publishedDate');
         if (!modLocksByField['updatedDate'] && validString(interaction.options.getString('updatedDate'), rec.updatedDate)) recFields.updatedDate = interaction.options.getString('updatedDate');
         // Never update notes (deprecated)
-
         // Update Recommendation if any fields are valid
         if (Object.keys(recFields).length > 0) {
           await rec.update(recFields);
         }
-
         const recWithSeries = await fetchRecWithSeries(rec.id, true);
         const embed = await createRecommendationEmbed(recWithSeries);
         await interaction.editReply({
-          content: null,
-          embeds: [embed]
-        });
+            content: null,
+            embeds: [embed]
+          });
       } else {
-        await interaction.editReply({
-          content: 'Recommendation found in queue but not in database. Please try again or contact an admin.'
-        });
-      }
-      return;
-    } else if (status === 'error') {
-      return await interaction.editReply({
+            await interaction.editReply({
+            content: 'Recommendation found in queue but not in database. Please try again or contact an admin.'
+            });
+      } return;
+      } else if (status === 'error') {
+        return await interaction.editReply({
         content: message || updateMessages.errorPreviously
       });
-    } else if (status === 'created') {
+      } else if (status === 'created') {
       // Optionally, update notes/additional_tags if provided (for new entry only)
       if (notes || (additionalTags && additionalTags.length > 0)) {
         await queueEntry.update({
@@ -397,12 +388,12 @@ export default async function handleAddRecommendation(interaction) {
       return await interaction.editReply({
         content: updateMessages.addedToQueue
       });
-    } else {
+      } else {
       // Fallback for any other status
-      return await interaction.editReply({
-        content: message || updateMessages.alreadyInQueue
-      });
-    }
+        return await interaction.editReply({
+          content: message || updateMessages.alreadyInQueue
+        });
+      }
     } catch (error) {
       try {
       await interaction.editReply({
