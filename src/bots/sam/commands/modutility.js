@@ -7,18 +7,18 @@ export default {
     .setName('modutility')
     .setDescription('Moderator utility commands for rec modlocking and admin actions.')
     .addSubcommand(sub =>
-          .addSubcommand(sub =>
-            sub.setName('overridenotp')
-              .setDescription('Approve and requeue a fic flagged as nOTP (Dean/Cas validation fail)')
-              .addStringOption(opt =>
-                opt.setName('fic_url')
-                  .setDescription('The AO3 fic or series URL to approve and requeue')
-                  .setRequired(true))
-              .addStringOption(opt =>
-                opt.setName('note')
-                  .setDescription('Optional note for mods or the submitter (will appear in modmail)')
-                  .setRequired(false))
-          )
+      sub.setName('overridenotp')
+        .setDescription('Approve and requeue a fic flagged as nOTP (Dean/Cas validation fail)')
+        .addStringOption(opt =>
+          opt.setName('fic_url')
+            .setDescription('The AO3 fic or series URL to approve and requeue')
+            .setRequired(true))
+        .addStringOption(opt =>
+          opt.setName('note')
+            .setDescription('Optional note for mods or the submitter (will appear in modmail)')
+            .setRequired(false))
+    )
+    .addSubcommand(sub =>
       sub.setName('setmodlock')
         .setDescription('Set a modlock on a recommendation field')
         .addStringOption(opt =>
