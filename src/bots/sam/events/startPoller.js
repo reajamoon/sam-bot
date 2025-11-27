@@ -30,15 +30,38 @@ async function notifyQueueSubscribers(client) {
             let contentMsg = `Hey mods, I caught a fic that doesn't look like it fits rec guidelines. Can you take a look?`;
             contentMsg += `\n\n🔗 <${job.fic_url}>`;
             if (job.validation_reason) contentMsg += `\n**Validation reason:** ${job.validation_reason}`;
-            if (users.length) {
-                const mentionList = users.filter(u => u.queueNotifyTag !== false).map(u => `<@${u.discordId}>`).join(' ');
-                if (mentionList) contentMsg += `\n**Submitted by:** ${mentionList}`;
+            // Always mention the original submitter (requested_by)
+            let submitterMention = '';
+            if (job.requested_by) {
+                // requested_by may be a comma-separated list, but we only expect one for single recs
+                const submitterId = job.requested_by.split(',')[0].trim();
+                if (submitterId) submitterMention = `<@${submitterId}>`;
             }
-            contentMsg += `\n\nIf this was flagged by mistake, you can approve it manually. Otherwise, let the user know what needs to change!`;
+            // Also mention any subscribers (if present and not duplicate)
+            let mentionList = users.filter(u => u.queueNotifyTag !== false).map(u => `<@${u.discordId}>`).filter(m => m !== submitterMention);
+            let allMentions = submitterMention;
+            if (mentionList.length) allMentions += (allMentions ? ' ' : '') + mentionList.join(' ');
+            if (allMentions) contentMsg += `\n**Submitted by:** ${allMentions}`;
+            contentMsg += `\n\nIf this was flagged by mistake, you can approve it manually. Otherwise, you can let the member know why their fic was bounced by using @relay in this thread.`;
             try {
-                await modmailChannel.send({ content: contentMsg });
+                // Try to get fic title from Recommendation if it exists
+                let threadTitle = null;
+                const rec = await Recommendation.findOne({ where: { url: job.fic_url } });
+                if (rec && rec.title) {
+                    threadTitle = `Rec Validation: ${rec.title.substring(0, 80)}`;
+                } else {
+                    // Fallback: use fic URL (truncated)
+                    threadTitle = `Rec Validation: ${job.fic_url.substring(0, 60)}`;
+                }
+                const sentMsg = await modmailChannel.send({ content: contentMsg });
+                // Create a thread for this modmail
+                const thread = await sentMsg.startThread({
+                    name: threadTitle,
+                    autoArchiveDuration: 1440, // 24 hours
+                    reason: 'AO3 rec validation failed (nOTP)'
+                });
             } catch (err) {
-                console.error('[Poller] Failed to send modmail notification for nOTP job:', err, `job id: ${job.id}, url: ${job.fic_url}`);
+                console.error('[Poller] Failed to send modmail notification or create thread for nOTP job:', err, `job id: ${job.id}, url: ${job.fic_url}`);
             }
             if (subscribers.length) {
                 await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
