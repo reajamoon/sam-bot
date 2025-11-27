@@ -2,7 +2,6 @@
 // Utility to fetch a Recommendation with its Series info (and optionally all works in the series)
 import { Recommendation, Series, UserFicMetadata } from './index.js';
 import { Op } from 'sequelize';
-import { Op } from 'sequelize';
 
 /**
  * Fetch a recommendation by ID, including its series info (if any).
