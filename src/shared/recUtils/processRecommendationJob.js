@@ -123,6 +123,15 @@ async function processRecommendationJob({
     }
   }
 
+
+  // If AO3 validation failed, do not create/update Recommendation, just notify and return
+  if (metadata && metadata.status === 'nOTP') {
+    if (typeof notify === 'function') {
+      await notify(null, null, metadata);
+    }
+    return { error: metadata.validation_reason || 'Failed Dean/Cas validation' };
+  }
+
   // Ensure required fields are present and valid
   if (!metadata || !metadata.title || !user || !user.id || !user.username || !url) {
     console.error('[processRecommendationJob] Missing required fields:', {
@@ -130,7 +139,7 @@ async function processRecommendationJob({
       user,
       url
     });
-  return { error: updateMessages.genericError };
+    return { error: updateMessages.genericError };
   }
 
   let recommendation;
