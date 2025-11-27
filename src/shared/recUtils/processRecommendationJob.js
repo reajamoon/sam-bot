@@ -226,7 +226,14 @@ async function processRecommendationJob({
     if (existingRec.language !== metadata.language) updateFields.language = metadata.language;
     if (existingRec.publishedDate !== metadata.publishedDate) updateFields.publishedDate = metadata.publishedDate;
     if (existingRec.updatedDate !== metadata.updatedDate) updateFields.updatedDate = metadata.updatedDate;
-  if (JSON.stringify(oldAdditional) !== JSON.stringify(mergedAdditional)) updateFields.additionalTags = mergedAdditional;
+    if (JSON.stringify(oldAdditional) !== JSON.stringify(mergedAdditional)) updateFields.additionalTags = mergedAdditional;
+    // --- Ensure all tag arrays are saved ---
+    if (JSON.stringify(existingRec.fandom_tags) !== JSON.stringify(metadata.fandom_tags)) updateFields.fandom_tags = Array.isArray(metadata.fandom_tags) ? metadata.fandom_tags : [];
+    if (JSON.stringify(existingRec.relationship_tags) !== JSON.stringify(metadata.relationship_tags)) updateFields.relationship_tags = Array.isArray(metadata.relationship_tags) ? metadata.relationship_tags : [];
+    if (JSON.stringify(existingRec.character_tags) !== JSON.stringify(metadata.character_tags)) updateFields.character_tags = Array.isArray(metadata.character_tags) ? metadata.character_tags : [];
+    if (JSON.stringify(existingRec.category_tags) !== JSON.stringify(metadata.category_tags)) updateFields.category_tags = Array.isArray(metadata.category_tags) ? metadata.category_tags : [];
+    if (JSON.stringify(existingRec.freeform_tags) !== JSON.stringify(metadata.freeform_tags)) updateFields.freeform_tags = Array.isArray(metadata.freeform_tags) ? metadata.freeform_tags : [];
+    if (JSON.stringify(existingRec.archive_warnings) !== JSON.stringify(metadata.archiveWarnings)) updateFields.archive_warnings = Array.isArray(metadata.archiveWarnings) ? metadata.archiveWarnings : [];
     // Only overwrite notes if the new value is non-empty and different, or if the existing value is empty
     if (
       (notes && notes.trim() && existingRec.notes !== notes) ||
@@ -290,6 +297,11 @@ async function processRecommendationJob({
         comments: metadata.comments,
         category: metadata.category,
         ao3ID,
+        fandom_tags: Array.isArray(metadata.fandom_tags) ? metadata.fandom_tags : [],
+        relationship_tags: Array.isArray(metadata.relationship_tags) ? metadata.relationship_tags : [],
+        character_tags: Array.isArray(metadata.character_tags) ? metadata.character_tags : [],
+        category_tags: Array.isArray(metadata.category_tags) ? metadata.category_tags : [],
+        freeform_tags: Array.isArray(metadata.freeform_tags) ? metadata.freeform_tags : [],
         ...(seriesId ? { seriesId } : {})
       });
     } catch (err) {
