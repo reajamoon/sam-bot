@@ -7,7 +7,7 @@ export default {
     .setName('modutility')
     .setDescription('Moderator utility commands for rec modlocking and admin actions.')
     .addSubcommand(sub =>
-      sub.setName('overridenotp')
+      sub.setName('override_validation')
         .setDescription('Approve and requeue a fic flagged as nOTP (Dean/Cas validation fail)')
         .addStringOption(opt =>
           opt.setName('fic_url')
@@ -77,7 +77,7 @@ export default {
     }
 
     const sub = interaction.options.getSubcommand();
-    if (sub === 'overridenotp') {
+    if (sub === 'override_validation') {
       if (!isMod) {
         return await interaction.reply({ content: 'Only moderators can use this command.', ephemeral: true });
       }
