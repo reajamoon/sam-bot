@@ -1,5 +1,5 @@
 
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { Recommendation, ModLock, User, Config, ParseQueue, ParseQueueSubscriber } from '../../../models/index.js';
 
 export default {
@@ -79,18 +79,18 @@ export default {
     const sub = interaction.options.getSubcommand();
     if (sub === 'override_validation') {
       if (!isMod) {
-        return await interaction.reply({ content: 'Only moderators can use this command.', ephemeral: true });
+        return await interaction.reply({ content: 'Only moderators can use this command.', flags: MessageFlags.Ephemeral });
       }
       const ficUrl = interaction.options.getString('fic_url');
       const note = interaction.options.getString('note');
       // Try to find the fic in the queue (nOTP or pending)
       let job = await ParseQueue.findOne({ where: { fic_url: ficUrl } });
       if (!job) {
-        return await interaction.reply({ content: `No queue entry found for <${ficUrl}>.`, ephemeral: true });
+        return await interaction.reply({ content: `No queue entry found for <${ficUrl}>.`, flags: MessageFlags.Ephemeral });
       }
       // Only allow override if status is nOTP or error
       if (!['nOTP', 'error'].includes(job.status)) {
-        return await interaction.reply({ content: `This fic is not flagged as nOTP or error. Current status: ${job.status}`, ephemeral: true });
+        return await interaction.reply({ content: `This fic is not flagged as nOTP or error. Current status: ${job.status}`, flags: MessageFlags.Ephemeral });
       }
       // Find the original submitter (requested_by)
       const originalSubmitterId = job.requested_by;
@@ -143,7 +143,7 @@ export default {
       } catch (err) {
         // Ignore DM errors
       }
-      return await interaction.reply({ content: `Fic <${ficUrl}> has been approved and requeued.`, ephemeral: true });
+      return await interaction.reply({ content: `Fic <${ficUrl}> has been approved and requeued.`, flags: MessageFlags.Ephemeral });
     }
     
     // Logging for upsert/debug
@@ -156,19 +156,19 @@ export default {
     }
     if (sub === 'modmailchannelset') {
       if (!isSuperadmin) {
-        return await interaction.reply({ content: 'Only superadmins can set the modmail channel.', ephemeral: true });
+        return await interaction.reply({ content: 'Only superadmins can set the modmail channel.', flags: MessageFlags.Ephemeral });
       }
       const channelId = interaction.channelId;
       await Config.upsert({ key: 'modmail_channel_id', value: channelId });
-      return await interaction.reply({ content: `Set modmail channel ID to this channel (${channelId}).`, ephemeral: true });
+      return await interaction.reply({ content: `Set modmail channel ID to this channel (${channelId}).`, flags: MessageFlags.Ephemeral });
     }
     if (sub === 'setgloballocks') {
       if (!isSuperadmin) {
-        return await interaction.reply({ content: 'Only superadmins can set global modlocked fields.', ephemeral: true });
+        return await interaction.reply({ content: 'Only superadmins can set global modlocked fields.', flags: MessageFlags.Ephemeral });
       }
       const fields = interaction.options.getString('fields');
       await Config.upsert({ key: 'global_modlocked_fields', value: fields });
-      return await interaction.reply({ content: `Set global modlocked fields to: ${fields}`, ephemeral: true });
+      return await interaction.reply({ content: `Set global modlocked fields to: ${fields}`, flags: MessageFlags.Ephemeral });
     }
     if (sub === 'setmodlock') {
       const recId = interaction.options.getString('rec_id');
@@ -176,7 +176,7 @@ export default {
       const userId = interaction.user.id;
       const rec = await Recommendation.findByPk(recId);
       if (!rec) {
-        return await interaction.reply({ content: `Recommendation ID ${recId} not found.`, ephemeral: true });
+        return await interaction.reply({ content: `Recommendation ID ${recId} not found.`, flags: MessageFlags.Ephemeral });
       }
       // Upsert user with permissionLevel if not present
       let level = 'mod';
@@ -212,21 +212,21 @@ export default {
         unlockedBy: null,
         unlockedAt: null
       });
-      return await interaction.reply({ content: `Locked field "${field}" on rec ID ${recId} at level ${level}.`, ephemeral: true });
+      return await interaction.reply({ content: `Locked field "${field}" on rec ID ${recId} at level ${level}.`, flags: MessageFlags.Ephemeral });
     } else if (sub === 'clearmodlock') {
       const recId = interaction.options.getString('rec_id');
       const field = interaction.options.getString('field');
       const userId = interaction.user.id;
       const rec = await Recommendation.findByPk(recId);
       if (!rec) {
-        return await interaction.reply({ content: `Recommendation ID ${recId} not found.`, ephemeral: true });
+        return await interaction.reply({ content: `Recommendation ID ${recId} not found.`, flags: MessageFlags.Ephemeral });
       }
       const lock = await ModLock.findOne({ where: { recommendationId: recId, field, locked: true } });
       if (!lock) {
-        return await interaction.reply({ content: `No active lock found for field "${field}" on rec ID ${recId}.`, ephemeral: true });
+        return await interaction.reply({ content: `No active lock found for field "${field}" on rec ID ${recId}.`, flags: MessageFlags.Ephemeral });
       }
       await lock.update({ locked: false, unlockedBy: userId, unlockedAt: new Date() });
-      return await interaction.reply({ content: `Unlocked field "${field}" on rec ID ${recId}.`, ephemeral: true });
+      return await interaction.reply({ content: `Unlocked field "${field}" on rec ID ${recId}.`, flags: MessageFlags.Ephemeral });
     }
   },
 };
