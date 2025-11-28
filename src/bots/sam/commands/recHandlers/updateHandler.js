@@ -463,47 +463,87 @@ export default async function handleUpdateRecommendation(interaction) {
             }
 
         }
-        // Always deduplicate and clean
-        additionalTagsToSend = Array.from(new Set((additionalTagsToSend || []).map(t => t.toLowerCase())));
-        await processRecommendationJob({
-            url: urlToUse,
-            user: { id: interaction.user.id, username: interaction.user.username },
-            manualFields: {
-                title: newTitle,
-                authors: newAuthor ? [newAuthor] : undefined,
-                summary: newSummary,
-                rating: newRating,
-                wordCount: newWordCount,
-                status: newStatus,
-                chapters: newChapters,
-                archive_warnings: newArchiveWarnings,
-                seriesName: newSeriesName,
-                seriesPart: newSeriesPart,
-                seriesUrl: newSeriesUrl,
-                tags: newTags
-            },
-            additionalTags: additionalTagsToSend,
-            isUpdate: true,
-            existingRec: recommendation,
-            notify: async (embedOrError) => {
-                if (embedOrError && embedOrError.error) {
-                    let msg = '';
-                    if (embedOrError.error === 'Site protection detected. Manual entry required.') {
-                        msg = 'Site protection is blocking metadata fetch. Please enter details manually.';
-                    } else if (embedOrError.error === '404_not_found') {
-                        msg = 'Story not found (404). The link may be broken or deleted.';
-                    } else if (embedOrError.error === '403_forbidden') {
-                        msg = 'Access restricted (403). You may need to log in to view this story.';
-                    } else if (embedOrError.error === 'connection_error') {
-                        msg = 'Connection error. The site may be down or unreachable.';
-                    } else {
-                        msg = embedOrError.error;
+        
+        // For individual recommendation updates, also use the queue system
+        // (Sam should never call AO3 directly - that's Jack's job)
+        const { ParseQueue, ParseQueueSubscriber } = await import('../../../../models/index.js');
+        
+        // Check if already in queue
+        let queueEntry = await ParseQueue.findOne({ where: { fic_url: urlToUse } });
+        if (queueEntry) {
+            if (queueEntry.status === 'pending' || queueEntry.status === 'processing') {
+                const existingSub = await ParseQueueSubscriber.findOne({ where: { queue_id: queueEntry.id, user_id: interaction.user.id } });
+                if (!existingSub) {
+                    try {
+                        await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
+                    } catch (err) {
+                        console.error('[RecHandler] Error adding ParseQueueSubscriber:', err, { queue_id: queueEntry.id, user_id: interaction.user.id });
                     }
-                    await interaction.editReply({ content: msg });
-                } else {
-                    await interaction.editReply({ content: null, embeds: [embedOrError] });
+                }
+                await interaction.editReply({
+                    content: "That fic is already being processed! You'll get a notification when it's ready."
+                });
+                return;
+            }
+        }
+        
+        // Create new queue entry for Jack to process
+        const activeJobs = await ParseQueue.count({ where: { status: ['pending', 'processing'] } });
+        let isInstant = false;
+        if (!/archiveofourown\.org\/series\//.test(urlToUse) && activeJobs === 0) {
+            isInstant = true;
+        }
+        
+        try {
+            queueEntry = await ParseQueue.create({
+                fic_url: urlToUse,
+                status: 'pending',
+                requested_by: interaction.user.id,
+                instant_candidate: isInstant
+            });
+        } catch (err) {
+            // Handle race condition
+            if ((err && err.code === '23505') || (err && err.name === 'SequelizeUniqueConstraintError')) {
+                queueEntry = await ParseQueue.findOne({ where: { fic_url: urlToUse } });
+                if (queueEntry && (queueEntry.status === 'pending' || queueEntry.status === 'processing')) {
+                    await interaction.editReply({
+                        content: "That fic is already being processed! You'll get a notification when it's ready."
+                    });
+                    return;
                 }
             }
+            throw err;
+        }
+        
+        try {
+            await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
+        } catch (err) {
+            console.error('[RecHandler] Error adding ParseQueueSubscriber:', err, { queue_id: queueEntry.id, user_id: interaction.user.id });
+        }
+        
+        await interaction.editReply({
+            content: "Your fic update has been added to the parsing queue! I'll notify you when it's ready."
+        });
+        
+        // Store user's manual field inputs for Jack to use
+        await upsertUserFicMetadata({
+            userID: interaction.user.id,
+            ao3ID: recommendation.ao3ID,
+            seriesId: recommendation.seriesId || null,
+            newTitle,
+            newAuthor,
+            newSummary,
+            newTags,
+            newRating,
+            newWordCount,
+            newChapters,
+            newStatus,
+            newArchiveWarnings,
+            newSeriesName,
+            newSeriesPart,
+            newSeriesUrl,
+            additionalTagsToSend,
+            newNotes
         });
     } catch (error) {
         console.error('[rec update] Error:', error);
