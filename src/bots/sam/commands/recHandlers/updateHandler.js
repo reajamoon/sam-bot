@@ -63,6 +63,9 @@ function validateAttachment(newAttachment, willBeDeleted) {
 }
 
 export default async function handleUpdateRecommendation(interaction) {
+    // Extract identifier from interaction options
+    const identifier = interaction.options.getString('identifier');
+    
     // --- ModLock enforcement (per-rec and global) ---
     let modLocksByField = {};
     // Fetch the recommendation to get its ID (if not already fetched)

@@ -235,18 +235,6 @@ function addNotesField(embed, rec) {
 
 // Helper: Add engagement fields (Hits, Kudos, Bookmarks)
 function addEngagementFields(embed, rec) {
-    // Debug logging for all recommendations to see the pattern
-    console.log('[DEBUG] Engagement data check:', {
-        id: rec.id,
-        hasNotes: !!rec.notes,
-        hits: rec.hits,
-        kudos: rec.kudos,
-        bookmarks: rec.bookmarks,
-        hitsValid: (rec.hits != null && typeof rec.hits === 'number' && rec.hits > 0),
-        kudosValid: (rec.kudos != null && typeof rec.kudos === 'number' && rec.kudos > 0),
-        bookmarksValid: (rec.bookmarks != null && typeof rec.bookmarks === 'number' && rec.bookmarks > 0)
-    });
-    
     const engagementFields = [];
     
     // Handle hits - check for valid number greater than 0
