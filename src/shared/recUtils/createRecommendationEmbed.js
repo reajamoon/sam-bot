@@ -235,27 +235,35 @@ function addNotesField(embed, rec) {
 
 // Helper: Add engagement fields (Hits, Kudos, Bookmarks)
 function addEngagementFields(embed, rec) {
-    // Debug logging for recommendations with notes
-    if (rec.notes) {
-        console.log('[DEBUG] Recommendation with notes - engagement data:', {
-            id: rec.id,
-            hasNotes: true,
-            hits: rec.hits,
-            kudos: rec.kudos,
-            bookmarks: rec.bookmarks,
-            hitsType: typeof rec.hits,
-            kudosType: typeof rec.kudos,
-            bookmarksType: typeof rec.bookmarks,
-            hitsTruthy: !!rec.hits,
-            kudosTruthy: !!rec.kudos,
-            bookmarksTruthy: !!rec.bookmarks
-        });
-    }
+    // Debug logging for all recommendations to see the pattern
+    console.log('[DEBUG] Engagement data check:', {
+        id: rec.id,
+        hasNotes: !!rec.notes,
+        hits: rec.hits,
+        kudos: rec.kudos,
+        bookmarks: rec.bookmarks,
+        hitsValid: (rec.hits != null && typeof rec.hits === 'number' && rec.hits > 0),
+        kudosValid: (rec.kudos != null && typeof rec.kudos === 'number' && rec.kudos > 0),
+        bookmarksValid: (rec.bookmarks != null && typeof rec.bookmarks === 'number' && rec.bookmarks > 0)
+    });
     
     const engagementFields = [];
-    if (rec.hits) engagementFields.push({ name: 'Hits', value: rec.hits.toLocaleString(), inline: true });
-    if (rec.kudos) engagementFields.push({ name: 'Kudos', value: rec.kudos.toLocaleString(), inline: true });
-    if (rec.bookmarks) engagementFields.push({ name: 'Bookmarks', value: rec.bookmarks.toLocaleString(), inline: true });
+    
+    // Handle hits - check for valid number greater than 0
+    if (rec.hits != null && typeof rec.hits === 'number' && rec.hits > 0) {
+        engagementFields.push({ name: 'Hits', value: rec.hits.toLocaleString(), inline: true });
+    }
+    
+    // Handle kudos - check for valid number greater than 0  
+    if (rec.kudos != null && typeof rec.kudos === 'number' && rec.kudos > 0) {
+        engagementFields.push({ name: 'Kudos', value: rec.kudos.toLocaleString(), inline: true });
+    }
+    
+    // Handle bookmarks - check for valid number greater than 0
+    if (rec.bookmarks != null && typeof rec.bookmarks === 'number' && rec.bookmarks > 0) {
+        engagementFields.push({ name: 'Bookmarks', value: rec.bookmarks.toLocaleString(), inline: true });
+    }
+    
     if (engagementFields.length > 0) {
         embed.addFields(engagementFields);
     }
