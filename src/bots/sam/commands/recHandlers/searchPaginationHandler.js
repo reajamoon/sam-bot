@@ -10,25 +10,32 @@ import { createTagSearchConditions } from '../../../../utils/tagUtils.js';
  * @returns {Promise<void>}
  */
 async function handleSearchPagination(interaction) {
-    // Parse customId: recsearch:action:queryId:page:totalPages
-    const [base, action, queryId, rawPage, rawTotal] = interaction.customId.split(':');
-    const totalPages = parseInt(rawTotal, 10) || 1;
-    let page = parseInt(rawPage, 10) || 1;
-    
-    if (action === 'next') page++;
-    if (action === 'prev') page--;
-    if (action === 'first') page = 1;
-    if (action === 'last') page = totalPages;
-    
-    // Clamp page
-    page = Math.max(1, Math.min(page, totalPages));
-    
-    // Get cached query data
-    const queryParams = await getCachedQuery(queryId);
-    if (!queryParams) {
-        await interaction.update({ content: 'Error: Search session expired. Please try your search again.' });
-        return;
-    }
+    try {
+        // Parse customId: recsearch:action:queryId:page:totalPages
+        const [base, action, queryId, rawPage, rawTotal] = interaction.customId.split(':');
+        const totalPages = parseInt(rawTotal, 10) || 1;
+        let page = parseInt(rawPage, 10) || 1;
+        
+        if (action === 'next') page++;
+        if (action === 'prev') page--;
+        if (action === 'first') page = 1;
+        if (action === 'last') page = totalPages;
+        
+        // Clamp page
+        page = Math.max(1, Math.min(page, totalPages));
+        
+        // Get cached query data
+        const queryParams = await getCachedQuery(queryId);
+        console.log('[Search Pagination] Query ID:', queryId, 'Retrieved params:', queryParams);
+        if (!queryParams) {
+            console.log('[Search Pagination] No cached query found for ID:', queryId);
+            await interaction.update({ 
+                content: 'Error: Search session expired. Please try your search again.',
+                embeds: [],
+                components: []
+            });
+            return;
+        }
     
     const { titleQuery, authorQuery, tagsQuery, ratingQuery } = queryParams;
     
@@ -171,5 +178,20 @@ async function handleSearchPagination(interaction) {
         components: totalPages > 1 ? [row] : [],
         content: `Here are your search results for ${displayQuery}:`
     });
+    
+    } catch (error) {
+        console.error('[Search Pagination] Error:', error);
+        try {
+            await interaction.update({ 
+                content: 'Something went wrong processing that search page. Please try your search again.',
+                embeds: [],
+                components: []
+            });
+        } catch (updateError) {
+            console.error('[Search Pagination] Failed to send error message:', updateError);
+        }
+    }
 }
+
+export default handleSearchPagination;
 
