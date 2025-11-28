@@ -28,6 +28,9 @@ export default {
   async execute(message) {
     // Don't handle bot messages
     if (message.author.bot) return;
+    
+    console.log('[ModmailRelay] Message received - Channel type:', message.channel.type, 'Is DM:', message.channel.type === ChannelType.DM, 'Author:', message.author.id);
+    
     // Handle DM replies from users back to modmail threads
     if (message.channel.type === ChannelType.DM) { // DM channel
       console.log('[ModmailRelay] DM received from user:', message.author.id, 'Content:', message.content);
