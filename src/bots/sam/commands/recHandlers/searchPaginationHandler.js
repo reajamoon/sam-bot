@@ -1,7 +1,7 @@
 import { Recommendation, sequelize } from '../../../../models/index.js';
 import { Op } from 'sequelize';
 import createSearchResultsEmbed from '../../../../shared/recUtils/createSearchResultsEmbed.js';
-import { buildSearchPaginationRow } from '../../../../shared/recUtils/searchPagination.js';
+import { buildSearchPaginationRow, getCachedQuery } from '../../../../shared/recUtils/searchPagination.js';
 import { createTagSearchConditions } from '../../../../utils/tagUtils.js';
 
 /**
@@ -10,8 +10,8 @@ import { createTagSearchConditions } from '../../../../utils/tagUtils.js';
  * @returns {Promise<void>}
  */
 async function handleSearchPagination(interaction) {
-    // Parse customId: recsearch_action:encodedQuery:page:totalPages
-    const [base, action, encodedQuery, rawPage, rawTotal] = interaction.customId.split(':');
+    // Parse customId: recsearch:action:queryId:page:totalPages
+    const [base, action, queryId, rawPage, rawTotal] = interaction.customId.split(':');
     const totalPages = parseInt(rawTotal, 10) || 1;
     let page = parseInt(rawPage, 10) || 1;
     
@@ -23,13 +23,10 @@ async function handleSearchPagination(interaction) {
     // Clamp page
     page = Math.max(1, Math.min(page, totalPages));
     
-    // Decode and parse the original query parameters
-    let queryParams;
-    try {
-        queryParams = JSON.parse(decodeURIComponent(encodedQuery));
-    } catch (error) {
-        console.error('Error parsing search query:', error);
-        await interaction.update({ content: 'Error: Invalid search parameters.' });
+    // Get cached query data
+    const queryParams = getCachedQuery(queryId);
+    if (!queryParams) {
+        await interaction.update({ content: 'Error: Search session expired. Please try your search again.' });
         return;
     }
     
@@ -167,7 +164,7 @@ async function handleSearchPagination(interaction) {
     const displayQuery = queryParts.join(' ');
     
     const embed = createSearchResultsEmbed(recs, page, totalPages, displayQuery);
-    const row = buildSearchPaginationRow(page, totalPages, `recsearch:${encodedQuery}`);
+    const row = buildSearchPaginationRow(page, totalPages, 'recsearch', queryParams);
     
     await interaction.update({
         embeds: [embed],

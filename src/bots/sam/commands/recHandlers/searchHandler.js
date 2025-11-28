@@ -236,10 +236,9 @@ export default async function handleSearchRecommendations(interaction) {
         ratingQuery: ratingQuery || null,
         summaryQuery: summaryQuery || null
     };
-    const encodedQuery = encodeURIComponent(JSON.stringify(queryParams));
     
     const resultsEmbed = createSearchResultsEmbed(recs, page, totalPages, searchSummary.join(', '));
-    const row = buildSearchPaginationRow(page, totalPages, `recsearch:${encodedQuery}`);
+    const row = buildSearchPaginationRow(page, totalPages, 'recsearch', queryParams);
     const totalResults = allResults.length;
     await interaction.editReply({
         content: `Found **${totalResults}** fic${totalResults === 1 ? '' : 's'} matching your search.`,
