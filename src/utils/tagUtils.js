@@ -62,20 +62,27 @@ export function createTagSearchConditions(tag, operation, tagFields = ['tags', '
     
     for (const field of tagFields) {
         for (const variation of variations) {
-            // Use proper JSONB array search with ? operator for exact matches or jsonb_path_exists for partial
+            // Use proper JSONB array search with null checks and type validation
             if (operation === Op.iLike) {
-                // For partial matching in JSONB arrays, use a subquery approach that PostgreSQL accepts
                 conditions.push(
-                    sequelize.literal(`EXISTS (
-                        SELECT 1 FROM jsonb_array_elements_text("Recommendation"."${field}") AS element 
-                        WHERE LOWER(element::text) LIKE LOWER('%${variation.replace(/'/g, "''")}%')
+                    sequelize.literal(`(
+                        "Recommendation"."${field}" IS NOT NULL 
+                        AND jsonb_typeof("Recommendation"."${field}") = 'array'
+                        AND EXISTS (
+                            SELECT 1 FROM jsonb_array_elements_text("Recommendation"."${field}") AS element 
+                            WHERE LOWER(element) LIKE LOWER('%${variation.replace(/'/g, "''")}%')
+                        )
                     )`)
                 );
             } else if (operation === Op.notILike) {
                 conditions.push(
-                    sequelize.literal(`NOT EXISTS (
-                        SELECT 1 FROM jsonb_array_elements_text("Recommendation"."${field}") AS element 
-                        WHERE LOWER(element::text) LIKE LOWER('%${variation.replace(/'/g, "''")}%')
+                    sequelize.literal(`(
+                        "Recommendation"."${field}" IS NULL 
+                        OR jsonb_typeof("Recommendation"."${field}") != 'array'
+                        OR NOT EXISTS (
+                            SELECT 1 FROM jsonb_array_elements_text("Recommendation"."${field}") AS element 
+                            WHERE LOWER(element) LIKE LOWER('%${variation.replace(/'/g, "''")}%')
+                        )
                     )`)
                 );
             }
