@@ -309,14 +309,10 @@ export default {
      * @returns {Promise<void>}
      */
     async handleButtonInteraction(interaction) {
-        console.log('[rec.js] handleButtonInteraction called with customId:', interaction.customId);
         // Only handle recsearch pagination buttons
         if (interaction.customId && interaction.customId.startsWith('recsearch')) {
-            console.log('[rec.js] Routing to searchPaginationHandler');
             const handleSearchPagination = (await import('./recHandlers/searchPaginationHandler.js')).default;
             await handleSearchPagination(interaction);
-        } else {
-            console.log('[rec.js] CustomId does not start with recsearch, ignoring');
         }
     },
 };

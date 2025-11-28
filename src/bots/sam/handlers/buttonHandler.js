@@ -41,14 +41,12 @@ async function handleButton(interaction) {
         return;
     }
     try {
-        logger.info(`[buttonHandler] Invoked for customId: ${interaction.customId}`);
         const customId = interaction.customId;
     // logger.info(`[ButtonHandler] Received button interaction: customId=${customId}`);
 
         // Rec search pagination buttons
         if (customId && customId.startsWith('recsearch')) {
-            // Route to rec.js handler (new location)
-            console.log('[buttonHandler] Routing recsearch button to rec.js');
+            // Route to rec.js handler 
             const rec = await import('../commands/rec.js');
             await rec.default.handleButtonInteraction(interaction);
             return;

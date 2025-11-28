@@ -26,9 +26,7 @@ async function handleSearchPagination(interaction) {
         
         // Get cached query data
         const queryParams = await getCachedQuery(queryId);
-        console.log('[Search Pagination] Query ID:', queryId, 'Retrieved params:', queryParams);
         if (!queryParams) {
-            console.log('[Search Pagination] No cached query found for ID:', queryId);
             await interaction.update({ 
                 content: 'Error: Search session expired. Please try your search again.',
                 embeds: [],

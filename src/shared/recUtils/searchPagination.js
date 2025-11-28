@@ -33,7 +33,7 @@ async function buildSearchPaginationRow(page, totalPages, customIdBase = 'recsea
             `, {
                 replacements: {
                     queryId,
-                    queryData: JSON.stringify(queryData)
+                    queryData: queryString  // Use queryString, not JSON.stringify(queryData) again
                 }
             });
             
