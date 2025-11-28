@@ -1,4 +1,4 @@
-import { Events } from 'discord.js';
+import { Events, ChannelType } from 'discord.js';
 import { Config, ParseQueue, ModmailRelay } from '../../../models/index.js';
 
 // Utility: extract fic URL and submitter from the thread's starter message
@@ -29,7 +29,7 @@ export default {
     // Don't handle bot messages
     if (message.author.bot) return;
     // Handle DM replies from users back to modmail threads
-    if (message.channel.type === 1) { // DM channel
+    if (message.channel.type === ChannelType.DM) { // DM channel
       console.log('[ModmailRelay] DM received from user:', message.author.id, 'Content:', message.content);
       // Find if this user has any active modmail relays
       const relayEntry = await ModmailRelay.findOne({
