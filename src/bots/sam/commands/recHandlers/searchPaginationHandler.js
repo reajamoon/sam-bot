@@ -79,10 +79,10 @@ async function handleSearchPagination(interaction) {
             const notClauses = [];
 
             // Extract NOT terms (new syntax)
-            const notMatches = workingGroup.match(/\\bNOT\\s+([^\\s]+(?:\\s+[^\\s]+)*?)(?=\\s+(?:AND|OR|$)|$)/g);
+            const notMatches = workingGroup.match(/\bNOT\s+([^\s]+(?:\s+[^\s]+)*?)(?=\s+(?:AND|OR|$)|$)/g);
             if (notMatches) {
                 for (const notMatch of notMatches) {
-                    const notTag = notMatch.replace(/^NOT\\s+/, '').trim().toLowerCase();
+                    const notTag = notMatch.replace(/^NOT\s+/, '').trim().toLowerCase();
                     if (notTag) {
                         const notConditions = createTagSearchConditions(notTag, Op.notILike, searchTagFields);
                         notClauses.push({ [Op.and]: notConditions });
@@ -92,7 +92,7 @@ async function handleSearchPagination(interaction) {
             }
 
             // Extract legacy NOT terms (- prefix)
-            const legacyNotMatches = workingGroup.match(/-([^,+\\s]+)/g);
+            const legacyNotMatches = workingGroup.match(/-([^,+\s]+)/g);
             if (legacyNotMatches) {
                 for (const legacyNotMatch of legacyNotMatches) {
                     const notTag = legacyNotMatch.substring(1).toLowerCase();
@@ -104,7 +104,7 @@ async function handleSearchPagination(interaction) {
                 }
             }
 
-            workingGroup = workingGroup.replace(/\\s+/g, ' ').trim();
+            workingGroup = workingGroup.replace(/\s+/g, ' ').trim();
 
             if (workingGroup.includes(' AND ')) {
                 const andTags = workingGroup.split(' AND ').map(t => t.trim().toLowerCase()).filter(Boolean);
