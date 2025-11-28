@@ -125,6 +125,9 @@ export default async function handleUpdateRecommendation(interaction) {
     const newSeriesUrl = interaction.options.getString('series_url');
     // Support append mode for additional tags
     const appendAdditional = interaction.options.getBoolean('append');
+    
+    // Set up additional tags to send
+    let additionalTagsToSend = newTags;
 
     try {
         const recommendation = await findRecommendationByIdOrUrl(interaction, identifier, null, null);
