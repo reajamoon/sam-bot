@@ -25,23 +25,58 @@ export default {
     // Only act on messages in threads in the modmail channel, not from bots
     if (message.author.bot) return;
     if (!message.channel.isThread()) return;
-    const parent = message.channel.parent;
+    
+    console.log('[ModmailRelay] Message in thread detected:', message.channel.name);
+    
+    // Only handle messages in modmail threads
+  console.log('[ModmailRelay] Message received:', message.content, 'in channel:', message.channel.type);
+  const parent = message.channel.parent;
     if (!parent) return;
+    
     // Check if this is the modmail channel
     const modmailConfig = await Config.findOne({ where: { key: 'modmail_channel_id' } });
-    if (!modmailConfig || parent.id !== modmailConfig.value) return;
+    if (!modmailConfig) {
+      console.log('[ModmailRelay] No modmail channel configured');
+      return;
+    }
+    
+    console.log('[ModmailRelay] Modmail channel configured:', modmailConfig.value, 'Current parent:', parent.id);
+    
+    if (parent.id !== modmailConfig.value) {
+      console.log('[ModmailRelay] Not in modmail channel, ignoring');
+      return;
+    }
+    
     // Don't relay the starter message
     if (message.id === message.channel.id) return;
+    
     // Get fic info from thread starter message
+    console.log('[ModmailRelay] Getting fic info from thread...');
     const ficInfo = await getFicInfoFromThread(message.channel);
-    if (!ficInfo) return;
-    // Relay command: only relay if message starts with @sam relay or /relay
+    if (!ficInfo) {
+      console.log('[ModmailRelay] Could not extract fic info from thread starter');
+      return;
+    }
+    
+    console.log('[ModmailRelay] Found fic info:', ficInfo);
+    
+    // Relay command: only relay if message starts with @sam relay, @relay, or /relay
     const content = message.content.trim();
-    if (!content.toLowerCase().startsWith('@sam relay') && !content.toLowerCase().startsWith('/relay')) return;
+    console.log('[ModmailRelay] Message content:', content);
+    
+    if (!content.toLowerCase().startsWith('@sam relay') && 
+        !content.toLowerCase().startsWith('@relay') && 
+        !content.toLowerCase().startsWith('/relay')) {
+      console.log('[ModmailRelay] Message does not start with relay command');
+      return;
+    }
+    
+    console.log('[ModmailRelay] Processing relay command...');
+    
     // Remove the command prefix
-    const relayMsg = content.replace(/^(@sam relay|\/relay)/i, '').trim();
+    const relayMsg = content.replace(/^(@sam relay|@relay|\/relay)/i, '').trim();
     if (!relayMsg) {
-      await message.reply('Just let me know what you want to say to the submitter after `@sam relay` or `/relay`.');
+      await message.reply('Just let me know what you want to say to the submitter after `@sam relay`, `@relay`, or `/relay`.');
       return;
     }
     // DM the submitter
