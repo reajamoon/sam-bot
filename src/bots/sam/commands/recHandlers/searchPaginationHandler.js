@@ -24,7 +24,7 @@ async function handleSearchPagination(interaction) {
     page = Math.max(1, Math.min(page, totalPages));
     
     // Get cached query data
-    const queryParams = getCachedQuery(queryId);
+    const queryParams = await getCachedQuery(queryId);
     if (!queryParams) {
         await interaction.update({ content: 'Error: Search session expired. Please try your search again.' });
         return;
@@ -164,7 +164,7 @@ async function handleSearchPagination(interaction) {
     const displayQuery = queryParts.join(' ');
     
     const embed = createSearchResultsEmbed(recs, page, totalPages, displayQuery);
-    const row = buildSearchPaginationRow(page, totalPages, 'recsearch', queryParams);
+    const row = await buildSearchPaginationRow(page, totalPages, 'recsearch', queryParams);
     
     await interaction.update({
         embeds: [embed],

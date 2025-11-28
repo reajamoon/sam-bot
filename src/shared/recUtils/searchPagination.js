@@ -2,9 +2,9 @@
 import Discord from 'discord.js';
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = Discord;
 import crypto from 'crypto';
+import { sequelize } from '../../models/index.js';
 
-// Simple in-memory cache for search queries (in production, you might want Redis)
-const queryCache = new Map();
+// Use PostgreSQL for persistent search query caching
 
 /**
  * Builds a row of pagination buttons for search results.
@@ -12,29 +12,38 @@ const queryCache = new Map();
  * @param {number} totalPages - Total number of pages
  * @param {string} customIdBase - Unique base for custom IDs (e.g., 'recsearch')
  * @param {Object} queryData - The search query parameters object
- * @returns {ActionRowBuilder}
+ * @returns {Promise<ActionRowBuilder>}
  */
-function buildSearchPaginationRow(page, totalPages, customIdBase = 'recsearch', queryData = null) {
+async function buildSearchPaginationRow(page, totalPages, customIdBase = 'recsearch', queryData = null) {
     let queryId = '';
     
-    // If we have query data, create a short hash and cache it
+    // If we have query data, create a short hash and cache it in database
     if (queryData && typeof queryData === 'object') {
         const queryString = JSON.stringify(queryData);
         queryId = crypto.createHash('md5').update(queryString).digest('hex').substring(0, 8);
         
-        // Cache the query data with expiration (30 minutes)
-        queryCache.set(queryId, {
-            data: queryData,
-            expires: Date.now() + 30 * 60 * 1000
-        });
-        
-        // Clean up expired entries occasionally
-        if (Math.random() < 0.1) { // 10% chance to clean up
-            for (const [key, value] of queryCache.entries()) {
-                if (Date.now() > value.expires) {
-                    queryCache.delete(key);
+        // Cache the query data in PostgreSQL with 30-minute expiration
+        try {
+            await sequelize.query(`
+                INSERT INTO search_cache (query_id, query_data, expires_at)
+                VALUES (:queryId, :queryData, NOW() + INTERVAL '30 minutes')
+                ON CONFLICT (query_id) DO UPDATE SET
+                    query_data = EXCLUDED.query_data,
+                    expires_at = EXCLUDED.expires_at
+            `, {
+                replacements: {
+                    queryId,
+                    queryData: JSON.stringify(queryData)
                 }
+            });
+            
+            // Occasional cleanup of expired entries (5% chance)
+            if (Math.random() < 0.05) {
+                await sequelize.query('DELETE FROM search_cache WHERE expires_at < NOW()');
             }
+        } catch (error) {
+            console.error('Error caching search query:', error);
+            // Fall back to a simple hash if database fails
         }
     } else if (typeof customIdBase === 'string' && customIdBase.includes(':')) {
         // Legacy handling - extract query from customIdBase
@@ -74,18 +83,27 @@ function buildSearchPaginationRow(page, totalPages, customIdBase = 'recsearch', 
 /**
  * Retrieves cached query data by ID
  * @param {string} queryId - The hashed query ID
- * @returns {Object|null} - The cached query data or null if not found/expired
+ * @returns {Promise<Object|null>} - The cached query data or null if not found/expired
  */
-function getCachedQuery(queryId) {
-    const cached = queryCache.get(queryId);
-    if (!cached) return null;
-    
-    if (Date.now() > cached.expires) {
-        queryCache.delete(queryId);
+async function getCachedQuery(queryId) {
+    try {
+        const [results] = await sequelize.query(`
+            SELECT query_data 
+            FROM search_cache 
+            WHERE query_id = :queryId AND expires_at > NOW()
+        `, {
+            replacements: { queryId }
+        });
+        
+        if (results.length === 0) {
+            return null;
+        }
+        
+        return JSON.parse(results[0].query_data);
+    } catch (error) {
+        console.error('Error retrieving cached query:', error);
         return null;
     }
-    
-    return cached.data;
 }
 
 export { buildSearchPaginationRow, getCachedQuery };

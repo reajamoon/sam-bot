@@ -238,7 +238,7 @@ export default async function handleSearchRecommendations(interaction) {
     };
     
     const resultsEmbed = createSearchResultsEmbed(recs, page, totalPages, searchSummary.join(', '));
-    const row = buildSearchPaginationRow(page, totalPages, 'recsearch', queryParams);
+    const row = await buildSearchPaginationRow(page, totalPages, 'recsearch', queryParams);
     const totalResults = allResults.length;
     await interaction.editReply({
         content: `Found **${totalResults}** fic${totalResults === 1 ? '' : 's'} matching your search.`,
