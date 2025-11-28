@@ -145,7 +145,7 @@ function addSeriesWarningsField(embed, rec) {
 // Helper: Add tags field (dedupes, normalizes, concatenates all tag sources)
 function addTagsField(embed, rec) {
     const freeformTags = Array.isArray(rec.tags) ? rec.tags : [];
-    
+
     // Get additional tags from all UserFicMetadata entries
     const userAdditionalTags = [];
     if (rec.userMetadata && Array.isArray(rec.userMetadata)) {
@@ -155,7 +155,6 @@ function addTagsField(embed, rec) {
             }
         }
     }
-    
     // Normalize and deduplicate all tag sources
     const normalizedTagMap = new Map();
     for (const tag of [...freeformTags, ...userAdditionalTags]) {
@@ -166,7 +165,6 @@ function addTagsField(embed, rec) {
             }
         }
     }
-    
     const allTags = Array.from(normalizedTagMap.values());
     if (allTags.length > 0) {
         let tagString = '';
@@ -203,16 +201,15 @@ function getRandomUserNote(rec) {
     if (!rec.userMetadata || !Array.isArray(rec.userMetadata) || rec.userMetadata.length === 0) {
         return null;
     }
-    
+
     // Filter for notes that exist and aren't empty
-    const notesWithText = rec.userMetadata.filter(metadata => 
+    const notesWithText = rec.userMetadata.filter(metadata =>
         metadata.rec_note && typeof metadata.rec_note === 'string' && metadata.rec_note.trim().length > 0
     );
-    
+
     if (notesWithText.length === 0) {
         return null;
     }
-    
     // Randomly select one note
     const randomIndex = Math.floor(Math.random() * notesWithText.length);
     return notesWithText[randomIndex].rec_note.trim();
@@ -221,12 +218,10 @@ function getRandomUserNote(rec) {
 // Helper: Add notes field (both original notes and user notes)
 function addNotesField(embed, rec) {
     const userNote = getRandomUserNote(rec);
-    
     // Original recommender notes (deprecated but may still exist)
     if (rec.notes) {
         embed.addFields({ name: 'Recommender Notes', value: `>>> ${rec.notes}` });
     }
-    
     // User notes from UserFicMetadata
     if (userNote) {
         embed.addFields({ name: '📝 Reader Note', value: `>>> ${userNote}` });
@@ -236,22 +231,18 @@ function addNotesField(embed, rec) {
 // Helper: Add engagement fields (Hits, Kudos, Bookmarks)
 function addEngagementFields(embed, rec) {
     const engagementFields = [];
-    
     // Handle hits - check for valid number greater than 0
     if (rec.hits != null && typeof rec.hits === 'number' && rec.hits > 0) {
         engagementFields.push({ name: 'Hits', value: rec.hits.toLocaleString(), inline: true });
     }
-    
-    // Handle kudos - check for valid number greater than 0  
+    // Handle kudos - check for valid number greater than 0
     if (rec.kudos != null && typeof rec.kudos === 'number' && rec.kudos > 0) {
         engagementFields.push({ name: 'Kudos', value: rec.kudos.toLocaleString(), inline: true });
     }
-    
     // Handle bookmarks - check for valid number greater than 0
     if (rec.bookmarks != null && typeof rec.bookmarks === 'number' && rec.bookmarks > 0) {
         engagementFields.push({ name: 'Bookmarks', value: rec.bookmarks.toLocaleString(), inline: true });
     }
-    
     if (engagementFields.length > 0) {
         embed.addFields(engagementFields);
     }
@@ -398,11 +389,10 @@ async function createRecommendationEmbed(rec, series = null, seriesWorks = null)
         }
         // Works in Series field - show first 5 works with titles and links
         let worksToDisplay = [];
-        
         // First try to use series.series_works (direct from AO3 parsing)
         if (series.series_works && Array.isArray(series.series_works)) {
             worksToDisplay = series.series_works.slice(0, 5);
-        } 
+        }
         // Fallback to seriesWorks (from database relationship) if series_works not available
         else if (Array.isArray(seriesWorks) && seriesWorks.length > 0) {
             worksToDisplay = seriesWorks.slice(0, 5);
@@ -414,26 +404,21 @@ async function createRecommendationEmbed(rec, series = null, seriesWorks = null)
                 url: `https://archiveofourown.org/works/${workId}`
             }));
         }
-        
         if (worksToDisplay.length > 0) {
             let worksList = '';
             const totalWorks = series.workCount || series.workIds?.length || seriesWorks?.length || worksToDisplay.length;
-            
             // If more than 5 works exist, show first 4 + "and X more" message
             // If 5 or fewer works exist, show all of them
             const worksToShow = totalWorks > 5 ? 4 : Math.min(5, worksToDisplay.length);
-            
             for (let i = 0; i < worksToShow; i++) {
                 const work = worksToDisplay[i];
                 const title = work.title || `Work #${i + 1}`;
                 const url = work.url || (work.ao3ID ? `https://archiveofourown.org/works/${work.ao3ID}` : `https://archiveofourown.org/works/${work}`);
                 worksList += `${i + 1}. [${title}](${url})\n`;
             }
-            
             if (totalWorks > 5) {
                 worksList += `... and ${totalWorks - 4} more works - [View all](${series.url})`;
             }
-            
             embed.addFields({
                 name: `Works in Series (${totalWorks})`,
                 value: worksList.trim()
@@ -442,7 +427,6 @@ async function createRecommendationEmbed(rec, series = null, seriesWorks = null)
         // Tags: aggregate from seriesWorks and user additional tags
         if (Array.isArray(seriesWorks) && seriesWorks.length > 0 || (series.userMetadata && Array.isArray(series.userMetadata))) {
             const normalizedTagMap = new Map();
-            
             // Get tags from works in the series
             if (Array.isArray(seriesWorks)) {
                 for (const work of seriesWorks) {
@@ -459,7 +443,6 @@ async function createRecommendationEmbed(rec, series = null, seriesWorks = null)
                     }
                 }
             }
-            
             // Get additional tags from UserFicMetadata for this series
             if (series.userMetadata && Array.isArray(series.userMetadata)) {
                 for (const userMeta of series.userMetadata) {
@@ -475,7 +458,6 @@ async function createRecommendationEmbed(rec, series = null, seriesWorks = null)
                     }
                 }
             }
-            
             if (normalizedTagMap.size > 0) {
                 let tagString = Array.from(normalizedTagMap.values()).join(', ');
                 if (tagString.length > 1021) tagString = tagString.substring(0, 1021) + '...';
@@ -486,7 +468,6 @@ async function createRecommendationEmbed(rec, series = null, seriesWorks = null)
         if (series.notes) {
             embed.addFields({ name: 'Recommender Notes', value: `>>> ${series.notes}` });
         }
-        
         // User notes from UserFicMetadata
         const userNote = getRandomUserNote(series);
         if (userNote) {
@@ -511,7 +492,6 @@ async function createRecommendationEmbed(rec, series = null, seriesWorks = null)
 
     // Use shared helper for rating and color
     const { ratingValue, color } = getRatingAndColor(rec.rating);
-
     const embed = new EmbedBuilder()
         .setTitle(`📖 ${rec.title}`)
         .setDescription(`**By:** ${(rec.authors && Array.isArray(rec.authors)) ? rec.authors.join(', ') : (rec.author || 'Unknown Author')}`)

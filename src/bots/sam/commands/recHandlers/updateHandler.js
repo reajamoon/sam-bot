@@ -125,12 +125,21 @@ export default async function handleUpdateRecommendation(interaction) {
     const newSeriesUrl = interaction.options.getString('series_url');
     // Support append mode for additional tags
     const appendAdditional = interaction.options.getBoolean('append');
-    
-    // Set up additional tags to send
-    let additionalTagsToSend = newTags;
 
     try {
         const recommendation = await findRecommendationByIdOrUrl(interaction, identifier, null, null);
+        if (!recommendation) {
+            await interaction.editReply({
+                content: `I couldn't find a recommendation with identifier \`${identifier}\` in our library. Use \`/rec stats\` to see what's available.`
+            });
+            return;
+        }
+        
+        // Set up additional tags to send
+        let additionalTagsToSend = newTags;
+        
+        // Determine URL to use for processing (new URL if provided, otherwise existing URL)
+        const urlToUse = newUrl || recommendation.url;
         if (!recommendation) {
             await interaction.editReply({
                 content: `I couldn't find a recommendation with identifier \`${identifier}\` in our library. Use \`/rec stats\` to see what's available.`
@@ -271,7 +280,7 @@ export default async function handleUpdateRecommendation(interaction) {
                                 let rec = null;
                                 try {
                                     const { fetchRecWithSeries } = await import('../../../../models/fetchRecWithSeries.js');
-                                    rec = await findRecommendationByIdOrUrl(interaction, recId, urlToUse, null);
+                                    rec = await findRecommendationByIdOrUrl(interaction, recommendation.id, urlToUse, null);
                                 } catch {}
                                 let recWithSeries = rec;
                                 if (rec) {
@@ -402,11 +411,11 @@ export default async function handleUpdateRecommendation(interaction) {
                             embeds: [embed]
                         });
                         // Upsert UserFicMetadata after successful instant update
-                        if (recommendation.seriesId && seriesEntry) {
+                        if (recommendation.seriesId) {
                           await UserFicMetadata.upsert({
                             userID: interaction.user.id,
                             ao3ID: null,
-                            seriesId: seriesEntry.id,
+                            seriesId: recommendation.seriesId,
                             manual_title: newTitle || null,
                             manual_authors: newAuthor ? [newAuthor] : null,
                             manual_summary: newSummary || null,
