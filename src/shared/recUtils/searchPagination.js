@@ -99,7 +99,18 @@ async function getCachedQuery(queryId) {
             return null;
         }
         
-        return JSON.parse(results[0].query_data);
+        try {
+            return JSON.parse(results[0].query_data);
+        } catch (parseError) {
+            // If JSON parsing fails, this is a corrupted entry - delete it
+            console.warn(`Removing corrupted cache entry for queryId ${queryId}`);
+            await sequelize.query(`
+                DELETE FROM search_cache WHERE query_id = :queryId
+            `, {
+                replacements: { queryId }
+            });
+            return null;
+        }
     } catch (error) {
         console.error('Error retrieving cached query:', error);
         return null;
