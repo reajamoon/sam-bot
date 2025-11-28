@@ -62,20 +62,14 @@ export function createTagSearchConditions(tag, operation, tagFields = ['tags', '
     
     for (const field of tagFields) {
         for (const variation of variations) {
-            // Use JSONB contains operator for case-insensitive search
+            // Use EXISTS with jsonb_array_elements_text subquery for proper JSONB array searching
             if (operation === Op.iLike) {
                 conditions.push(
-                    sequelize.where(
-                        sequelize.fn('LOWER', sequelize.fn('jsonb_array_to_text', sequelize.col(field), sequelize.literal("', '"))),
-                        { [Op.iLike]: `%${variation.toLowerCase()}%` }
-                    )
+                    sequelize.literal(`EXISTS (SELECT 1 FROM jsonb_array_elements_text("${field}") AS tag_element WHERE LOWER(tag_element) LIKE LOWER('%${variation.replace(/'/g, "''")}%'))`)
                 );
             } else if (operation === Op.notILike) {
                 conditions.push(
-                    sequelize.where(
-                        sequelize.fn('LOWER', sequelize.fn('jsonb_array_to_text', sequelize.col(field), sequelize.literal("', '"))),
-                        { [Op.notILike]: `%${variation.toLowerCase()}%` }
-                    )
+                    sequelize.literal(`NOT EXISTS (SELECT 1 FROM jsonb_array_elements_text("${field}") AS tag_element WHERE LOWER(tag_element) LIKE LOWER('%${variation.replace(/'/g, "''")}%'))`)
                 );
             }
         }
