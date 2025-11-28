@@ -6,15 +6,19 @@ async function getFicInfoFromThread(thread) {
   try {
     const starterMsg = await thread.fetchStarterMessage();
     if (!starterMsg) return null;
-    // Look for <ficUrl> and <@userId> in the content
+    console.log('[ModmailRelay] Starter message content:', starterMsg.content);
+    // Extract fic URL from the message
     const urlMatch = starterMsg.content.match(/https?:\/\/[^\s>]+/);
-    const submitterMatch = starterMsg.content.match(/Submitted by: <@(\d+)>/);
-    if (!urlMatch || !submitterMatch) return null;
+    if (!urlMatch) return null;
+    // Look for user mention in the format <@userId>
+    const submitterMatch = starterMsg.content.match(/<@(\d+)>/);
+    if (!submitterMatch) return null;
     return {
       ficUrl: urlMatch[0],
       submitterId: submitterMatch[1]
     };
-  } catch {
+  } catch (err) {
+    console.log('[ModmailRelay] Error getting fic info:', err);
     return null;
   }
 }
