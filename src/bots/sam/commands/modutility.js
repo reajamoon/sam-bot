@@ -55,6 +55,27 @@ export default {
         .setDescription('Set the modmail channel ID to this channel (superadmin only)')
     ),
   async execute(interaction) {
+    // Permission check: Only allow users with at least mod-level permissions
+    const userId = interaction.user.id;
+    let user = await User.findOne({ where: { discordId: userId } });
+    let isMod = false;
+    let isSuperadmin = false;
+    // Check DB first
+    if (user && user.permissionLevel) {
+      if (['mod', 'admin', 'superadmin'].includes(user.permissionLevel)) isMod = true;
+      if (user.permissionLevel === 'superadmin') isSuperadmin = true;
+    }
+    // Fallback: check Discord roles if DB not set
+    if ((!isMod || !isSuperadmin) && interaction.member && interaction.member.roles) {
+      const roles = interaction.member.roles.cache || [];
+      if (!isMod && roles.some(r => r.name.toLowerCase().includes('mod') || r.name.toLowerCase().includes('admin') || r.name.toLowerCase().includes('superadmin'))) {
+        isMod = true;
+      }
+      if (!isSuperadmin && roles.some(r => r.name.toLowerCase().includes('superadmin'))) {
+        isSuperadmin = true;
+      }
+    }
+
     const sub = interaction.options.getSubcommand();
     if (sub === 'overridenotp') {
       if (!isMod) {
@@ -124,26 +145,7 @@ export default {
       }
       return await interaction.reply({ content: `Fic <${ficUrl}> has been approved and requeued.`, ephemeral: true });
     }
-    // Permission check: Only allow users with at least mod-level permissions
-    const userId = interaction.user.id;
-    let user = await User.findOne({ where: { discordId: userId } });
-    let isMod = false;
-    let isSuperadmin = false;
-    // Check DB first
-    if (user && user.permissionLevel) {
-      if (['mod', 'admin', 'superadmin'].includes(user.permissionLevel)) isMod = true;
-      if (user.permissionLevel === 'superadmin') isSuperadmin = true;
-    }
-    // Fallback: check Discord roles if DB not set
-    if ((!isMod || !isSuperadmin) && interaction.member && interaction.member.roles) {
-      const roles = interaction.member.roles.cache || [];
-      if (!isMod && roles.some(r => r.name.toLowerCase().includes('mod') || r.name.toLowerCase().includes('admin') || r.name.toLowerCase().includes('superadmin'))) {
-        isMod = true;
-      }
-      if (!isSuperadmin && roles.some(r => r.name.toLowerCase().includes('superadmin'))) {
-        isSuperadmin = true;
-      }
-    }
+    
     // Logging for upsert/debug
     if (!user) {
       console.log(`[modutility] User not found in DB, will create: ${userId}`);
