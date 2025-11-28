@@ -24,7 +24,7 @@ async function buildPrivacySettingsDoneButtonId(userId, messageId) {
 }
 
 export async function buildPrivacySettingsMenu(userData, userId, messageId = null, validatedMessageId = null, interaction = null) {
-    const menuTextsAll = (await import('../../../../../shared/text/menuTexts.json', { assert: { type: 'json' } })).default;
+    const menuTextsAll = (await import('../../../../../shared/text/menuTexts.json', { with: { type: 'json' } })).default;
     const menuTexts = menuTextsAll.privacy;
     const mentionsEnabled = userData.birthdayMentions !== false;
     const announcementsEnabled = userData.birthdayAnnouncements !== false;

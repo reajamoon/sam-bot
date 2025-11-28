@@ -6,7 +6,7 @@ import { createHelpWithBackButton } from './profileHelpButtons.js';
 let helpTexts;
 async function getHelpTexts() {
     if (!helpTexts) {
-        helpTexts = (await import('../../../shared/text/helpTexts.json', { assert: { type: 'json' } })).default;
+        helpTexts = (await import('../../../shared/text/helpTexts.json', { with: { type: 'json' } })).default;
     }
     return helpTexts;
 }
