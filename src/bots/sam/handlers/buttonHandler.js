@@ -48,8 +48,9 @@ async function handleButton(interaction) {
         // Rec search pagination buttons
         if (customId && customId.startsWith('recsearch')) {
             // Route to rec.js handler (new location)
+            console.log('[buttonHandler] Routing recsearch button to rec.js');
             const rec = await import('../commands/rec.js');
-            await rec.handleButtonInteraction(interaction);
+            await rec.default.handleButtonInteraction(interaction);
             return;
         }
 
