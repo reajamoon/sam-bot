@@ -26,7 +26,7 @@ async function testAuthorUpdate() {
     const result = await processAO3Job({
       url: rec.url,
       ao3ID: rec.ao3ID,
-      user: { id: 'test-user' },
+      user: { id: 'test-user', username: 'test-user' },
       isUpdate: true
     });
     
