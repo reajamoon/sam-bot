@@ -18,6 +18,11 @@ import {
 
 // Async embed builder for a rec (single or series)
 export async function createRecommendationEmbed(rec) {
+	// Handle null/undefined rec
+	if (!rec) {
+		throw new Error('Cannot create embed: recommendation data is null or undefined');
+	}
+	
 	// If this work is part of a series, show series info
 	if (rec.series && typeof rec.series === 'object' && rec.series.name && rec.series.url && rec.series.part) {
 		const embed = buildBaseEmbed(rec, getRatingAndColor(rec.rating).color);

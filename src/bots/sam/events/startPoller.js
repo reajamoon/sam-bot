@@ -100,6 +100,8 @@ async function notifyQueueSubscribers(client) {
                 }
             } else {
                 console.warn(`[Poller] No Recommendation found for rec ID: ${job.result && job.result.id} (job id: ${job.id}, url: ${job.fic_url})`);
+                // Skip this notification since we can't create an embed
+                continue;
             }
             const configEntry = await Config.findOne({ where: { key: 'fic_queue_channel' } });
             const channelId = configEntry ? configEntry.value : null;

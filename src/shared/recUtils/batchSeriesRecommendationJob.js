@@ -64,9 +64,14 @@ async function batchSeriesRecommendationJob(payload) {
     }
     
     // Step 4: Return result with series info and processed works
+    // Return the primary work's ID for queue notifications
+    const primaryWorkResult = results.find(r => r.recommendation) || results[0];
+    const primaryRecId = primaryWorkResult?.recommendation?.id || null;
+    
     return {
       type: 'series',
-      seriesId: seriesRecord.id,
+      id: primaryRecId, // ID of primary recommendation for queue notifications
+      seriesId: seriesRecord.id, // Database series ID
       seriesRecord,
       processedWorks: results,
       totalWorks: worksToProcess.length,
