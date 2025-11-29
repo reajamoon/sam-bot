@@ -183,9 +183,15 @@ async function parseAO3Metadata(html, url, includeRawHtml = false) {
                 });
             }
         }
-        // If not found, try global <a rel="author">
+        // If not found, try global <a rel="author"> but exclude inspired works section
         if (authorMatches.length === 0) {
             $("a[rel='author']").each((i, el) => {
+                const $el = $(el);
+                // Skip authors in the "Works inspired by this one" section
+                const childrenSection = $el.closest('#children');
+                if (childrenSection.length > 0) {
+                    return; // Skip this author - it's from an inspired work
+                }
                 authorMatches.push($(el).text().trim());
             });
         }
