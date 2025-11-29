@@ -132,14 +132,25 @@ async function processAO3Job(payload) {
     // Update with fresh AO3 data
     const updateFields = buildUpdateFields(existingRec, metadata, seriesId, notPrimaryWork);
     
+    // Debug logging for all updates
+    console.log('[processAO3Job] Update fields generated:', {
+      ao3ID: existingRec.ao3ID,
+      updateFieldKeys: Object.keys(updateFields),
+      hasAuthorsUpdate: 'authors' in updateFields,
+      authorsUpdate: updateFields.authors
+    });
+    
     if (Object.keys(updateFields).length > 0) {
       try {
         await existingRec.update(updateFields);
         await existingRec.reload();
+        console.log('[processAO3Job] Successfully updated recommendation:', existingRec.ao3ID);
       } catch (err) {
         console.error('[processAO3Job] Error updating recommendation:', err);
         return { error: updateMessages.genericError };
       }
+    } else {
+      console.log('[processAO3Job] No fields to update for:', existingRec.ao3ID);
     }
     
     recommendation = existingRec;
@@ -206,9 +217,18 @@ function buildUpdateFields(existingRec, metadata, seriesId, notPrimaryWork) {
     existingRec.authors.length !== newAuthors.length || 
     existingRec.authors.some((a, i) => a !== newAuthors[i]);
   
+  // Debug logging for author updates
+  console.log('[buildUpdateFields] Author comparison:', {
+    existingAuthors: existingRec.authors,
+    newAuthors: newAuthors,
+    authorsChanged: authorsChanged,
+    ao3ID: existingRec.ao3ID
+  });
+  
   if (authorsChanged) {
     updateFields.authors = newAuthors;
     updateFields.author = newAuthors[0] || 'Unknown Author'; // Legacy field
+    console.log('[buildUpdateFields] Authors will be updated:', { newAuthors, ao3ID: existingRec.ao3ID });
   }
   
   if (existingRec.summary !== metadata.summary) {
