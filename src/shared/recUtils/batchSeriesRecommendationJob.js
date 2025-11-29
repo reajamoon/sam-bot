@@ -10,9 +10,10 @@ import { fetchFicMetadata } from './ficParser.js';
  * @param {Object} user - { id, username }
  * @param {Object} options - { additionalTags, notes }
  * @param {Function} [notify] - Optional callback for embed/updates
+ * @param {boolean} [isUpdate=false] - Whether this is updating existing series
  * @returns {Promise<{seriesRec: Recommendation, workRecs: Recommendation[]}>}
  */
-async function batchSeriesRecommendationJob(seriesUrl, user, options = {}, notify) {
+async function batchSeriesRecommendationJob(seriesUrl, user, options = {}, notify, isUpdate = false) {
   // 1. Parse the series page to get all work URLs
   const seriesMeta = await fetchFicMetadata(seriesUrl);
   if (!seriesMeta || !seriesMeta.works || !Array.isArray(seriesMeta.works) || seriesMeta.works.length === 0) {
@@ -77,6 +78,13 @@ async function batchSeriesRecommendationJob(seriesUrl, user, options = {}, notif
   for (let i = 0; i < workMetas.length; i++) {
     const { work, meta } = workMetas[i];
     const isPrimary = i === primaryIdx;
+    
+    // Check if this work already exists if we're updating
+    let existingRec = null;
+    if (isUpdate) {
+      existingRec = await Recommendation.findOne({ where: { url: work.url } });
+    }
+    
     // Pass all fields from meta (full fic metadata), plus notPrimaryWork flag
     const manualFields = { ...meta, notPrimaryWork: !isPrimary, seriesId: seriesRow.id };
     const { recommendation: workRec, error } = await processRecommendationJob({
@@ -85,7 +93,8 @@ async function batchSeriesRecommendationJob(seriesUrl, user, options = {}, notif
       manualFields,
       additionalTags: options.additionalTags,
       notes: options.notes,
-      isUpdate: false,
+      isUpdate: !!existingRec,
+      existingRec: existingRec,
       notify: null
     });
     if (error) throw new Error(`Failed to process work: ${work.title}`);

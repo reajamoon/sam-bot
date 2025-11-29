@@ -196,15 +196,6 @@ async function processRecommendationJob({
     // Merge and deduplicate
     const mergedTags = Array.from(new Set([...oldTags, ...newTags]));
 
-    // Merge additionalTags: never overwrite, always deduplicate
-    let oldAdditional = [];
-    if (Array.isArray(existingRec.additionalTags)) {
-      oldAdditional = existingRec.additionalTags;
-    } else if (typeof existingRec.additionalTags === 'string') {
-      try { oldAdditional = JSON.parse(existingRec.additionalTags); } catch { oldAdditional = []; }
-    }
-    const mergedAdditional = Array.from(new Set([...oldAdditional, ...(Array.isArray(additionalTags) ? additionalTags : [])]));
-
     // Only update fields if changed
     const updateFields = {};
     if (existingRec.url !== url) updateFields.url = url;
@@ -267,6 +258,23 @@ async function processRecommendationJob({
       }
     }
     recommendation = existingRec;
+
+    // Update UserFicMetadata for existing recommendation if notes or additionalTags are provided
+    if ((notes && notes.trim()) || (Array.isArray(additionalTags) && additionalTags.length > 0)) {
+      try {
+        const { UserFicMetadata } = await import('../../models/index.js');
+        await UserFicMetadata.upsert({
+          userID: user.id,
+          ao3ID: recommendation.ao3ID,
+          seriesId: recommendation.seriesId || null,
+          rec_note: (notes && notes.trim()) || null,
+          additional_tags: Array.isArray(additionalTags) ? additionalTags : []
+        });
+      } catch (err) {
+        console.error('[processRecommendationJob] Error updating UserFicMetadata:', err);
+        // Don't fail the whole process for metadata errors
+      }
+    }
   } else {
     // Create new recommendation
     try {
@@ -288,8 +296,6 @@ async function processRecommendationJob({
         updatedDate: metadata.updatedDate,
         recommendedBy: user.id,
         recommendedByUsername: user.username,
-        additionalTags: Array.isArray(additionalTags) ? additionalTags : [],
-        notes: notes,
         archive_warnings: Array.isArray(metadata.archiveWarnings) ? metadata.archiveWarnings : [],
         kudos: metadata.kudos,
         hits: metadata.hits,
@@ -314,6 +320,23 @@ async function processRecommendationJob({
         error: err,
       });
   return { error: updateMessages.genericError };
+    }
+
+    // Create UserFicMetadata entry if notes or additionalTags are provided
+    if ((notes && notes.trim()) || (Array.isArray(additionalTags) && additionalTags.length > 0)) {
+      try {
+        const { UserFicMetadata } = await import('../../models/index.js');
+        await UserFicMetadata.upsert({
+          userID: user.id,
+          ao3ID: recommendation.ao3ID,
+          seriesId: recommendation.seriesId || null,
+          rec_note: (notes && notes.trim()) || null,
+          additional_tags: Array.isArray(additionalTags) ? additionalTags : []
+        });
+      } catch (err) {
+        console.error('[processRecommendationJob] Error creating UserFicMetadata:', err);
+        // Don't fail the whole process for metadata errors
+      }
     }
   }
 

@@ -101,8 +101,13 @@ async function processQueueJob(job) {
 		// Check if this is a series URL - if so, use batchSeriesRecommendationJob
 		if (job.fic_url.includes('/series/')) {
 			try {
+				// Check if series already exists to determine if this is an update
+				const { Series } = await import('../../models/index.js');
+				const existingSeries = await Series.findOne({ where: { url: job.fic_url } });
+				const isSeriesUpdate = !!existingSeries;
+				
 				const { default: batchSeriesRecommendationJob } = await import('../../shared/recUtils/batchSeriesRecommendationJob.js');
-				const result = await batchSeriesRecommendationJob(job.fic_url, user, { additionalTags, notes });
+				const result = await batchSeriesRecommendationJob(job.fic_url, user, { additionalTags, notes }, null, isSeriesUpdate);
 				
 				// Mark job as done with both primary work and series information
 				const resultPayload = { 
