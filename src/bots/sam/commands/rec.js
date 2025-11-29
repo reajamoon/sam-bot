@@ -15,7 +15,6 @@ import findRecommendationByIdOrUrl from '../../../shared/recUtils/findRecommenda
 import handleUpdateRecommendation from './recHandlers/updateHandler.js';
 import handleSearchRecommendations from './recHandlers/searchHandler.js';
 import { handleHelp, handleHelpNavigation } from './recHandlers/helpHandler.js';
-import quickLinkCheck from '../../../shared/recUtils/quickLinkCheck.js';
 
 /**
  * Main /rec command export object.

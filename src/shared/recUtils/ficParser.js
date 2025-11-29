@@ -11,7 +11,6 @@ import { fetchWattpadMetadata } from './wattpadMeta.js';
 import { fetchLiveJournalMetadata } from './ljMeta.js';
 import { fetchDreamwidthMetadata } from './dwMeta.js';
 import normalizeMetadata from './normalizeMetadata.js';
-import quickLinkCheck from './quickLinkCheck.js';
 import { isPartOfSeries, markPrimaryAndNotPrimaryWorks } from '../../bots/sam/commands/recHandlers/seriesUtils.js';
 
 /**
@@ -128,4 +127,4 @@ function createFallbackMetadata(url, source, errorMessage) {
     return fallback;
 }
 
-export { fetchFicMetadata, quickLinkCheck };
+export { fetchFicMetadata };
