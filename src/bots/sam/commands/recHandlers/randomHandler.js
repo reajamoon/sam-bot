@@ -175,10 +175,12 @@ async function handleRandomRecommendation(interaction) {
                 const { fetchSeriesWithUserMetadata } = await import('../../../../models/fetchSeriesWithUserMetadata.js');
                 const seriesWithUserMetadata = await fetchSeriesWithUserMetadata(recWithSeries.series.id);
                 if (seriesWithUserMetadata) {
-                    embed = await createRecommendationEmbed(null, seriesWithUserMetadata, seriesWithUserMetadata.works);
+                    const { createSeriesRecommendationEmbed } = await import('../../../../shared/recUtils/asyncEmbeds.js');
+                    embed = await createSeriesRecommendationEmbed(seriesWithUserMetadata);
                 } else {
                     // Fallback to regular series embed
-                    embed = await createRecommendationEmbed(null, recWithSeries.series, recWithSeries.series.works);
+                    const { createSeriesRecommendationEmbed } = await import('../../../../shared/recUtils/asyncEmbeds.js');
+                    embed = await createSeriesRecommendationEmbed(recWithSeries.series);
                 }
             } else {
                 // For individual work recommendations (even if part of a series)

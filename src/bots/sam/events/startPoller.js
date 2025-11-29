@@ -81,46 +81,30 @@ async function notifyQueueSubscribers(client) {
             // Always fetch Recommendation from the database for DONE jobs
             let embed = null;
             let recWithSeries = null;
-            if (job.result && job.result.id) {
-                console.log(`[Poller] DEBUG - job.result:`, JSON.stringify(job.result, null, 2));
-                // Use fetchRecWithSeries to get rec, series, and series works
+            
+            // Handle different job types
+            if (job.result && job.result.type === 'series' && job.result.seriesId) {
+                // For series notifications, fetch series data directly
+                const { fetchSeriesWithUserMetadata } = await import('../../../models/fetchSeriesWithUserMetadata.js');
+                const seriesData = await fetchSeriesWithUserMetadata(job.result.seriesId);
+                if (seriesData) {
+                    const { createSeriesRecommendationEmbed } = await import('../../../shared/recUtils/asyncEmbeds.js');
+                    embed = await createSeriesRecommendationEmbed(seriesData);
+                } else {
+                    console.warn(`[Poller] No Series found for series ID: ${job.result.seriesId} (job id: ${job.id}, url: ${job.fic_url})`);
+                    continue;
+                }
+            } else if (job.result && job.result.id) {
+                // For individual recommendation notifications
                 const { fetchRecWithSeries } = await import('../../../models/fetchRecWithSeries.js');
                 recWithSeries = await fetchRecWithSeries(job.result.id, true);
-                console.log(`[Poller] DEBUG - Initial fetchRecWithSeries result:`, recWithSeries ? 'found' : 'null');
-                // Handle case where job.result.id might be a series ID instead of rec ID (old job format)
-                if (!recWithSeries && job.result.type === 'series' && job.result.seriesId) {
-                    console.log(`[Poller] DEBUG - Trying fallback for series ID:`, job.result.seriesId);
-                    // Try to find the primary recommendation for this series
-                    const { Recommendation } = await import('../../../models/index.js');
-                    const primaryRec = await Recommendation.findOne({
-                        where: {
-                            seriesId: job.result.seriesRecord?.ao3SeriesId || null,
-                            notPrimaryWork: false
-                        }
-                    });
-                    console.log(`[Poller] DEBUG - Primary rec found:`, primaryRec ? primaryRec.id : 'null');
-                    if (primaryRec) {
-                        recWithSeries = await fetchRecWithSeries(primaryRec.id, true);
-                        console.log(`[Poller] DEBUG - Fallback fetchRecWithSeries result:`, recWithSeries ? 'found' : 'null');
-                    }
-                }
-            }
-            if (recWithSeries) {
-                // Check if this is a series result (either marked as series type or has series data)
-                const isSeriesResult = job.result.type === 'series' ||
-                    (recWithSeries.series && Array.isArray(recWithSeries.series.works) && recWithSeries.series.works.length > 0);
-                if (isSeriesResult && recWithSeries.series) {
-                    // Use series embed mode
-                    const { createSeriesRecommendationEmbed } = await import('../../../shared/recUtils/asyncEmbeds.js');
-                    embed = await createSeriesRecommendationEmbed(recWithSeries);
-                } else {
+                if (recWithSeries) {
                     // Use regular recommendation embed
                     embed = await createRecommendationEmbed(recWithSeries);
+                } else {
+                    console.warn(`[Poller] No Recommendation found for rec ID: ${job.result.id} (job id: ${job.id}, url: ${job.fic_url})`);
+                    continue;
                 }
-            } else {
-                console.warn(`[Poller] No Recommendation found for rec ID: ${job.result && job.result.id} (job id: ${job.id}, url: ${job.fic_url})`);
-                // Skip this notification since we can't create an embed
-                continue;
             }
             const configEntry = await Config.findOne({ where: { key: 'fic_queue_channel' } });
             const channelId = configEntry ? configEntry.value : null;

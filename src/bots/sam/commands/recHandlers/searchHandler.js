@@ -199,10 +199,12 @@ export default async function handleSearchRecommendations(interaction) {
                 const seriesWithUserMetadata = await fetchSeriesWithUserMetadata(recWithSeries.series.id);
                 
                 if (seriesWithUserMetadata) {
-                    searchEmbed = await createRecommendationEmbed(null, seriesWithUserMetadata, seriesWithUserMetadata.works);
+                    const { createSeriesRecommendationEmbed } = await import('../../../../shared/recUtils/asyncEmbeds.js');
+                    searchEmbed = await createSeriesRecommendationEmbed(seriesWithUserMetadata);
                 } else {
                     // Fallback to regular series embed
-                    searchEmbed = await createRecommendationEmbed(null, recWithSeries.series, recWithSeries.series.works);
+                    const { createSeriesRecommendationEmbed } = await import('../../../../shared/recUtils/asyncEmbeds.js');
+                    searchEmbed = await createSeriesRecommendationEmbed(recWithSeries.series);
                 }
             } else {
                 searchEmbed = await createRecommendationEmbed(recWithSeries);
