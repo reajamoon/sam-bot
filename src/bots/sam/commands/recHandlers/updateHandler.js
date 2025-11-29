@@ -333,13 +333,12 @@ export default async function handleUpdateRecommendation(interaction) {
                                 const { createSeriesEmbed } = await import('../../../../shared/recUtils/createSeriesEmbed.js');
                                 const embed = createSeriesEmbed(series);
                                 await interaction.editReply({
-                                    content: 'That series was already updated! Here's the latest info:',
+                                    content: 'That series was already updated! Here\'s the latest info:',
                                     embeds: [embed]
                                 });
                                 return;
                             }
                         }
-                    } else {
                     } else {
                         // Handle regular recommendation completion
                         const { Recommendation } = await import('../../../../models/index.js');
@@ -349,7 +348,7 @@ export default async function handleUpdateRecommendation(interaction) {
                             const recWithSeries = await fetchRecWithSeries(updatedRec.id, true);
                             const embed = createRecEmbed(recWithSeries);
                             await interaction.editReply({
-                                content: 'That fic was already updated! Here's the latest info:',
+                                content: 'That fic was already updated! Here\'s the latest info:',
                                 embeds: [embed]
                             });
                             // UserFicMetadata already saved above via saveUserMetadata
