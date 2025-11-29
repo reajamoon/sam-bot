@@ -111,7 +111,8 @@ async function notifyQueueSubscribers(client) {
                     (recWithSeries.series && Array.isArray(recWithSeries.series.works) && recWithSeries.series.works.length > 0);
                 if (isSeriesResult && recWithSeries.series) {
                     // Use series embed mode
-                    embed = await createRecommendationEmbed(null, recWithSeries.series, recWithSeries.series.works);
+                    const { createSeriesRecommendationEmbed } = await import('../../../shared/recUtils/asyncEmbeds.js');
+                    embed = await createSeriesRecommendationEmbed(recWithSeries);
                 } else {
                     // Use regular recommendation embed
                     embed = await createRecommendationEmbed(recWithSeries);
