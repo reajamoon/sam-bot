@@ -203,8 +203,16 @@ export function createSeriesEmbed(series) {
         throw new Error('Series data is required');
     }
 
-    // Build author description line
-    const author = Array.isArray(series.authors) ? series.authors.join(', ') : (series.author || 'Unknown Author');
+    // Build author description line with fallback to primary work
+    let author = Array.isArray(series.authors) ? series.authors.join(', ') : series.author;
+    if (!author && series.works && series.works.length > 0) {
+        // Fallback: get author from primary work
+        const primaryWork = series.works.find(work => !work.notPrimaryWork) || findOldestWork(series.works);
+        if (primaryWork) {
+            author = Array.isArray(primaryWork.authors) ? primaryWork.authors.join(', ') : primaryWork.author;
+        }
+    }
+    author = author || 'Unknown Author';
     const authorLine = `**Series by:** ${author}`;
 
     // Add summary if available, separated by newlines
@@ -234,13 +242,37 @@ export function createSeriesEmbed(series) {
         }
         embed.addFields({ name: '🔗 Series Link', value: linkContent, inline: true });
     }
-    embed.addFields({ name: 'Rating', value: formatRatingWithEmoji(series.rating), inline: true });
-    embed.addFields({ name: 'Status', value: series.status || 'Unknown', inline: true });
+    // Get rating and status with fallback to primary work
+    let seriesRating = series.rating;
+    let seriesStatus = series.status;
+    
+    if ((!seriesRating || !seriesStatus) && series.works && series.works.length > 0) {
+        const primaryWork = series.works.find(work => !work.notPrimaryWork) || findOldestWork(series.works);
+        if (primaryWork) {
+            if (!seriesRating) seriesRating = primaryWork.rating;
+            if (!seriesStatus) seriesStatus = primaryWork.status;
+        }
+    }
+    
+    embed.addFields({ name: 'Rating', value: formatRatingWithEmoji(seriesRating), inline: true });
+    embed.addFields({ name: 'Status', value: seriesStatus || 'Unknown', inline: true });
 
-    // Works, Words, and Updated row (inline group)
+    // Works, Words, Published/Updated row (inline group)
     embed.addFields({ name: 'Works', value: series.workCount ? series.workCount.toString() : 'Unknown', inline: true });
     embed.addFields({ name: 'Words', value: formatWordCount(series.wordCount), inline: true });
-    if (series.updatedDate) {
+    
+    // Published date - use series started date or fallback to oldest work
+    let publishedDate = series.publishedDate;
+    if (!publishedDate && series.works && series.works.length > 0) {
+        const oldestWork = findOldestWork(series.works);
+        if (oldestWork && oldestWork.publishedDate) {
+            publishedDate = oldestWork.publishedDate;
+        }
+    }
+    
+    if (publishedDate) {
+        embed.addFields({ name: 'Published', value: formatDate(publishedDate), inline: true });
+    } else if (series.updatedDate) {
         embed.addFields({ name: 'Updated', value: formatDate(series.updatedDate), inline: true });
     }
 
@@ -268,27 +300,54 @@ export function createSeriesEmbed(series) {
         // If any work has "creator chose not to use archive warnings", it will be included and formatted with the maybe emoji
     }
 
-    // Tags
-    const tagText = processTagsForEmbed(series);
-    if (tagText) {
-        embed.addFields({ name: 'Tags', value: tagText, inline: false });
-    }
-
-    // Works in Series (show first few works)
+    // Works in Series (show first 4 works, with 5th line as 'and N more') - MOVED BEFORE TAGS
     if (series.works && Array.isArray(series.works) && series.works.length > 0) {
-        const maxToShow = 5;
+        const maxWorksToShow = 4;
         let worksList = '';
-        const worksToDisplay = series.works.slice(0, maxToShow);
+        const worksToDisplay = series.works.slice(0, maxWorksToShow);
+        
         for (let i = 0; i < worksToDisplay.length; i++) {
             const work = worksToDisplay[i];
             const title = work.title || `Work ${i + 1}`;
             const url = work.url || `https://archiveofourown.org/works/${work.ao3ID || work.id}`;
             worksList += `${i + 1}. [${title}](${url})\n`;
         }
-        if (series.workCount && series.workCount > maxToShow) {
-            worksList += `... and ${series.workCount - maxToShow} more works`;
+        
+        // Add 'and N more' line if there are more than 4 works
+        if (series.workCount && series.workCount > maxWorksToShow) {
+            worksList += `... and ${series.workCount - maxWorksToShow} more works`;
+        } else if (series.works.length > maxWorksToShow) {
+            worksList += `... and ${series.works.length - maxWorksToShow} more works`;
         }
+        
         embed.addFields({ name: `Works in Series (${series.workCount || series.works.length})`, value: worksList.trim(), inline: false });
+    }
+
+    // Tags
+    const tagText = processTagsForEmbed(series);
+    if (tagText) {
+        embed.addFields({ name: 'Tags', value: tagText, inline: false });
+    }
+
+    // Engagement stats (aggregate from all works)
+    if (series.works && Array.isArray(series.works)) {
+        let totalHits = 0;
+        let totalKudos = 0;
+        let totalBookmarks = 0;
+        let totalComments = 0;
+        
+        for (const work of series.works) {
+            totalHits += work.hits ? parseInt(work.hits) || 0 : 0;
+            totalKudos += work.kudos ? parseInt(work.kudos) || 0 : 0;
+            totalBookmarks += work.bookmarks ? parseInt(work.bookmarks) || 0 : 0;
+            totalComments += work.comments ? parseInt(work.comments) || 0 : 0;
+        }
+        
+        if (totalHits || totalKudos || totalBookmarks) {
+            embed.addFields({ name: 'Total Hits', value: formatNumber(totalHits) || 'N/A', inline: true });
+            embed.addFields({ name: 'Total Kudos', value: formatNumber(totalKudos) || 'N/A', inline: true });
+            embed.addFields({ name: 'Total Bookmarks', value: formatNumber(totalBookmarks) || 'N/A', inline: true });
+        }
     }
 
     // Recommender Notes
@@ -297,8 +356,13 @@ export function createSeriesEmbed(series) {
         embed.addFields({ name: 'Recommender Notes:', value: userNotes, inline: false });
     }
 
-    // Footer with series info
-    const recommenderName = series.recommendedByUsername || 'unknown';
+    // Footer with proper recommender info - use first work's recommender if series doesn't have one
+    let recommenderName = series.recommendedByUsername;
+    if (!recommenderName && series.works && series.works.length > 0) {
+        const firstWork = series.works[0];
+        recommenderName = firstWork.recommendedByUsername;
+    }
+    recommenderName = recommenderName || 'unknown';
     embed.setFooter({ text: `From the Profound Bond Library • Recommended by ${recommenderName} • Series ID: S${series.id}` });
 
     return embed;
