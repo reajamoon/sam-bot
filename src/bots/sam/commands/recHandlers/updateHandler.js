@@ -256,7 +256,9 @@ export default async function handleUpdateRecommendation(interaction) {
                         fic_url: urlToUse,
                         status: 'pending',
                         requested_by: interaction.user.id,
-                        instant_candidate: isInstant
+                        instant_candidate: isInstant,
+                        notes: newNotes || null,
+                        additional_tags: JSON.stringify(additionalTagsToSend || [])
                     });
                 } catch (err) {
                     // Handle race condition: duplicate key error (Sequelize or raw pg)
@@ -502,7 +504,9 @@ export default async function handleUpdateRecommendation(interaction) {
                 fic_url: urlToUse,
                 status: 'pending',
                 requested_by: interaction.user.id,
-                instant_candidate: isInstant
+                instant_candidate: isInstant,
+                notes: newNotes || null,
+                additional_tags: JSON.stringify(additionalTagsToSend || [])
             });
         } catch (err) {
             // Handle race condition
