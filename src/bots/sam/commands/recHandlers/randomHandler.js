@@ -3,8 +3,8 @@ import Discord from 'discord.js';
 const { MessageFlags } = Discord;
 import { fetchRecWithSeries } from '../../../../models/fetchRecWithSeries.js';
 import { fetchAllRecsWithSeries } from '../../../../models/fetchAllRecsWithSeries.js';
-import { createRecommendationEmbed } from '../../../../shared/recUtils/asyncEmbeds.js';
-import { isSeriesRec } from '../../../../shared/recUtils/createRecommendationEmbed.js';
+import { createRecEmbed } from '../../../../shared/recUtils/createRecEmbed.js';
+import { createSeriesEmbed } from '../../../../shared/recUtils/createSeriesEmbed.js';
 import { matchesTagWithSynonyms } from '../../../../utils/tagUtils.js';
 
 
@@ -170,21 +170,19 @@ async function handleRandomRecommendation(interaction) {
         }
         let embed = null;
         try {
-            // Check if this is a series rec using the proper helper function
-            if (isSeriesRec(recWithSeries)) {
+            // Check if this recommendation has series data - if so, show series embed
+            if (recWithSeries.series && recWithSeries.series.id) {
                 const { fetchSeriesWithUserMetadata } = await import('../../../../models/fetchSeriesWithUserMetadata.js');
                 const seriesWithUserMetadata = await fetchSeriesWithUserMetadata(recWithSeries.series.id);
                 if (seriesWithUserMetadata) {
-                    const { createSeriesRecommendationEmbed } = await import('../../../../shared/recUtils/asyncEmbeds.js');
-                    embed = await createSeriesRecommendationEmbed(seriesWithUserMetadata);
+                    embed = createSeriesEmbed(seriesWithUserMetadata);
                 } else {
                     // Fallback to regular series embed
-                    const { createSeriesRecommendationEmbed } = await import('../../../../shared/recUtils/asyncEmbeds.js');
-                    embed = await createSeriesRecommendationEmbed(recWithSeries.series);
+                    embed = createSeriesEmbed(recWithSeries.series);
                 }
             } else {
                 // For individual work recommendations (even if part of a series)
-                embed = await createRecommendationEmbed(recWithSeries);
+                embed = createRecEmbed(recWithSeries);
             }
         } catch (err) {
             console.error('Error creating embed:', err);

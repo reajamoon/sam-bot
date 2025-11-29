@@ -7,7 +7,6 @@ import { join, dirname } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import dotenv from 'dotenv';
 import logger from '../../shared/utils/logger.js';
-import { createRecommendationEmbed } from '../../shared/recUtils/asyncEmbeds.js';
 import BirthdayNotificationManager from './utils/birthdayNotifications.js';
 
 dotenv.config();

@@ -5,7 +5,7 @@ import normalizeAO3Url from '../../../../shared/recUtils/normalizeAO3Url.js';
 import { Recommendation, Config } from '../../../../models/index.js';
 import { User } from '../../../../models/index.js';
 import createOrJoinQueueEntry from '../../../../shared/recUtils/createOrJoinQueueEntry.js';
-import { createRecommendationEmbed } from '../../../../shared/recUtils/asyncEmbeds.js';
+import { createRecEmbed } from '../../../../shared/recUtils/createRecEmbed.js';
 import { fetchRecWithSeries } from '../../../../models/fetchRecWithSeries.js';
 import normalizeRating from '../../../../shared/recUtils/normalizeRating.js';
 import { getLockedFieldsForRec } from '../../../../shared/getLockedFieldsForRec.js';
@@ -287,10 +287,10 @@ export default async function handleAddRecommendation(interaction) {
           await rec.update(recFields);
           // Refresh recWithSeries after update
           const updatedRecWithSeries = await fetchRecWithSeries(rec.id, true);
-          const embed = await createRecommendationEmbed(updatedRecWithSeries);
+          const embed = createRecEmbed(updatedRecWithSeries);
         } else {
           // Use existing recWithSeries
-          const embed = await createRecommendationEmbed(recWithSeries);
+          const embed = createRecEmbed(recWithSeries);
         }
         await interaction.editReply({
             content: null,

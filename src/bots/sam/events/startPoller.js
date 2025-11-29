@@ -1,6 +1,7 @@
 import { Op } from 'sequelize';
 import { ParseQueue, ParseQueueSubscriber, User, Config, Recommendation } from '../../../models/index.js';
-import { createRecommendationEmbed } from '../../../shared/recUtils/asyncEmbeds.js';
+import { createRecEmbed } from '../../../shared/recUtils/createRecEmbed.js';
+import { createSeriesEmbed } from '../../../shared/recUtils/createSeriesEmbed.js';
 
 const POLL_INTERVAL_MS = 10000;
 
@@ -74,6 +75,14 @@ async function notifyQueueSubscribers(client) {
             where: { status: 'done' },
             include: [{ model: ParseQueueSubscriber, as: 'subscribers' }]
         });
+        
+        // Notify for completed series jobs
+        const seriesDoneJobs = await ParseQueue.findAll({
+            where: { status: 'series-done' },
+            include: [{ model: ParseQueueSubscriber, as: 'subscribers' }]
+        });
+        
+        // Process regular done jobs
         for (const job of doneJobs) {
             const subscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: job.id } });
             const userIds = subscribers.map(s => s.user_id);
@@ -81,17 +90,15 @@ async function notifyQueueSubscribers(client) {
             // Always fetch Recommendation from the database for DONE jobs
             let embed = null;
             let recWithSeries = null;
-            
             // Handle different job types
             if (job.result && job.result.type === 'series' && job.result.seriesId) {
-                // For series notifications, fetch series data directly
-                const { fetchSeriesWithUserMetadata } = await import('../../../models/fetchSeriesWithUserMetadata.js');
-                const seriesData = await fetchSeriesWithUserMetadata(job.result.seriesId);
-                if (seriesData) {
-                    const { createSeriesRecommendationEmbed } = await import('../../../shared/recUtils/asyncEmbeds.js');
-                    embed = await createSeriesRecommendationEmbed(seriesData);
+                // For series notifications, get the Series record
+                const { Series } = await import('../../../models/index.js');
+                const series = await Series.findByPk(job.result.seriesId);
+                if (series) {
+                    embed = createSeriesEmbed(series);
                 } else {
-                    console.warn(`[Poller] No Series found for series ID: ${job.result.seriesId} (job id: ${job.id}, url: ${job.fic_url})`);
+                    console.warn(`[Poller] No Series found for series ID: ${job.result.seriesId}`);
                     continue;
                 }
             } else if (job.result && job.result.id) {
@@ -100,7 +107,7 @@ async function notifyQueueSubscribers(client) {
                 recWithSeries = await fetchRecWithSeries(job.result.id, true);
                 if (recWithSeries) {
                     // Use regular recommendation embed
-                    embed = await createRecommendationEmbed(recWithSeries);
+                    embed = createRecEmbed(recWithSeries);
                 } else {
                     console.warn(`[Poller] No Recommendation found for rec ID: ${job.result.id} (job id: ${job.id}, url: ${job.fic_url})`);
                     continue;
@@ -146,6 +153,64 @@ async function notifyQueueSubscribers(client) {
             } catch (err) {
                 console.error('[Poller] Failed to send fic queue notification:', err, `job id: ${job.id}, url: ${job.fic_url}`);
             }
+            if (subscribers.length) {
+                await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
+            }
+            // Delete the job after notification to prevent repeated alerts
+            await ParseQueue.destroy({ where: { id: job.id } });
+        }
+        
+        // Process series-done jobs
+        for (const job of seriesDoneJobs) {
+            const subscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: job.id } });
+            const userIds = subscribers.map(s => s.user_id);
+            const users = userIds.length ? await User.findAll({ where: { discordId: userIds } }) : [];
+            
+            let embed = null;
+            // Handle series jobs - get series data and create series embed
+            if (job.result && job.result.type === 'series' && job.result.seriesId) {
+                const { Series } = await import('../../../models/index.js');
+                const series = await Series.findByPk(job.result.seriesId);
+                if (series) {
+                    embed = createSeriesEmbed(series);
+                } else {
+                    console.warn(`[Poller] No Series found for series ID: ${job.result.seriesId}`);
+                    continue;
+                }
+            } else {
+                console.warn(`[Poller] Invalid series-done job result:`, job.result);
+                continue;
+            }
+
+            // Send notification
+            const { Config } = await import('../../../models/index.js');
+            const queueChannelConfig = await Config.findOne({ where: { key: 'queue_notification_channel' } });
+            const channelId = queueChannelConfig ? queueChannelConfig.value : null;
+            const channel = channelId ? client.channels.cache.get(channelId) : null;
+            if (!channel) {
+                console.warn(`[Poller] Queue notification channel not found or configured. Job id: ${job.id}, url: ${job.fic_url}`);
+                continue;
+            }
+
+            try {
+                let contentMsg = `Your series parsing job is done!\n` + (job.fic_url ? `\n<${job.fic_url}>` : '');
+                if (!job.instant_candidate && users.length) {
+                    const mentionList = users.filter(u => u.queueNotifyTag !== false).map(u => `<@${u.discordId}>`).join(' ');
+                    if (mentionList) contentMsg = `>>> ${mentionList} ` + contentMsg;
+                }
+                
+                console.log(`[Poller] Processing series-done job: job id ${job.id}, url: ${job.fic_url}, subscribers: [${subscribers.map(s => s.user_id).join(', ')}]`);
+                
+                await channel.send({ content: contentMsg });
+                if (embed) {
+                    await channel.send({ embeds: [embed] });
+                } else {
+                    console.warn(`[Poller] No series embed built for job id: ${job.id}, url: ${job.fic_url}`);
+                }
+            } catch (err) {
+                console.error('[Poller] Failed to send series queue notification:', err, `job id: ${job.id}, url: ${job.fic_url}`);
+            }
+            
             if (subscribers.length) {
                 await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
             }

@@ -21,13 +21,13 @@ function getTagMentions(subscribers, userMap) {
 
 async function cleanupOldQueueJobs() {
 	const now = new Date();
-	// Remove 'done' jobs older than 3 hours
+	// Remove 'done' and 'series-done' jobs older than 3 hours
 	const doneCutoff = new Date(now.getTime() - 3 * 60 * 60 * 1000);
-	const doneDeleted = await ParseQueue.destroy({ where: { status: 'done', updated_at: { [Op.lt]: doneCutoff } } });
+	const doneDeleted = await ParseQueue.destroy({ where: { status: ['done', 'series-done'], updated_at: { [Op.lt]: doneCutoff } } });
 	if (doneDeleted > 0) {
-		console.log(`[QueueWorker] Cleanup: Removed ${doneDeleted} 'done' jobs older than 3 hours.`);
+		console.log(`[QueueWorker] Cleanup: Removed ${doneDeleted} completed jobs older than 3 hours.`);
 	} else {
-		console.log('[QueueWorker] Cleanup: No old done jobs to remove.');
+		console.log('[QueueWorker] Cleanup: No old completed jobs to remove.');
 	}
 
 	// Find 'pending' or 'processing' jobs older than 15 minutes
@@ -164,6 +164,8 @@ async function handleJobResult(job, result, siteInfo) {
 
 		// Handle successful processing
 		let resultPayload;
+		let finalStatus = 'done'; // Default status for regular jobs
+		
 		if (siteInfo.isSeriesUrl) {
 			// Series result
 			resultPayload = {
@@ -172,6 +174,10 @@ async function handleJobResult(job, result, siteInfo) {
 				seriesId: result.seriesId,
 				workCount: result.totalWorks || 0
 			};
+			// Series batch jobs use series-done status
+			if (job.batch_type === 'series') {
+				finalStatus = 'series-done';
+			}
 		} else {
 			// Work result
 			resultPayload = {
@@ -181,7 +187,7 @@ async function handleJobResult(job, result, siteInfo) {
 		}
 
 		await job.update({ 
-			status: 'done', 
+			status: finalStatus, 
 			result: resultPayload, 
 			error_message: null, 
 			validation_reason: null 

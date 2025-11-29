@@ -3,7 +3,8 @@ const { MessageFlags } = Discord;
 import { Recommendation, sequelize } from '../../../../models/index.js';
 import { Op, literal } from 'sequelize';
 import createSearchResultsEmbed from '../../../../shared/recUtils/createSearchResultsEmbed.js';
-import { createRecommendationEmbed } from '../../../../shared/recUtils/asyncEmbeds.js';
+import { createRecEmbed } from '../../../../shared/recUtils/createRecEmbed.js';
+import { createSeriesEmbed } from '../../../../shared/recUtils/createSeriesEmbed.js';
 import { buildSearchPaginationRow } from '../../../../shared/recUtils/searchPagination.js';
 import { createTagSearchConditions } from '../../../../utils/tagUtils.js';
 
@@ -199,15 +200,13 @@ export default async function handleSearchRecommendations(interaction) {
                 const seriesWithUserMetadata = await fetchSeriesWithUserMetadata(recWithSeries.series.id);
                 
                 if (seriesWithUserMetadata) {
-                    const { createSeriesRecommendationEmbed } = await import('../../../../shared/recUtils/asyncEmbeds.js');
-                    searchEmbed = await createSeriesRecommendationEmbed(seriesWithUserMetadata);
+                    searchEmbed = createSeriesEmbed(seriesWithUserMetadata);
                 } else {
                     // Fallback to regular series embed
-                    const { createSeriesRecommendationEmbed } = await import('../../../../shared/recUtils/asyncEmbeds.js');
-                    searchEmbed = await createSeriesRecommendationEmbed(recWithSeries.series);
+                    searchEmbed = createSeriesEmbed(recWithSeries.series);
                 }
             } else {
-                searchEmbed = await createRecommendationEmbed(recWithSeries);
+                searchEmbed = createRecEmbed(recWithSeries);
             }
         }
         await interaction.editReply({

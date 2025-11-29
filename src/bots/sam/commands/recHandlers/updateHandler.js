@@ -6,7 +6,7 @@ import { saveUserMetadata, detectSiteAndExtractIDs } from '../../../../shared/re
 import { Recommendation } from '../../../../models/index.js';
 import normalizeAO3Url from '../../../../shared/recUtils/normalizeAO3Url.js';
 import createOrJoinQueueEntry from '../../../../shared/recUtils/createOrJoinQueueEntry.js';
-import { createRecommendationEmbed } from '../../../../shared/recUtils/asyncEmbeds.js';
+import { createRecEmbed } from '../../../../shared/recUtils/createRecEmbed.js';
 import { fetchRecWithSeries } from '../../../../models/fetchRecWithSeries.js';
 import { markPrimaryAndNotPrimaryWorks } from './seriesUtils.js';
 import normalizeRating from '../../../../shared/recUtils/normalizeRating.js';
@@ -148,7 +148,6 @@ export default async function handleUpdateRecommendation(interaction) {
         if (recommendation.seriesId) {
             const { Series, Recommendation } = await import('../../../../models/index.js');
             const createOrJoinQueueEntry = (await import('../../../../shared/recUtils/createOrJoinQueueEntry.js')).default;
-            const { createRecommendationEmbed } = await import('../../../../shared/recUtils/asyncEmbeds.js');
             // --- Fic Parsing Queue Logic ---
             const { ParseQueue, ParseQueueSubscriber } = await import('../../../../models/index.js');
             // Always use the queue for any update that requires a metadata fetch
@@ -173,12 +172,11 @@ export default async function handleUpdateRecommendation(interaction) {
                     if (queueEntry.status === 'done' && queueEntry.result) {
                         // For done/cached recs, fetch from DB and build embed directly (no AO3 access)
                         const { Recommendation } = await import('../../../../models/index.js');
-                        const { createRecommendationEmbed } = await import('../../../../shared/recUtils/asyncEmbeds.js');
                         const { fetchRecWithSeries } = await import('../../../../models/fetchRecWithSeries.js');
                         const updatedRec = await findRecommendationByIdOrUrl(interaction, recommendation.id, urlToUse, null);
                         if (updatedRec) {
                             const recWithSeries = await fetchRecWithSeries(updatedRec.id, true);
-                            const embed = await createRecommendationEmbed(recWithSeries);
+                            const embed = createRecEmbed(recWithSeries);
                             await interaction.editReply({
                                 content: 'This fic was just updated! Here\'s the latest info.',
                                 embeds: [embed]
@@ -289,16 +287,27 @@ export default async function handleUpdateRecommendation(interaction) {
                 while (Date.now() - start < pollTimeout) {
                     // Refetch the queue entry
                     const updatedQueue = await ParseQueue.findOne({ where: { id: queueEntry.id } });
-                    if (updatedQueue && updatedQueue.status === 'done' && updatedQueue.result) {
-                        // Fetch the updated recommendation for embed (no AO3 access)
-                        const { Recommendation } = await import('../../../../models/index.js');
-                        const { createRecommendationEmbed } = await import('../../../../shared/recUtils/asyncEmbeds.js');
-                        const { fetchRecWithSeries } = await import('../../../../models/fetchRecWithSeries.js');
-                        const updatedRec = await findRecommendationByIdOrUrl(interaction, recommendation.id, urlToUse, null);
-                        if (updatedRec) {
-                            const recWithSeries = await fetchRecWithSeries(updatedRec.id, true);
-                            resultEmbed = await createRecommendationEmbed(recWithSeries);
-                            // UserFicMetadata already saved above via saveUserMetadata
+                    if ((updatedQueue.status === 'done' || updatedQueue.status === 'series-done') && updatedQueue.result) {
+                        if (updatedQueue.status === 'series-done' && updatedQueue.result.type === 'series') {
+                            // Handle series completion
+                            const { Series } = await import('../../../../models/index.js');
+                            if (updatedQueue.result.seriesId) {
+                                const series = await Series.findByPk(updatedQueue.result.seriesId);
+                                if (series) {
+                                    const { createSeriesEmbed } = await import('../../../../shared/recUtils/createSeriesEmbed.js');
+                                    resultEmbed = createSeriesEmbed(series);
+                                }
+                            }
+                        } else {
+                            // Handle regular recommendation completion
+                            const { Recommendation } = await import('../../../../models/index.js');
+                            const { fetchRecWithSeries } = await import('../../../../models/fetchRecWithSeries.js');
+                            const updatedRec = await findRecommendationByIdOrUrl(interaction, recommendation.id, urlToUse, null);
+                            if (updatedRec) {
+                                const recWithSeries = await fetchRecWithSeries(updatedRec.id, true);
+                                resultEmbed = createRecEmbed(recWithSeries);
+                                // UserFicMetadata already saved above via saveUserMetadata
+                            }
                         }
                         foundDone = true;
                         break;
@@ -313,21 +322,39 @@ export default async function handleUpdateRecommendation(interaction) {
                     return;
                 }
                 // Final fallback: check if the job is now done in the DB (worker may have been too fast)
-                const finalQueue = await ParseQueue.findOne({ where: { id: queueEntry.id, status: 'done' } });
+                const finalQueue = await ParseQueue.findOne({ where: { id: queueEntry.id, status: ['done', 'series-done'] } });
                 if (finalQueue && finalQueue.result) {
-                    const { Recommendation } = await import('../../../../models/index.js');
-                    const { createRecommendationEmbed } = await import('../../../../shared/recUtils/asyncEmbeds.js');
-                    const { fetchRecWithSeries } = await import('../../../../models/fetchRecWithSeries.js');
-                    const updatedRec = await findRecommendationByIdOrUrl(interaction, recommendation.id, urlToUse, null);
-                    if (updatedRec) {
-                        const recWithSeries = await fetchRecWithSeries(updatedRec.id, true);
-                        const embed = await createRecommendationEmbed(recWithSeries);
-                        await interaction.editReply({
-                            content: 'That fic was already updated! Here’s the latest info:',
-                            embeds: [embed]
-                        });
-                        // UserFicMetadata already saved above via saveUserMetadata
-                        return;
+                    if (finalQueue.status === 'series-done' && finalQueue.result.type === 'series') {
+                        // Handle series completion
+                        const { Series } = await import('../../../../models/index.js');
+                        if (finalQueue.result.seriesId) {
+                            const series = await Series.findByPk(finalQueue.result.seriesId);
+                            if (series) {
+                                const { createSeriesEmbed } = await import('../../../../shared/recUtils/createSeriesEmbed.js');
+                                const embed = createSeriesEmbed(series);
+                                await interaction.editReply({
+                                    content: 'That series was already updated! Here's the latest info:',
+                                    embeds: [embed]
+                                });
+                                return;
+                            }
+                        }
+                    } else {
+                    } else {
+                        // Handle regular recommendation completion
+                        const { Recommendation } = await import('../../../../models/index.js');
+                        const { fetchRecWithSeries } = await import('../../../../models/fetchRecWithSeries.js');
+                        const updatedRec = await findRecommendationByIdOrUrl(interaction, recommendation.id, urlToUse, null);
+                        if (updatedRec) {
+                            const recWithSeries = await fetchRecWithSeries(updatedRec.id, true);
+                            const embed = createRecEmbed(recWithSeries);
+                            await interaction.editReply({
+                                content: 'That fic was already updated! Here's the latest info:',
+                                embeds: [embed]
+                            });
+                            // UserFicMetadata already saved above via saveUserMetadata
+                            return;
+                        }
                     }
                 }
                 // If still not found, fallback to queue message
@@ -365,7 +392,8 @@ export default async function handleUpdateRecommendation(interaction) {
         // Create new queue entry for Jack to process
         const activeJobs = await ParseQueue.count({ where: { status: ['pending', 'processing'] } });
         let isInstant = false;
-        if (!/archiveofourown\.org\/series\//.test(urlToUse) && activeJobs === 0) {
+        const isSeriesUrl = /archiveofourown\.org\/series\//.test(urlToUse);
+        if (!isSeriesUrl && activeJobs === 0) {
             isInstant = true;
         }
 
@@ -374,7 +402,8 @@ export default async function handleUpdateRecommendation(interaction) {
                 fic_url: urlToUse,
                 status: 'pending',
                 requested_by: interaction.user.id,
-                instant_candidate: isInstant
+                instant_candidate: isInstant,
+                batch_type: isSeriesUrl ? 'series' : null
             });
         } catch (err) {
             // Handle race condition

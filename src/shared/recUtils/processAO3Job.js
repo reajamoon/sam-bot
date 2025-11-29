@@ -4,7 +4,7 @@
 
 import { Recommendation, Series } from '../../models/index.js';
 import { fetchFicMetadata } from './ficParser.js';
-import { createRecommendationEmbed } from './asyncEmbeds.js';
+import { createRecEmbed } from './createRecEmbed.js';
 import normalizeAO3Url from './normalizeAO3Url.js';
 import updateMessages from '../text/updateMessages.js';
 
@@ -184,7 +184,7 @@ async function processAO3Job(payload) {
   }
 
   // Generate embed from database record
-  const embed = await createRecommendationEmbed(recommendation);
+  const embed = createRecEmbed(recommendation);
   
   return { embed, recommendation };
 }

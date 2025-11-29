@@ -8,7 +8,7 @@ export default (sequelize) => {
       unique: true,
     },
     status: {
-      type: DataTypes.ENUM('pending', 'processing', 'done', 'error', 'nOTP'),
+      type: DataTypes.ENUM('pending', 'processing', 'done', 'error', 'nOTP', 'series-done'),
       allowNull: false,
       defaultValue: 'pending',
     },
@@ -16,6 +16,11 @@ export default (sequelize) => {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,
+    },
+    batch_type: {
+      type: DataTypes.ENUM('series'),
+      allowNull: true,
+      comment: 'Type of batch processing: series for series URLs'
     },
         submitted_at: {
           type: DataTypes.DATE,

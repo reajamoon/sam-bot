@@ -5,7 +5,7 @@
 
 import { Recommendation } from '../../models/index.js';
 import { fetchFicMetadata } from './ficParser.js';
-import { createRecommendationEmbed } from './asyncEmbeds.js';
+import { createRecEmbed } from './createRecEmbed.js';
 import updateMessages from '../text/updateMessages.js';
 
 /**
@@ -156,7 +156,7 @@ async function processFicJob(payload) {
   }
 
   // Generate embed from database record
-  const embed = await createRecommendationEmbed(recommendation);
+  const embed = createRecEmbed(recommendation);
   
   return { embed, recommendation };
 }

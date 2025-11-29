@@ -3,6 +3,7 @@
 
 import { Series, Recommendation } from '../../models/index.js';
 import processAO3Job from './processAO3Job.js';
+import { markPrimaryAndNotPrimaryWorks } from '../../bots/sam/commands/recHandlers/seriesUtils.js';
 
 /**
  * Complete series processing that handles both Series table and Recommendation records
@@ -32,10 +33,14 @@ async function batchSeriesRecommendationJob(payload) {
     
     // Step 3: Process individual works (limit to 5)
     const worksToProcess = seriesMetadata.works.slice(0, 5);
+    
+    // Step 3a: Determine which works are primary vs not primary using proper logic
+    const markedWorks = markPrimaryAndNotPrimaryWorks(worksToProcess);
     const results = [];
     
-    for (let i = 0; i < worksToProcess.length; i++) {
-      const work = worksToProcess[i];
+    for (let i = 0; i < markedWorks.length; i++) {
+      const markedWork = markedWorks[i];
+      const work = markedWork.work;
       const ao3ID = extractAO3WorkId(work.url);
       
       if (!ao3ID) {
@@ -43,8 +48,8 @@ async function batchSeriesRecommendationJob(payload) {
         continue;
       }
       
-      // Determine if this is the primary work (first in series)
-      const isNotPrimary = i > 0;
+      // Use the proper notPrimaryWork flag from the analysis
+      const isNotPrimary = markedWork.notPrimaryWork;
       
       // Process individual work
       const workResult = await processAO3Job({
@@ -64,8 +69,19 @@ async function batchSeriesRecommendationJob(payload) {
     }
     
     // Step 4: Return result with series info and processed works
-    // Return the primary work's ID for queue notifications
-    const primaryWorkResult = results.find(r => r.recommendation) || results[0];
+    // Find the primary work's result for queue notifications
+    // The primary work corresponds to the work that was marked as NOT notPrimaryWork
+    let primaryWorkResult = null;
+    for (let i = 0; i < results.length && i < markedWorks.length; i++) {
+      if (!markedWorks[i].notPrimaryWork && results[i] && results[i].recommendation) {
+        primaryWorkResult = results[i];
+        break;
+      }
+    }
+    // Fallback to first successful result if no primary work found
+    if (!primaryWorkResult) {
+      primaryWorkResult = results.find(r => r.recommendation) || results[0];
+    }
     const primaryRecId = primaryWorkResult?.recommendation?.id || null;
     
     return {
@@ -74,9 +90,7 @@ async function batchSeriesRecommendationJob(payload) {
       seriesId: seriesRecord.id, // Database series ID
       seriesRecord,
       processedWorks: results,
-      totalWorks: worksToProcess.length,
-      // Could return embed for primary work or series summary
-      embed: results[0]?.embed || null
+      totalWorks: worksToProcess.length
     };
     
   } catch (err) {
