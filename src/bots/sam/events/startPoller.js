@@ -85,12 +85,25 @@ async function notifyQueueSubscribers(client) {
                 // Use fetchRecWithSeries to get rec, series, and series works
                 const { fetchRecWithSeries } = await import('../../../models/fetchRecWithSeries.js');
                 recWithSeries = await fetchRecWithSeries(job.result.id, true);
+                // Handle case where job.result.id might be a series ID instead of rec ID (old job format)
+                if (!recWithSeries && job.result.type === 'series' && job.result.seriesId) {
+                    // Try to find the primary recommendation for this series
+                    const { Recommendation } = await import('../../../models/index.js');
+                    const primaryRec = await Recommendation.findOne({
+                        where: {
+                            seriesId: job.result.seriesRecord?.ao3SeriesId || null,
+                            notPrimaryWork: false
+                        }
+                    });
+                    if (primaryRec) {
+                        recWithSeries = await fetchRecWithSeries(primaryRec.id, true);
+                    }
+                }
             }
             if (recWithSeries) {
                 // Check if this is a series result (either marked as series type or has series data)
-                const isSeriesResult = job.result.type === 'series' || 
+                const isSeriesResult = job.result.type === 'series' ||
                     (recWithSeries.series && Array.isArray(recWithSeries.series.works) && recWithSeries.series.works.length > 0);
-                
                 if (isSeriesResult && recWithSeries.series) {
                     // Use series embed mode
                     embed = await createRecommendationEmbed(null, recWithSeries.series, recWithSeries.series.works);
