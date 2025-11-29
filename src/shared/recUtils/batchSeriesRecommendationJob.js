@@ -6,7 +6,7 @@ import processRecommendationJob from './processRecommendationJob.js';
 import { fetchFicMetadata } from './ficParser.js';
 
 /**
- * Batch parses an AO3 series and all its works, storing each as a Recommendation.
+ * Batch parses an AO3 series and up to 5 works (primary + 4 additional), storing each as a Recommendation.
  * @param {string} seriesUrl - AO3 series URL
  * @param {Object} user - { id, username }
  * @param {Object} options - { additionalTags, notes }
@@ -20,9 +20,12 @@ async function batchSeriesRecommendationJob(seriesUrl, user, options = {}, notif
     throw new Error('Failed to parse AO3 series or no works found.');
   }
   // 2. Parse each work and collect metadata for primary detection
+  // Limit to max 5 works (primary + 4 additional)
+  const worksToProcess = seriesMeta.works.slice(0, 5);
+  
   const workMetas = [];
-  for (let i = 0; i < seriesMeta.works.length; i++) {
-    const work = seriesMeta.works[i];
+  for (let i = 0; i < worksToProcess.length; i++) {
+    const work = worksToProcess[i];
     const workUrl = work.url;
     // Fetch full metadata for each work (to get tags, post date, etc.)
     const meta = await fetchFicMetadata(workUrl);
@@ -60,8 +63,9 @@ async function batchSeriesRecommendationJob(seriesUrl, user, options = {}, notif
     workCount: seriesMeta.workCount || seriesMeta.works.length,
     wordCount: seriesMeta.wordCount || null,
     status: seriesMeta.status || null,
-    workIds: Array.isArray(seriesMeta.works) ? seriesMeta.works.map(w => w.url && w.url.match(/works\/(\d+)/)?.[1]).filter(Boolean) : [],
-    series_works: Array.isArray(seriesMeta.works) ? seriesMeta.works.map(w => ({ title: w.title, url: w.url, authors: w.authors })) : []
+    // Only store IDs/works for the ones we're actually importing (max 5)
+    workIds: Array.isArray(worksToProcess) ? worksToProcess.map(w => w.url && w.url.match(/works\/(\d+)/)?.[1]).filter(Boolean) : [],
+    series_works: Array.isArray(worksToProcess) ? worksToProcess.map(w => ({ title: w.title, url: w.url, authors: w.authors })) : []
   };
   // Upsert by URL (unique)
   const [seriesRow] = await Series.upsert(seriesUpsert, { returning: true, conflictFields: ['url'] });
