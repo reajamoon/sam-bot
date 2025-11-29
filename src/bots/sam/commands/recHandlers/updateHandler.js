@@ -2,9 +2,9 @@ import findRecommendationByIdOrUrl from '../../../../shared/recUtils/findRecomme
 import Discord from 'discord.js';
 const { MessageFlags } = Discord;
 import isValidFanficUrl from '../../../../shared/recUtils/isValidFanficUrl.js';
-import processRecommendationJob from '../../../../shared/recUtils/processRecommendationJob.js';
+import { saveUserMetadata, detectSiteAndExtractIDs } from '../../../../shared/recUtils/processUserMetadata.js';
+import { Recommendation } from '../../../../models/index.js';
 import normalizeAO3Url from '../../../../shared/recUtils/normalizeAO3Url.js';
-import { Recommendation, UserFicMetadata } from '../../../../models/index.js';
 import createOrJoinQueueEntry from '../../../../shared/recUtils/createOrJoinQueueEntry.js';
 import { createRecommendationEmbed } from '../../../../shared/recUtils/asyncEmbeds.js';
 import { fetchRecWithSeries } from '../../../../models/fetchRecWithSeries.js';
@@ -18,29 +18,6 @@ import { getLockedFieldsForRec } from '../../../../shared/getLockedFieldsForRec.
 function cleanTags(tags) {
     if (!tags) return [];
     return Array.from(new Set(tags.map(t => t.toLowerCase().trim()).filter(Boolean)));
-}
-
-// Helper to upsert UserFicMetadata
-async function upsertUserFicMetadata({ userID, ao3ID, seriesId, newTitle, newAuthor, newSummary, newTags, newRating, newWordCount, newChapters, newStatus, newArchiveWarnings, newSeriesName, newSeriesPart, newSeriesUrl, additionalTagsToSend, newNotes }) {
-    await UserFicMetadata.upsert({
-        userID,
-        ao3ID,
-        seriesId,
-        manual_title: newTitle || null,
-        manual_authors: newAuthor ? [newAuthor] : null,
-        manual_summary: newSummary || null,
-        manual_tags: cleanTags(newTags),
-        manual_rating: newRating || null,
-        manual_wordcount: newWordCount || null,
-        manual_chapters: newChapters || null,
-        manual_status: newStatus || null,
-        manual_archive_warnings: cleanTags(newArchiveWarnings),
-        manual_seriesName: newSeriesName || null,
-        manual_seriesPart: newSeriesPart || null,
-        manual_seriesUrl: newSeriesUrl || null,
-        additional_tags: cleanTags(additionalTagsToSend),
-        rec_note: newNotes || null
-    });
 }
 
 // Modular validation helpers
@@ -65,10 +42,10 @@ function validateAttachment(newAttachment, willBeDeleted) {
 export default async function handleUpdateRecommendation(interaction) {
     // Defer reply since this operation may take time
     await interaction.deferReply();
-    
+
     // Extract identifier from interaction options
     const identifier = interaction.options.getString('identifier');
-    
+
     // --- ModLock enforcement (per-rec and global) ---
     let modLocksByField = {};
     // Fetch the recommendation to get its ID (if not already fetched)
@@ -137,18 +114,36 @@ export default async function handleUpdateRecommendation(interaction) {
             });
             return;
         }
-        
-        // Set up additional tags to send
-        let additionalTagsToSend = newTags;
-        
+
         // Determine URL to use for processing (new URL if provided, otherwise existing URL)
         const urlToUse = newUrl || recommendation.url;
-        if (!recommendation) {
-            await interaction.editReply({
-                content: `I couldn't find a recommendation with identifier \`${identifier}\` in our library. Use \`/rec stats\` to see what's available.`
-            });
-            return;
-        }
+
+        // Save user metadata immediately (before any queue processing)
+        // Build manual fields object
+        const manualFields = {};
+        if (newTitle) manualFields.title = newTitle;
+        if (newAuthor) manualFields.author = newAuthor;
+        if (newSummary) manualFields.summary = newSummary;
+        if (newRating) manualFields.rating = newRating;
+        if (newWordCount) manualFields.wordCount = newWordCount;
+        if (newChapters) manualFields.chapters = newChapters;
+        if (newStatus) manualFields.status = newStatus;
+        if (newArchiveWarnings && newArchiveWarnings.length > 0) manualFields.archiveWarnings = newArchiveWarnings;
+        if (newSeriesName) manualFields.seriesName = newSeriesName;
+        if (newSeriesPart) manualFields.seriesPart = newSeriesPart;
+        if (newSeriesUrl) manualFields.seriesUrl = newSeriesUrl;
+
+        await saveUserMetadata({
+            url: urlToUse,
+            user: interaction.user,
+            notes: newNotes || '',
+            additionalTags: newTags || [],
+            manualFields
+        });
+
+        // Set up additional tags to send
+        let additionalTagsToSend = newTags;
+
         // --- Refactored: Use Series table for batch update of all works in a series ---
         if (recommendation.seriesId) {
             const { Series, Recommendation } = await import('../../../../models/index.js');
@@ -185,51 +180,10 @@ export default async function handleUpdateRecommendation(interaction) {
                             const recWithSeries = await fetchRecWithSeries(updatedRec.id, true);
                             const embed = await createRecommendationEmbed(recWithSeries);
                             await interaction.editReply({
-                                content: 'This fic was just updated! Here’s the latest info.',
+                                content: 'This fic was just updated! Here\'s the latest info.',
                                 embeds: [embed]
                             });
-                            // Upsert UserFicMetadata after successful instant update
-                            if (recommendation.seriesId) {
-                              await UserFicMetadata.upsert({
-                                userID: interaction.user.id,
-                                ao3ID: null,
-                                seriesId: recommendation.seriesId,
-                                manual_title: newTitle || null,
-                                manual_authors: newAuthor ? [newAuthor] : null,
-                                manual_summary: newSummary || null,
-                                manual_tags: newTags || [],
-                                manual_rating: newRating || null,
-                                manual_wordcount: newWordCount || null,
-                                manual_chapters: newChapters || null,
-                                manual_status: newStatus || null,
-                                manual_archive_warnings: newArchiveWarnings || [],
-                                manual_seriesName: newSeriesName || null,
-                                manual_seriesPart: newSeriesPart || null,
-                                manual_seriesUrl: newSeriesUrl || null,
-                                additional_tags: additionalTagsToSend || [],
-                                rec_note: newNotes || null
-                              });
-                            } else {
-                              await UserFicMetadata.upsert({
-                                userID: interaction.user.id,
-                                ao3ID: recommendation.ao3ID,
-                                seriesId: recommendation.seriesId || null,
-                                manual_title: newTitle || null,
-                                manual_authors: newAuthor ? [newAuthor] : null,
-                                manual_summary: newSummary || null,
-                                manual_tags: newTags || [],
-                                manual_rating: newRating || null,
-                                manual_wordcount: newWordCount || null,
-                                manual_chapters: newChapters || null,
-                                manual_status: newStatus || null,
-                                manual_archive_warnings: newArchiveWarnings || [],
-                                manual_seriesName: newSeriesName || null,
-                                manual_seriesPart: newSeriesPart || null,
-                                manual_seriesUrl: newSeriesUrl || null,
-                                additional_tags: additionalTagsToSend || [],
-                                rec_note: newNotes || null
-                              });
-                            }
+                            // UserFicMetadata already saved above via saveUserMetadata
                         } else {
                             await interaction.editReply({
                                 content: 'Recommendation found in queue but not in database. Please try again or contact an admin.'
@@ -256,9 +210,7 @@ export default async function handleUpdateRecommendation(interaction) {
                         fic_url: urlToUse,
                         status: 'pending',
                         requested_by: interaction.user.id,
-                        instant_candidate: isInstant,
-                        notes: newNotes || null,
-                        additional_tags: JSON.stringify(additionalTagsToSend || [])
+                        instant_candidate: isInstant
                     });
                 } catch (err) {
                     // Handle race condition: duplicate key error (Sequelize or raw pg)
@@ -346,48 +298,7 @@ export default async function handleUpdateRecommendation(interaction) {
                         if (updatedRec) {
                             const recWithSeries = await fetchRecWithSeries(updatedRec.id, true);
                             resultEmbed = await createRecommendationEmbed(recWithSeries);
-                            // Upsert UserFicMetadata after successful instant update
-                            if (recommendation.seriesId) {
-                              await UserFicMetadata.upsert({
-                                userID: interaction.user.id,
-                                ao3ID: null,
-                                seriesId: recommendation.seriesId,
-                                manual_title: newTitle || null,
-                                manual_authors: newAuthor ? [newAuthor] : null,
-                                manual_summary: newSummary || null,
-                                manual_tags: newTags || [],
-                                manual_rating: newRating || null,
-                                manual_wordcount: newWordCount || null,
-                                manual_chapters: newChapters || null,
-                                manual_status: newStatus || null,
-                                manual_archive_warnings: newArchiveWarnings || [],
-                                manual_seriesName: newSeriesName || null,
-                                manual_seriesPart: newSeriesPart || null,
-                                manual_seriesUrl: newSeriesUrl || null,
-                                additional_tags: additionalTagsToSend || [],
-                                rec_note: newNotes || null
-                              });
-                            } else {
-                              await UserFicMetadata.upsert({
-                                userID: interaction.user.id,
-                                ao3ID: recommendation.ao3ID,
-                                seriesId: recommendation.seriesId || null,
-                                manual_title: newTitle || null,
-                                manual_authors: newAuthor ? [newAuthor] : null,
-                                manual_summary: newSummary || null,
-                                manual_tags: newTags || [],
-                                manual_rating: newRating || null,
-                                manual_wordcount: newWordCount || null,
-                                manual_chapters: newChapters || null,
-                                manual_status: newStatus || null,
-                                manual_archive_warnings: newArchiveWarnings || [],
-                                manual_seriesName: newSeriesName || null,
-                                manual_seriesPart: newSeriesPart || null,
-                                manual_seriesUrl: newSeriesUrl || null,
-                                additional_tags: additionalTagsToSend || [],
-                                rec_note: newNotes || null
-                              });
-                            }
+                            // UserFicMetadata already saved above via saveUserMetadata
                         }
                         foundDone = true;
                         break;
@@ -415,48 +326,7 @@ export default async function handleUpdateRecommendation(interaction) {
                             content: 'That fic was already updated! Here’s the latest info:',
                             embeds: [embed]
                         });
-                        // Upsert UserFicMetadata after successful instant update
-                        if (recommendation.seriesId) {
-                          await UserFicMetadata.upsert({
-                            userID: interaction.user.id,
-                            ao3ID: null,
-                            seriesId: recommendation.seriesId,
-                            manual_title: newTitle || null,
-                            manual_authors: newAuthor ? [newAuthor] : null,
-                            manual_summary: newSummary || null,
-                            manual_tags: newTags || [],
-                            manual_rating: newRating || null,
-                            manual_wordcount: newWordCount || null,
-                            manual_chapters: newChapters || null,
-                            manual_status: newStatus || null,
-                            manual_archive_warnings: newArchiveWarnings || [],
-                            manual_seriesName: newSeriesName || null,
-                            manual_seriesPart: newSeriesPart || null,
-                            manual_seriesUrl: newSeriesUrl || null,
-                            additional_tags: additionalTagsToSend || [],
-                            rec_note: newNotes || null
-                          });
-                        } else {
-                          await UserFicMetadata.upsert({
-                            userID: interaction.user.id,
-                            ao3ID: recommendation.ao3ID,
-                            seriesId: recommendation.seriesId || null,
-                            manual_title: newTitle || null,
-                            manual_authors: newAuthor ? [newAuthor] : null,
-                            manual_summary: newSummary || null,
-                            manual_tags: newTags || [],
-                            manual_rating: newRating || null,
-                            manual_wordcount: newWordCount || null,
-                            manual_chapters: newChapters || null,
-                            manual_status: newStatus || null,
-                            manual_archive_warnings: newArchiveWarnings || [],
-                            manual_seriesName: newSeriesName || null,
-                            manual_seriesPart: newSeriesPart || null,
-                            manual_seriesUrl: newSeriesUrl || null,
-                            additional_tags: additionalTagsToSend || [],
-                            rec_note: newNotes || null
-                          });
-                        }
+                        // UserFicMetadata already saved above via saveUserMetadata
                         return;
                     }
                 }
@@ -468,11 +338,11 @@ export default async function handleUpdateRecommendation(interaction) {
             }
 
         }
-        
+
         // For individual recommendation updates, also use the queue system
         // (Sam should never call AO3 directly - that's Jack's job)
         const { ParseQueue, ParseQueueSubscriber } = await import('../../../../models/index.js');
-        
+
         // Check if already in queue
         let queueEntry = await ParseQueue.findOne({ where: { fic_url: urlToUse } });
         if (queueEntry) {
@@ -491,22 +361,20 @@ export default async function handleUpdateRecommendation(interaction) {
                 return;
             }
         }
-        
+
         // Create new queue entry for Jack to process
         const activeJobs = await ParseQueue.count({ where: { status: ['pending', 'processing'] } });
         let isInstant = false;
         if (!/archiveofourown\.org\/series\//.test(urlToUse) && activeJobs === 0) {
             isInstant = true;
         }
-        
+
         try {
             queueEntry = await ParseQueue.create({
                 fic_url: urlToUse,
                 status: 'pending',
                 requested_by: interaction.user.id,
-                instant_candidate: isInstant,
-                notes: newNotes || null,
-                additional_tags: JSON.stringify(additionalTagsToSend || [])
+                instant_candidate: isInstant
             });
         } catch (err) {
             // Handle race condition
@@ -521,37 +389,18 @@ export default async function handleUpdateRecommendation(interaction) {
             }
             throw err;
         }
-        
+
         try {
             await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
         } catch (err) {
             console.error('[RecHandler] Error adding ParseQueueSubscriber:', err, { queue_id: queueEntry.id, user_id: interaction.user.id });
         }
-        
+
         await interaction.editReply({
             content: "Your fic update has been added to the parsing queue! I'll notify you when it's ready."
         });
-        
-        // Store user's manual field inputs for Jack to use
-        await upsertUserFicMetadata({
-            userID: interaction.user.id,
-            ao3ID: recommendation.ao3ID,
-            seriesId: recommendation.seriesId || null,
-            newTitle,
-            newAuthor,
-            newSummary,
-            newTags,
-            newRating,
-            newWordCount,
-            newChapters,
-            newStatus,
-            newArchiveWarnings,
-            newSeriesName,
-            newSeriesPart,
-            newSeriesUrl,
-            additionalTagsToSend,
-            newNotes
-        });
+
+        // User metadata already saved above via saveUserMetadata
     } catch (error) {
         console.error('[rec update] Error:', error);
         await interaction.editReply({

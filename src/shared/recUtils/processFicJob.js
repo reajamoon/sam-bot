@@ -1,44 +1,37 @@
-// processAO3Job.js
-// Clean implementation for processing AO3 data (used by queue worker)
+// processFicJob.js
+// General implementation for processing non-AO3 fanfiction metadata (used by queue worker)
+// Supports FFNet, Wattpad, LiveJournal, Dreamwidth, Tumblr
 // User metadata (notes, manual fields) is handled separately by command handlers
 
-import { Recommendation, Series } from '../../models/index.js';
+import { Recommendation } from '../../models/index.js';
 import { fetchFicMetadata } from './ficParser.js';
 import { createRecommendationEmbed } from './asyncEmbeds.js';
-import normalizeAO3Url from './normalizeAO3Url.js';
 import updateMessages from '../text/updateMessages.js';
 
 /**
- * Processes AO3 recommendation data from queue worker.
- * This function ONLY handles AO3 metadata - user metadata is handled separately.
+ * Processes non-AO3 fanfiction recommendation data from queue worker.
+ * This function ONLY handles site metadata - user metadata is handled separately.
  * @param {Object} payload - Job payload from queue
- * @param {number} payload.ao3ID - AO3 work ID
- * @param {number} [payload.seriesId] - Database series ID if part of a series
+ * @param {string} payload.url - Fanfiction URL
  * @param {Object} payload.user - User context (id, username)
  * @param {boolean} [payload.isUpdate] - Whether updating existing recommendation
- * @param {string} [payload.type] - Type: 'work' or 'series'
- * @param {boolean} [payload.notPrimaryWork] - Flag for non-primary works in series
+ * @param {string} [payload.site] - Site type: 'ffnet', 'wattpad', 'livejournal', 'dreamwidth', 'tumblr'
  * @returns {Promise<{embed: Object, recommendation: Recommendation, error?: string}>}
  */
-async function processAO3Job(payload) {
+async function processFicJob(payload) {
   const {
-    ao3ID,
-    seriesId,
+    url,
     user,
     isUpdate = false,
-    type = 'work',
-    notPrimaryWork = false
+    site = 'other'
   } = payload;
 
-  // Build AO3 URL from work ID
-  const url = `https://archiveofourown.org/works/${ao3ID}`;
-  
-  // Fetch AO3 metadata
+  // Fetch metadata from the fanfiction site
   let metadata;
   try {
     metadata = await fetchFicMetadata(url);
     
-    // Unwrap { metadata } if present (AO3 parser returns { metadata: ... })
+    // Unwrap { metadata } if present
     if (metadata && metadata.metadata && typeof metadata.metadata === 'object') {
       metadata = metadata.metadata;
     }
@@ -64,21 +57,17 @@ async function processAO3Job(payload) {
         }
       }
     }
-    
-    if (metadata && metadata.url) {
-      metadata.url = normalizeAO3Url(metadata.url);
-    }
   } catch (err) {
-    console.error('[processAO3Job] Error fetching metadata:', err);
+    console.error('[processFicJob] Error fetching metadata:', err);
     return { error: updateMessages.genericError };
   }
 
   if (!metadata) {
-    console.error('[processAO3Job] Metadata fetch returned null for URL:', url);
+    console.error('[processFicJob] Metadata fetch returned null for URL:', url);
     return { error: updateMessages.genericError };
   }
 
-  // Handle AO3 errors
+  // Handle site-specific errors
   if (metadata.error && metadata.error === 'Site protection detected') {
     return { error: 'Site protection detected. Manual entry required.' };
   }
@@ -92,52 +81,37 @@ async function processAO3Job(payload) {
     return { error: 'connection_error' };
   }
 
-  // Dean/Cas validation (always runs for AO3)
-  try {
-    const { validateDeanCasRec } = await import('./ao3/validateDeanCasRec.js');
-    const fandomTags = metadata.fandom_tags || metadata.fandom || [];
-    const relationshipTags = metadata.relationship_tags || [];
-    const validation = validateDeanCasRec(fandomTags, relationshipTags);
-    
-    if (!validation.valid) {
-      return { error: validation.reason || 'Failed Dean/Cas validation' };
-    }
-  } catch (err) {
-    console.error('[processAO3Job] Error in Dean/Cas validation:', err);
-    return { error: 'Dean/Cas validation error' };
-  }
-
-  // Normalize metadata for AO3
+  // Normalize metadata (ficParser.js already normalizes, but ensure it's done)
   const normalizeMetadataModule = await import('./normalizeMetadata.js');
   const normalizeMetadata = normalizeMetadataModule.default || normalizeMetadataModule;
-  metadata = normalizeMetadata(metadata, 'ao3');
+  metadata = normalizeMetadata(metadata, site);
 
   // Ensure required fields
   if (!metadata || !metadata.title || !user || !user.id || !user.username) {
-    console.error('[processAO3Job] Missing required fields:', { metadata, user });
+    console.error('[processFicJob] Missing required fields:', { metadata, user });
     return { error: updateMessages.genericError };
   }
 
   let recommendation;
 
   if (isUpdate) {
-    // Find existing recommendation by ao3ID
-    const existingRec = await Recommendation.findOne({ where: { ao3ID } });
+    // Find existing recommendation by URL
+    const existingRec = await Recommendation.findOne({ where: { url } });
     
     if (!existingRec) {
-      console.error('[processAO3Job] Update requested but no existing recommendation found for ao3ID:', ao3ID);
+      console.error('[processFicJob] Update requested but no existing recommendation found for URL:', url);
       return { error: updateMessages.genericError };
     }
 
-    // Update with fresh AO3 data
-    const updateFields = buildUpdateFields(existingRec, metadata, seriesId, notPrimaryWork);
+    // Update with fresh metadata
+    const updateFields = buildUpdateFields(existingRec, metadata);
     
     if (Object.keys(updateFields).length > 0) {
       try {
         await existingRec.update(updateFields);
         await existingRec.reload();
       } catch (err) {
-        console.error('[processAO3Job] Error updating recommendation:', err);
+        console.error('[processFicJob] Error updating recommendation:', err);
         return { error: updateMessages.genericError };
       }
     }
@@ -168,17 +142,15 @@ async function processAO3Job(payload) {
         bookmarks: metadata.bookmarks,
         comments: metadata.comments,
         category: metadata.category,
-        ao3ID,
+        // Don't set ao3ID for non-AO3 sites
         fandom_tags: Array.isArray(metadata.fandom_tags) ? metadata.fandom_tags : [],
         relationship_tags: Array.isArray(metadata.relationship_tags) ? metadata.relationship_tags : [],
         character_tags: Array.isArray(metadata.character_tags) ? metadata.character_tags : [],
         category_tags: Array.isArray(metadata.category_tags) ? metadata.category_tags : [],
-        freeform_tags: Array.isArray(metadata.freeform_tags) ? metadata.freeform_tags : [],
-        ...(seriesId ? { seriesId } : {}),
-        notPrimaryWork
+        freeform_tags: Array.isArray(metadata.freeform_tags) ? metadata.freeform_tags : []
       });
     } catch (err) {
-      console.error('[processAO3Job] Error creating recommendation:', err);
+      console.error('[processFicJob] Error creating recommendation:', err);
       return { error: updateMessages.genericError };
     }
   }
@@ -192,7 +164,7 @@ async function processAO3Job(payload) {
 /**
  * Builds update fields object by comparing existing and new metadata
  */
-function buildUpdateFields(existingRec, metadata, seriesId, notPrimaryWork) {
+function buildUpdateFields(existingRec, metadata) {
   const updateFields = {};
   
   // Check each field for changes
@@ -236,7 +208,7 @@ function buildUpdateFields(existingRec, metadata, seriesId, notPrimaryWork) {
   if (existingRec.comments !== metadata.comments) updateFields.comments = metadata.comments;
   if (existingRec.category !== metadata.category) updateFields.category = metadata.category;
   
-  // Tag arrays
+  // Tag arrays (may be sparse for non-AO3 sites)
   const tagFields = ['fandom_tags', 'relationship_tags', 'character_tags', 'category_tags', 'freeform_tags'];
   tagFields.forEach(field => {
     const newValue = Array.isArray(metadata[field]) ? metadata[field] : [];
@@ -254,15 +226,7 @@ function buildUpdateFields(existingRec, metadata, seriesId, notPrimaryWork) {
     }
   }
   
-  // Series and flags
-  if (seriesId && existingRec.seriesId !== seriesId) {
-    updateFields.seriesId = seriesId;
-  }
-  if (existingRec.notPrimaryWork !== notPrimaryWork) {
-    updateFields.notPrimaryWork = notPrimaryWork;
-  }
-  
   return updateFields;
 }
 
-export default processAO3Job;
+export default processFicJob;

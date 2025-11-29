@@ -1,112 +1,144 @@
 // batchSeriesRecommendationJob.js
-// Handles batch parsing and storing of AO3 series and all works in the series
+// Complete series processing flow for AO3 series
 
-import { Recommendation, Series } from '../../models/index.js';
-import { fetchFicMetadata } from './ficParser.js';
+import { Series, Recommendation } from '../../models/index.js';
+import processAO3Job from './processAO3Job.js';
 
 /**
- * Batch parses an AO3 series and up to 5 works (primary + 4 additional), storing each as a Recommendation.
- * @param {string} seriesUrl - AO3 series URL
- * @param {Object} user - { id, username }
- * @param {Object} options - { additionalTags, notes }
- * @param {Function} [notify] - Optional callback for embed/updates
- * @param {boolean} [isUpdate=false] - Whether this is updating existing series
- * @returns {Promise<{seriesRec: Recommendation, workRecs: Recommendation[]}>}
+ * Complete series processing that handles both Series table and Recommendation records
+ * @param {Object} payload
+ * @param {string} payload.url - Series URL (e.g., https://archiveofourown.org/series/12345)
+ * @param {Object} payload.user - User context
+ * @param {boolean} [payload.isUpdate] - Whether this is an update
  */
-async function batchSeriesRecommendationJob(seriesUrl, user, options = {}, notify, isUpdate = false) {
-  // 1. Parse the series page to get all work URLs
-  const seriesMeta = await fetchFicMetadata(seriesUrl);
-  if (!seriesMeta || !seriesMeta.works || !Array.isArray(seriesMeta.works) || seriesMeta.works.length === 0) {
-    throw new Error('Failed to parse AO3 series or no works found.');
-  }
-  // 2. Parse each work and collect metadata for primary detection
-  // Limit to max 5 works (primary + 4 additional)
-  const worksToProcess = seriesMeta.works.slice(0, 5);
+async function batchSeriesRecommendationJob(payload) {
+  const { url, user, isUpdate = false } = payload;
   
-  const workMetas = [];
-  for (let i = 0; i < worksToProcess.length; i++) {
-    const work = worksToProcess[i];
-    const workUrl = work.url;
-    // Fetch full metadata for each work (to get tags, post date, etc.)
-    const meta = await fetchFicMetadata(workUrl);
-    if (!meta) throw new Error(`Failed to fetch metadata for work: ${work.title}`);
-    workMetas.push({
-      index: i,
-      work,
-      meta,
-      postDate: meta.publishedDate ? new Date(meta.publishedDate) : null,
-      hasPrequel: (meta.freeform_tags || []).some(t => /prequel/i.test(t)),
-      hasSequel: (meta.freeform_tags || []).some(t => /sequel/i.test(t)),
-    });
-  }
-
-  // Determine the true primary work
-  // Exclude works with prequel/sequel tags from being primary, unless all have them
-  let candidates = workMetas.filter(w => !w.hasPrequel && !w.hasSequel);
-  if (candidates.length === 0) candidates = workMetas; // fallback: all have prequel/sequel
-  // Pick the one with the earliest post date
-  let primaryIdx = 0;
-  let minDate = null;
-  for (const c of candidates) {
-    if (c.postDate && (!minDate || c.postDate < minDate)) {
-      minDate = c.postDate;
-      primaryIdx = c.index;
-    }
-  }
-  // 3. Upsert Series entry in DB
-  const seriesUpsert = {
-    name: seriesMeta.title || seriesMeta.name || 'Untitled Series',
-    url: seriesUrl,
-    summary: seriesMeta.summary || '',
-    ao3SeriesId: seriesMeta.ao3SeriesId || (seriesMeta.url && seriesMeta.url.match(/series\/(\d+)/)?.[1]),
-    authors: seriesMeta.authors || [],
-    workCount: seriesMeta.workCount || seriesMeta.works.length,
-    wordCount: seriesMeta.wordCount || null,
-    status: seriesMeta.status || null,
-    // Only store IDs/works for the ones we're actually importing (max 5)
-    workIds: Array.isArray(worksToProcess) ? worksToProcess.map(w => w.url && w.url.match(/works\/(\d+)/)?.[1]).filter(Boolean) : [],
-    series_works: Array.isArray(worksToProcess) ? worksToProcess.map(w => ({ title: w.title, url: w.url, authors: w.authors })) : []
-  };
-  // Upsert by URL (unique)
-  const [seriesRow] = await Series.upsert(seriesUpsert, { returning: true, conflictFields: ['url'] });
-
-  // 4. Store each work as Recommendation, setting notPrimaryWork flag and linking to Series
-  const workRecs = [];
-  // Dynamic import to avoid circular dependency
-  const { default: processRecommendationJob } = await import('./processRecommendationJob.js');
-  
-  for (let i = 0; i < workMetas.length; i++) {
-    const { work, meta } = workMetas[i];
-    const isPrimary = i === primaryIdx;
+  try {
+    // Step 1: Parse series page to get series metadata + works list
+    const { fetchAO3SeriesMetadata } = await import('../../shared/recUtils/ao3Meta.js');
+    const seriesMetadata = await fetchAO3SeriesMetadata(url);
     
-    // Check if this work already exists if we're updating
-    let existingRec = null;
-    if (isUpdate) {
-      existingRec = await Recommendation.findOne({ where: { url: work.url } });
+    if (!seriesMetadata || !seriesMetadata.works || seriesMetadata.works.length === 0) {
+      return { error: 'Could not parse series or no works found' };
     }
     
-    // Pass all fields from meta (full fic metadata), plus notPrimaryWork flag
-    const manualFields = { ...meta, notPrimaryWork: !isPrimary, seriesId: seriesRow.id };
-    const { recommendation: workRec, error } = await processRecommendationJob({
-      url: work.url,
-      user,
-      manualFields,
-      additionalTags: options.additionalTags,
-      notes: options.notes,
-      isUpdate: !!existingRec,
-      existingRec: existingRec,
-      notify: null
-    });
-    if (error) throw new Error(`Failed to process work: ${work.title}`);
-    workRecs.push(workRec);
+    // Step 2: Create/update Series record in database
+    const seriesRecord = await upsertSeriesRecord(seriesMetadata, url);
+    
+    if (!seriesRecord || !seriesRecord.id) {
+      return { error: 'Failed to create/update series record' };
+    }
+    
+    // Step 3: Process individual works (limit to 5)
+    const worksToProcess = seriesMetadata.works.slice(0, 5);
+    const results = [];
+    
+    for (let i = 0; i < worksToProcess.length; i++) {
+      const work = worksToProcess[i];
+      const ao3ID = extractAO3WorkId(work.url);
+      
+      if (!ao3ID) {
+        console.warn('[batchSeriesJob] Could not extract ao3ID from work URL:', work.url);
+        continue;
+      }
+      
+      // Determine if this is the primary work (first in series)
+      const isNotPrimary = i > 0;
+      
+      // Process individual work
+      const workResult = await processAO3Job({
+        ao3ID,
+        seriesId: seriesRecord.ao3SeriesId, // Use AO3 series ID, not database ID
+        user,
+        isUpdate,
+        type: 'work',
+        notPrimaryWork: isNotPrimary
+      });
+      
+      if (workResult.error) {
+        console.error(`[batchSeriesJob] Error processing work ${ao3ID}:`, workResult.error);
+      } else {
+        results.push(workResult);
+      }
+    }
+    
+    // Step 4: Return result with series info and processed works
+    return {
+      type: 'series',
+      seriesId: seriesRecord.id,
+      seriesRecord,
+      processedWorks: results,
+      totalWorks: worksToProcess.length,
+      // Could return embed for primary work or series summary
+      embed: results[0]?.embed || null
+    };
+    
+  } catch (err) {
+    console.error('[batchSeriesJob] Error processing series:', err);
+    return { error: 'Series processing failed' };
   }
-
-  // 5. Optionally notify with the series embed (fetch series rec by primary work)
-  if (typeof notify === 'function' && workRecs.length > 0) {
-    await notify(workRecs[primaryIdx]);
-  }
-  return { seriesRec: workRecs[primaryIdx], workRecs };
 }
 
+/**
+ * Creates or updates Series record from AO3 series metadata
+ */
+async function upsertSeriesRecord(seriesMetadata, url) {
+  try {
+    const seriesData = {
+      name: seriesMetadata.seriesTitle || seriesMetadata.title || 'Untitled Series',
+      url: url,
+      summary: seriesMetadata.seriesSummary || seriesMetadata.summary || '',
+      ao3SeriesId: extractAO3SeriesId(url),
+      authors: seriesMetadata.authors || [],
+      workCount: seriesMetadata.workCount || seriesMetadata.works?.length || 0,
+      wordCount: seriesMetadata.wordCount || null,
+      status: seriesMetadata.status || 'Unknown',
+      // Store work IDs for reference
+      workIds: seriesMetadata.works?.map(w => extractAO3WorkId(w.url)).filter(Boolean) || [],
+      // Store work metadata for display
+      series_works: seriesMetadata.works?.map(w => ({
+        title: w.title,
+        url: w.url,
+        authors: w.authors,
+        summary: w.summary
+      })) || []
+    };
+    
+    // Upsert series record (update if exists, create if not)
+    const [seriesRecord, created] = await Series.upsert(seriesData, {
+      returning: true,
+      conflictFields: ['url'] // Use URL as unique identifier
+    });
+    
+    console.log(`[upsertSeriesRecord] ${created ? 'Created' : 'Updated'} series:`, {
+      id: seriesRecord.id,
+      name: seriesRecord.name,
+      workCount: seriesRecord.workCount
+    });
+    
+    return seriesRecord;
+    
+  } catch (err) {
+    console.error('[upsertSeriesRecord] Error upserting series:', err);
+    throw err;
+  }
+}
+
+/**
+ * Extract AO3 work ID from work URL
+ */
+function extractAO3WorkId(url) {
+  const match = url && url.match(/\/works\/(\d+)/);
+  return match ? parseInt(match[1], 10) : null;
+}
+
+/**
+ * Extract AO3 series ID from series URL
+ */
+function extractAO3SeriesId(url) {
+  const match = url && url.match(/\/series\/(\d+)/);
+  return match ? parseInt(match[1], 10) : null;
+}
 
 export default batchSeriesRecommendationJob;

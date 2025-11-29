@@ -1,7 +1,10 @@
 
 import { Op } from 'sequelize';
-import { ParseQueue, ParseQueueSubscriber, Config, User, sequelize, Recommendation } from '../../models/index.js';
-import processRecommendationJob from '../../shared/recUtils/processRecommendationJob.js';
+import { ParseQueue, ParseQueueSubscriber, User, Recommendation, Config, Series, sequelize } from '../../models/index.js';
+import processAO3Job from '../../shared/recUtils/processAO3Job.js';
+import batchSeriesRecommendationJob from '../../shared/recUtils/batchSeriesRecommendationJob.js';
+import processFicJob from '../../shared/recUtils/processFicJob.js';
+import { detectSiteAndExtractIDs } from '../../shared/recUtils/processUserMetadata.js';
 import dotenv from 'dotenv';
 import { getNextAvailableAO3Time, markAO3Requests, MIN_INTERVAL_MS } from '../../shared/recUtils/ao3/ao3QueueRateHelper.js';
 import updateMessages from '../../shared/text/updateMessages.js';
@@ -90,135 +93,120 @@ async function processQueueJob(job) {
 			};
 			if (userRecord) userMap.set(userRecord.discordId, userRecord);
 		}
-		let additionalTags = [];
-		let notes = '';
-		if (job.additional_tags) {
-			try { additionalTags = JSON.parse(job.additional_tags); } catch { additionalTags = []; }
-		}
-		if (job.notes) notes = job.notes;
+
 		const startTime = Date.now();
 		
-		// Check if this is a series URL - if so, use batchSeriesRecommendationJob
-		if (job.fic_url.includes('/series/')) {
-			try {
-				// Check if series already exists to determine if this is an update
-				const { Series } = await import('../../models/index.js');
-				const existingSeries = await Series.findOne({ where: { url: job.fic_url } });
-				const isSeriesUpdate = !!existingSeries;
-				
-				const { default: batchSeriesRecommendationJob } = await import('../../shared/recUtils/batchSeriesRecommendationJob.js');
-				const result = await batchSeriesRecommendationJob(job.fic_url, user, { additionalTags, notes }, null, isSeriesUpdate);
-				
-				// Mark job as done with both primary work and series information
-				const resultPayload = { 
-					id: result.seriesRec?.id, 
-					type: 'series',
-					seriesId: result.seriesRec?.seriesId,
-					workCount: result.workRecs?.length || 0
-				};
-				await job.update({ status: 'done', result: resultPayload, error_message: null, validation_reason: null });
-				
-				// Clean up subscribers after completion
-				await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
-				return;
-			} catch (error) {
-				console.error('[QueueWorker] Series processing failed:', error);
-				await job.update({ status: 'error', error_message: error.message || 'Failed to process series' });
-				await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
-				return;
-			}
-		}
+		// NEW ARCHITECTURE: URL-only processing 
+		// User metadata (notes, manual fields) is handled by Sam command handlers upfront
+		// Jack only processes URLs and fetches AO3/site metadata
+		const siteInfo = detectSiteAndExtractIDs(job.fic_url);
 		
-		// Check for existing recommendation by URL
-		let existingRec = await Recommendation.findOne({ where: { url: job.fic_url } });
-		const isUpdate = !!existingRec;
-		// Fetch config and channel once
-		const configEntry = await Config.findOne({ where: { key: 'fic_queue_channel' } });
-		const channelId = configEntry ? configEntry.value : null;
-		const result = await processRecommendationJob({
-			url: job.fic_url,
-			user,
-			manualFields: {},
-			additionalTags,
-			notes,
-			isUpdate,
-			existingRec,
-			notify: async (embedOrError, recommendation, metadata) => {
-				// Handle AO3 validation failure (status: 'nOTP')
-				if (metadata && metadata.status === 'nOTP') {
-					await job.update({
-						status: 'nOTP',
-						validation_reason: metadata.validation_reason || 'Failed Dean/Cas validation',
-						error_message: null,
-						result: null
-					});
-					await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
-					return;
-				}
-				if (!embedOrError || embedOrError.error) {
-					// Bump-to-back logic for AO3 login/session errors
-					const errMsg = embedOrError?.error || '';
-					const loginMsg = updateMessages.loginMessage;
-					if (
-						/login|session/i.test(errMsg) ||
-						(typeof loginMsg === 'string' && errMsg.trim() === loginMsg.trim())
-					) {
-						// Bump job to back of queue
-						await job.update({
-							status: 'pending',
-							created_at: new Date(),
-							error_message: errMsg
-						});
-						console.warn(`[QueueWorker] AO3 login/session error for job ${job.id}. Bumping to back of queue.`);
-						return;
-					}
-					// Otherwise, mark as error
-					await job.update({ status: 'error', error_message: errMsg || 'Unknown error' });
-					return;
-				}
-				// Always set result to a valid Recommendation object with id
-				let recObj = embedOrError && embedOrError.recommendation;
-				if (!recObj || !recObj.id) {
-					// Fallback: try to fetch from DB by URL
-					recObj = await Recommendation.findOne({ where: { url: job.fic_url } });
-				}
-				// Only store minimal info needed for poller (id)
-				const resultPayload = recObj && recObj.id ? { id: recObj.id } : null;
-				await job.update({ status: 'done', result: resultPayload, error_message: null, validation_reason: null });
-				// Suppress notification if instant_candidate and within threshold
-				let thresholdMs = 3000; // default 3 seconds
-				const thresholdConfig = await Config.findOne({ where: { key: 'instant_queue_suppress_threshold_ms' } });
-				if (thresholdConfig && !isNaN(Number(thresholdConfig.value))) {
-					thresholdMs = Number(thresholdConfig.value);
-				}
-				const elapsed = Date.now() - new Date(job.submitted_at).getTime();
-				if (job.instant_candidate && elapsed < thresholdMs) {
-					// Clean up subscribers silently
-					await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
-					return;
-				}
-				// Clean up subscribers after notification
-				await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
-			}
-		});
-		// Fallback: If job is still processing and result.error is present, set error/nOTP
-		const freshJob = await ParseQueue.findByPk(job.id);
-		if (freshJob && freshJob.status === 'processing' && result && result.error) {
+		let result;
+		if (siteInfo.site !== 'ao3') {
+			// Route to general fanfiction processor
+			result = await processFicJob({
+				url: job.fic_url,
+				user,
+				isUpdate: false, // Queue doesn't track updates for non-AO3
+				site: siteInfo.site
+			});
+		} else if (siteInfo.isSeriesUrl) {
+			// Series URL: Route to batch series processor
+			const existingSeries = await Series.findOne({ where: { url: job.fic_url } });
+			const isUpdate = !!existingSeries;
+			
+			result = await batchSeriesRecommendationJob({
+				url: job.fic_url,
+				user,
+				isUpdate
+			});
+		} else if (siteInfo.isWorkUrl) {
+			// Work URL: Route to single work processor
+			const existingRec = await Recommendation.findOne({ where: { ao3ID: siteInfo.ao3ID } });
+			const isUpdate = !!existingRec;
+			
+			result = await processAO3Job({
+				ao3ID: siteInfo.ao3ID,
+				user,
+				isUpdate,
+				type: 'work'
+			});
+		} else {
+			throw new Error('Invalid URL format');
+		}
+
+		// Handle processing result
+		await handleJobResult(job, result, siteInfo);
+		
+	} catch (error) {
+		console.error('[QueueWorker] Job processing failed:', error);
+		await job.update({ status: 'error', error_message: error.message || 'Processing failed' });
+		await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
+	}
+}
+async function handleJobResult(job, result, siteInfo) {
+	try {
+		// Handle error cases
+		if (result.error) {
 			if (result.error.toLowerCase().includes('dean/cas') || result.error.toLowerCase().includes('validation')) {
-				await freshJob.update({
+				await job.update({
 					status: 'nOTP',
 					validation_reason: result.error,
 					error_message: null,
 					result: null
 				});
-				await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
 			} else {
-				await freshJob.update({ status: 'error', error_message: result.error });
+				await job.update({ status: 'error', error_message: result.error });
 			}
+			await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
+			return;
 		}
-	} catch (err) {
-		await job.update({ status: 'error', error_message: err.message });
-		console.error('[QueueWorker] Error processing job:', err);
+
+		// Handle successful processing
+		let resultPayload;
+		if (siteInfo.isSeriesUrl) {
+			// Series result
+			resultPayload = {
+				id: result.processedWorks?.[0]?.recommendation?.id || null,
+				type: 'series',
+				seriesId: result.seriesId,
+				workCount: result.totalWorks || 0
+			};
+		} else {
+			// Work result
+			resultPayload = {
+				id: result.recommendation?.id || null,
+				type: 'work'
+			};
+		}
+
+		await job.update({ 
+			status: 'done', 
+			result: resultPayload, 
+			error_message: null, 
+			validation_reason: null 
+		});
+
+		// Suppress notification if instant_candidate and within threshold
+		let thresholdMs = 3000; // default 3 seconds
+		const thresholdConfig = await Config.findOne({ where: { key: 'instant_queue_suppress_threshold_ms' } });
+		if (thresholdConfig && !isNaN(Number(thresholdConfig.value))) {
+			thresholdMs = Number(thresholdConfig.value);
+		}
+		const elapsed = Date.now() - new Date(job.submitted_at).getTime();
+		if (job.instant_candidate && elapsed < thresholdMs) {
+			// Clean up subscribers silently
+			await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
+			return;
+		}
+
+		// Clean up subscribers after notification
+		await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
+
+	} catch (error) {
+		console.error('[QueueWorker] Error handling job result:', error);
+		await job.update({ status: 'error', error_message: error.message || 'Result handling failed' });
+		await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
 	}
 }
 

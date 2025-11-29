@@ -1,8 +1,8 @@
 import updateMessages from '../../../../shared/text/updateMessages.js';
 import isValidFanficUrl from '../../../../shared/recUtils/isValidFanficUrl.js';
-import processRecommendationJob from '../../../../shared/recUtils/processRecommendationJob.js';
+import { saveUserMetadata } from '../../../../shared/recUtils/processUserMetadata.js';
 import normalizeAO3Url from '../../../../shared/recUtils/normalizeAO3Url.js';
-import { Recommendation, UserFicMetadata, Config } from '../../../../models/index.js';
+import { Recommendation, Config } from '../../../../models/index.js';
 import { User } from '../../../../models/index.js';
 import createOrJoinQueueEntry from '../../../../shared/recUtils/createOrJoinQueueEntry.js';
 import { createRecommendationEmbed } from '../../../../shared/recUtils/asyncEmbeds.js';
@@ -140,25 +140,7 @@ export default async function handleAddRecommendation(interaction) {
       const existingSeries = await Series.findOne({ where: { url } });
       if (existingSeries) {
         const addedDate = existingSeries.createdAt ? `<t:${Math.floor(new Date(existingSeries.createdAt).getTime()/1000)}:F>` : '';
-        // Upsert user metadata for series rec
-        await UserFicMetadata.upsert({
-          userID: interaction.user.id,
-          ao3ID: null,
-          seriesId: existingSeries.id,
-          rec_note: notes || null,
-          additional_tags: additionalTags || [],
-          manual_title: manualTitle || null,
-          manual_authors: manualAuthor ? [manualAuthor] : null,
-          manual_summary: manualSummary || null,
-          manual_wordcount: manualWordCount || null,
-          manual_rating: manualRating || null,
-          manual_chapters: manualChapters || null,
-          manual_status: manualStatus || null,
-          manual_archive_warnings: manualArchiveWarnings || null,
-          manual_seriesName: manualSeriesName || null,
-          manual_seriesPart: manualSeriesPart || null,
-          manual_seriesUrl: manualSeriesUrl || null
-        });
+        // UserFicMetadata already saved above via saveUserMetadata
         return await interaction.editReply({
           content: `*${existingSeries.name || existingSeries.title || 'Series'}* (series) is already in the library${addedDate ? `, since ${addedDate}` : ''}.`
         });
@@ -170,28 +152,7 @@ export default async function handleAddRecommendation(interaction) {
           content: message || updateMessages.alreadyProcessing
         });
       } else if (status === 'done' && queueEntry.result) {
-        // Series was already processed, but we only care about the entry
-        // Upsert user metadata for series rec (queue entry exists)
-        if (queueEntry && queueEntry.result && queueEntry.result.seriesId) {
-          await UserFicMetadata.upsert({
-            userID: interaction.user.id,
-            ao3ID: null,
-            seriesId: queueEntry.result.seriesId,
-            rec_note: notes || null,
-            additional_tags: additionalTags || [],
-            manual_title: manualTitle || null,
-            manual_authors: manualAuthor ? [manualAuthor] : null,
-            manual_summary: manualSummary || null,
-            manual_wordcount: manualWordCount || null,
-            manual_rating: manualRating || null,
-            manual_chapters: manualChapters || null,
-            manual_status: manualStatus || null,
-            manual_archive_warnings: manualArchiveWarnings || null,
-            manual_seriesName: manualSeriesName || null,
-            manual_seriesPart: manualSeriesPart || null,
-            manual_seriesUrl: manualSeriesUrl || null
-          });
-        }
+        // Series was already processed, UserFicMetadata already saved above
         await interaction.editReply({
           content: 'Series is already in the queue and ready. No works have been imported. Use `/rec add <work url>` to import works if they require their own recs.'
         });
@@ -223,25 +184,7 @@ export default async function handleAddRecommendation(interaction) {
       const addedDate = existingRec.createdAt ? `<t:${Math.floor(new Date(existingRec.createdAt).getTime()/1000)}:F>` : '';
       // Sassiest message for user 638765542739673089 if they try to add their own rec again hehehe
       if (interaction.user.id === existingRec.recommendedBy) {
-        // Upsert user metadata for work rec (already added by user)
-        await UserFicMetadata.upsert({
-          userID: interaction.user.id,
-          ao3ID: rec.ao3ID,
-          seriesId: rec.seriesId || null,
-          rec_note: notes || null,
-          additional_tags: additionalTags || [],
-          manual_title: manualTitle || null,
-          manual_authors: manualAuthor ? [manualAuthor] : null,
-          manual_summary: manualSummary || null,
-          manual_wordcount: manualWordCount || null,
-          manual_rating: manualRating || null,
-          manual_chapters: manualChapters || null,
-          manual_status: manualStatus || null,
-          manual_archive_warnings: manualArchiveWarnings || null,
-          manual_seriesName: manualSeriesName || null,
-          manual_seriesPart: manualSeriesPart || null,
-          manual_seriesUrl: manualSeriesUrl || null
-        });
+        // UserFicMetadata already saved above via saveUserMetadata
         if (interaction.user.id === '638765542739673089') {
           return await interaction.editReply({
             content: `Alright, overachiever—*${existingRec.title}* is already in the library${addedDate ? `, since ${addedDate}` : ''}. I swear, I’m not lying to you. (But if you want to recommend it a third time, I’ll start keeping score.)`
@@ -251,30 +194,35 @@ export default async function handleAddRecommendation(interaction) {
           content: `Dude. You already added *${existingRec.title}* to the library${addedDate ? `, on ${addedDate}` : ''}. I know you’re excited, but even I can’t recommend the same fic twice. (Nice try though.)`
         });
       }
-      // Upsert user metadata for work rec (already added by someone else)
-      await UserFicMetadata.upsert({
-        userID: interaction.user.id,
-        ao3ID: rec.ao3ID,
-        seriesId: rec.seriesId || null,
-        rec_note: notes || null,
-        additional_tags: additionalTags || [],
-        manual_title: manualTitle || null,
-        manual_authors: manualAuthor ? [manualAuthor] : null,
-        manual_summary: manualSummary || null,
-        manual_wordcount: manualWordCount || null,
-        manual_rating: manualRating || null,
-        manual_chapters: manualChapters || null,
-        manual_status: manualStatus || null,
-        manual_archive_warnings: manualArchiveWarnings || null,
-        manual_seriesName: manualSeriesName || null,
-        manual_seriesPart: manualSeriesPart || null,
-        manual_seriesUrl: manualSeriesUrl || null
-      });
+      // UserFicMetadata already saved above via saveUserMetadata
       return await interaction.editReply({
         content: `*${existingRec.title}* was already added to the library by **${existingRec.recommendedByUsername}**${addedDate ? `, on ${addedDate}` : ''}! Great minds think alike though.`
       });
     }
-    // Use modular queue utility
+    // Step 1: Save user metadata immediately using new architecture
+    const manualFields = {};
+    if (manualTitle) manualFields.title = manualTitle;
+    if (manualAuthor) manualFields.author = manualAuthor;
+    if (manualSummary) manualFields.summary = manualSummary;
+    if (manualWordCount) manualFields.wordCount = manualWordCount;
+    if (manualRating) manualFields.rating = manualRating;
+    if (manualChapters) manualFields.chapters = manualChapters;
+    if (manualStatus) manualFields.status = manualStatus;
+    if (manualArchiveWarnings) manualFields.archiveWarnings = manualArchiveWarnings;
+    if (manualSeriesName) manualFields.seriesName = manualSeriesName;
+    if (manualSeriesPart) manualFields.seriesPart = manualSeriesPart;
+    if (manualSeriesUrl) manualFields.seriesUrl = manualSeriesUrl;
+
+    // Save user metadata immediately (before queue processing)
+    await saveUserMetadata({
+      url,
+      user: interaction.user,
+      notes: notes || '',
+      additionalTags: additionalTags || [],
+      manualFields
+    });
+
+    // Step 2: Queue URL only (no user metadata in payload)
     const { queueEntry, status, message } = await createOrJoinQueueEntry(url, interaction.user.id);
     if (status === 'processing') {
       return await interaction.editReply({
@@ -284,27 +232,8 @@ export default async function handleAddRecommendation(interaction) {
       // Return cached result: fetch Recommendation and build embed directly (no AO3 access)
       const rec = await Recommendation.findOne({ where: { url } });
       if (rec) {
-        // Upsert all user manual metadata fields for work rec (queue done)
-        await UserFicMetadata.upsert({
-          userID: interaction.user.id,
-          ao3ID: rec.ao3ID,
-          seriesId: rec.seriesId || null,
-          rec_note: notes || null,
-          additional_tags: additionalTags || [],
-          manual_title: manualTitle || null,
-          manual_authors: manualAuthor ? [manualAuthor] : null,
-          manual_summary: manualSummary || null,
-          manual_wordcount: manualWordCount || null,
-          manual_rating: manualRating || null,
-          manual_chapters: manualChapters || null,
-          manual_status: manualStatus || null,
-          manual_archive_warnings: manualArchiveWarnings || null,
-          manual_seriesName: manualSeriesName || null,
-          manual_seriesPart: manualSeriesPart || null,
-          manual_seriesUrl: manualSeriesUrl || null
-        });
-        // --- Update-like logic for new recs ---
-        // Only allow manual entry for fields that are not modlocked, not notes, not invalid/malformed, and not an exact case match
+        // UserFicMetadata already saved above, just build embed
+        const recWithSeries = await fetchRecWithSeries(rec.id, true);
         // For additional tags, always concat (deduplication later)
 
         const recFields = {};
@@ -356,9 +285,13 @@ export default async function handleAddRecommendation(interaction) {
         // Update Recommendation if any fields are valid
         if (Object.keys(recFields).length > 0) {
           await rec.update(recFields);
+          // Refresh recWithSeries after update
+          const updatedRecWithSeries = await fetchRecWithSeries(rec.id, true);
+          const embed = await createRecommendationEmbed(updatedRecWithSeries);
+        } else {
+          // Use existing recWithSeries
+          const embed = await createRecommendationEmbed(recWithSeries);
         }
-        const recWithSeries = await fetchRecWithSeries(rec.id, true);
-        const embed = await createRecommendationEmbed(recWithSeries);
         await interaction.editReply({
             content: null,
             embeds: [embed]
