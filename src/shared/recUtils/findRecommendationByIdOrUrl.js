@@ -3,7 +3,7 @@
 import { Op } from 'sequelize';
 import updateMessages from '../text/updateMessages.js';
 import normalizeAO3Url from './normalizeAO3Url.js';
-import { Recommendation } from '../../models/index.js';
+import { Recommendation, Series } from '../../models/index.js';
 
 
 /**
@@ -19,7 +19,21 @@ async function findRecommendationByIdOrUrl(interaction, identifier) {
         throw new Error(updateMessages.needIdentifier);
     }
     let recommendation = null;
-    // Try as integer ID
+    
+    // Check for series ID with S prefix (e.g., S123)
+    if (/^S\d+$/i.test(identifier)) {
+        const seriesIdNum = parseInt(identifier.substring(1), 10);
+        const series = await Series.findOne({ where: { id: seriesIdNum } });
+        if (series) {
+            // Find any recommendation from this series to represent it
+            recommendation = await Recommendation.findOne({ 
+                where: { ao3SeriesId: series.ao3SeriesId } 
+            });
+            if (recommendation) return recommendation;
+        }
+    }
+    
+    // Try as integer ID for recommendations
     if (/^\d+$/.test(identifier)) {
         const idNum = parseInt(identifier, 10);
         recommendation = await Recommendation.findOne({ where: { id: idNum } });

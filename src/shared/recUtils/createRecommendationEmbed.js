@@ -327,7 +327,7 @@ async function createRecommendationEmbed(rec, series = null, seriesWorks = null)
             .setColor(color)
             .setTimestamp()
             .setFooter({
-                text: `From the Profound Bond Library • Series ID: ${series.id}`
+                text: `From the Profound Bond Library • Series ID: S${series.id}`
             });
         // Summary: prefer series.summary, fallback to first available work summary
         let summary = series.summary;

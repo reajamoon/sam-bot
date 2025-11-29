@@ -1,6 +1,6 @@
 import Discord from 'discord.js';
 const { MessageFlags } = Discord;
-import { Recommendation } from '../../../../models/index.js';
+import { Recommendation, Series } from '../../../../models/index.js';
 import findRecommendationByIdOrUrl from '../../../../shared/recUtils/findRecommendationByIdOrUrl.js';
 
 // Removes a rec from the library. Only owner or mods can do it.
@@ -32,16 +32,27 @@ export default async function handleRemoveRecommendation(interaction) {
                 content: `That recommendation was added by ${recommendation.recommendedByUsername}. You can only remove your own recommendations unless you're a moderator.`
             });
         }
-        // If this is a series rec, also remove all works in the series
-        if (recommendation.series_works && Array.isArray(recommendation.series_works) && recommendation.series_works.length > 0) {
-            const workUrls = recommendation.series_works.map(w => w.url);
-            const worksToRemove = await Recommendation.findAll({ where: { url: workUrls } });
-            for (const work of worksToRemove) {
-                await work.destroy();
+        // If this is a series rec, remove all associated works and the series record
+        if (recommendation.ao3SeriesId) {
+            // Remove all recommendations that belong to this series
+            const seriesRecs = await Recommendation.findAll({ 
+                where: { ao3SeriesId: recommendation.ao3SeriesId } 
+            });
+            for (const rec of seriesRecs) {
+                await rec.destroy();
             }
+            
+            // Remove the series record itself
+            const seriesRecord = await Series.findOne({ 
+                where: { ao3SeriesId: recommendation.ao3SeriesId } 
+            });
+            if (seriesRecord) {
+                await seriesRecord.destroy();
+            }
+        } else {
+            // Remove individual recommendation
+            await recommendation.destroy();
         }
-        // Remove the recommendation itself
-        await recommendation.destroy();
         await interaction.editReply({
             content: `Successfully removed "${recommendation.title}" by ${recommendation.author} from the Profound Bond library.`
         });
