@@ -82,11 +82,14 @@ async function notifyQueueSubscribers(client) {
             let embed = null;
             let recWithSeries = null;
             if (job.result && job.result.id) {
+                console.log(`[Poller] DEBUG - job.result:`, JSON.stringify(job.result, null, 2));
                 // Use fetchRecWithSeries to get rec, series, and series works
                 const { fetchRecWithSeries } = await import('../../../models/fetchRecWithSeries.js');
                 recWithSeries = await fetchRecWithSeries(job.result.id, true);
+                console.log(`[Poller] DEBUG - Initial fetchRecWithSeries result:`, recWithSeries ? 'found' : 'null');
                 // Handle case where job.result.id might be a series ID instead of rec ID (old job format)
                 if (!recWithSeries && job.result.type === 'series' && job.result.seriesId) {
+                    console.log(`[Poller] DEBUG - Trying fallback for series ID:`, job.result.seriesId);
                     // Try to find the primary recommendation for this series
                     const { Recommendation } = await import('../../../models/index.js');
                     const primaryRec = await Recommendation.findOne({
@@ -95,8 +98,10 @@ async function notifyQueueSubscribers(client) {
                             notPrimaryWork: false
                         }
                     });
+                    console.log(`[Poller] DEBUG - Primary rec found:`, primaryRec ? primaryRec.id : 'null');
                     if (primaryRec) {
                         recWithSeries = await fetchRecWithSeries(primaryRec.id, true);
+                        console.log(`[Poller] DEBUG - Fallback fetchRecWithSeries result:`, recWithSeries ? 'found' : 'null');
                     }
                 }
             }
