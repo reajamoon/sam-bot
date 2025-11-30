@@ -71,10 +71,6 @@ export default (sequelize) => {
             type: DataTypes.STRING,
             allowNull: true,
         },
-        seriesId: {
-            type: DataTypes.INTEGER,
-            allowNull: true,
-        },
         additional_tags: {
             type: DataTypes.JSONB,
             allowNull: true,

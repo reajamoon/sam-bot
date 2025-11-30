@@ -32,8 +32,23 @@ async function saveUserMetadata(options) {
       userID: user.id,
       rec_note: (notes && notes.trim()) || null,
       additional_tags: Array.isArray(additionalTags) ? additionalTags : [],
-      manual_fields: Object.keys(manualFields).length > 0 ? manualFields : null
     };
+
+    // Map manual fields to individual columns
+    if (manualFields && Object.keys(manualFields).length > 0) {
+      if (manualFields.manual_title) metadataRecord.manual_title = manualFields.manual_title;
+      if (manualFields.manual_authors) metadataRecord.manual_authors = manualFields.manual_authors;
+      if (manualFields.manual_summary) metadataRecord.manual_summary = manualFields.manual_summary;
+      if (manualFields.manual_tags) metadataRecord.manual_tags = manualFields.manual_tags;
+      if (manualFields.manual_rating) metadataRecord.manual_rating = manualFields.manual_rating;
+      if (manualFields.manual_wordcount) metadataRecord.manual_wordcount = manualFields.manual_wordcount;
+      if (manualFields.manual_chapters) metadataRecord.manual_chapters = manualFields.manual_chapters;
+      if (manualFields.manual_status) metadataRecord.manual_status = manualFields.manual_status;
+      if (manualFields.manual_archive_warnings) metadataRecord.manual_archive_warnings = manualFields.manual_archive_warnings;
+      if (manualFields.manual_seriesName) metadataRecord.manual_seriesName = manualFields.manual_seriesName;
+      if (manualFields.manual_seriesPart) metadataRecord.manual_seriesPart = manualFields.manual_seriesPart;
+      if (manualFields.manual_seriesUrl) metadataRecord.manual_seriesUrl = manualFields.manual_seriesUrl;
+    }
 
     // Set ID fields based on URL type
     if (siteInfo.site === 'ao3') {
