@@ -17,25 +17,25 @@ module.exports = {
 
     // Migrate existing data: populate ao3ID from recommendationId relationships
     await queryInterface.sequelize.query(`
-      UPDATE modlocks 
-      SET ao3ID = (
-        SELECT r.ao3ID 
-        FROM recommendations r 
-        WHERE r.id = modlocks.recommendationId
+      UPDATE modlocks
+      SET "ao3ID" = (
+        SELECT r."ao3ID"
+        FROM recommendations r
+        WHERE r.id = modlocks."recommendationId"
       )
-      WHERE recommendationId IS NOT NULL
+      WHERE "recommendationId" IS NOT NULL
     `);
 
     // Migrate existing data: populate seriesId from recommendationId relationships
     await queryInterface.sequelize.query(`
-      UPDATE modlocks 
-      SET seriesId = (
-        SELECT s.ao3SeriesId 
-        FROM series s 
-        JOIN recommendations r ON r.seriesId = s.id 
-        WHERE r.id = modlocks.recommendationId
+      UPDATE modlocks
+      SET "seriesId" = (
+        SELECT s."ao3SeriesId"
+        FROM series s
+        JOIN recommendations r ON r."seriesId" = s.id
+        WHERE r.id = modlocks."recommendationId"
       )
-      WHERE recommendationId IS NOT NULL
+      WHERE "recommendationId" IS NOT NULL
     `);
 
     // Remove the old recommendationId column and its foreign key constraint
@@ -56,14 +56,14 @@ module.exports = {
 
     // Try to migrate data back (may lose some data if recommendations were deleted)
     await queryInterface.sequelize.query(`
-      UPDATE modlocks 
-      SET recommendationId = (
-        SELECT r.id 
-        FROM recommendations r 
-        WHERE r.ao3ID = modlocks.ao3ID
+      UPDATE modlocks
+      SET "recommendationId" = (
+        SELECT r.id
+        FROM recommendations r
+        WHERE r."ao3ID" = modlocks."ao3ID"
         LIMIT 1
       )
-      WHERE ao3ID IS NOT NULL
+      WHERE "ao3ID" IS NOT NULL
     `);
 
     // Remove the new columns
