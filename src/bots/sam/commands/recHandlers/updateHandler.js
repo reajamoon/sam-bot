@@ -11,7 +11,7 @@ import { fetchRecWithSeries } from '../../../../models/fetchRecWithSeries.js';
 import { markPrimaryAndNotPrimaryWorks } from './seriesUtils.js';
 import normalizeRating from '../../../../shared/recUtils/normalizeRating.js';
 import { setModLock } from '../../../../shared/utils/modLockUtils.js';
-import { isFieldGloballyModlocked } from '../../../../shared/modlockUtils.js';
+import { isFieldGloballyModlockedFor } from '../../../../shared/modlockUtils.js';
 import { getLockedFieldsForRec } from '../../../../shared/getLockedFieldsForRec.js';
 import handleUpdateSeries from './seriesUpdateHandler.js';
 
@@ -96,7 +96,7 @@ export default async function handleUpdateRecommendation(interaction) {
 
         // --- Build modlock restrictions ---
         // Per-rec locks apply to both manual and queue modes
-        const perRecLockedFields = await getLockedFieldsForRec(recommendation);
+        const perRecLockedFields = await getLockedFieldsForRec(recommendation, interaction.user);
         // Global locks only apply to manual updates, not Jack processing
         const globalLockedFields = new Set();
         if (manualOnly) {
@@ -105,7 +105,7 @@ export default async function handleUpdateRecommendation(interaction) {
                 'tags', 'notes', 'deleted', 'attachment'
             ];
             for (const field of allFields) {
-                if (await isFieldGloballyModlocked(field)) {
+                if (await isFieldGloballyModlockedFor(interaction.user, field)) {
                     globalLockedFields.add(field);
                 }
             }

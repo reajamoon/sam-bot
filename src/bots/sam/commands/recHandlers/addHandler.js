@@ -9,7 +9,7 @@ import { createRecEmbed } from '../../../../shared/recUtils/createRecEmbed.js';
 import { fetchRecWithSeries } from '../../../../models/fetchRecWithSeries.js';
 import normalizeRating from '../../../../shared/recUtils/normalizeRating.js';
 import { getLockedFieldsForRec } from '../../../../shared/getLockedFieldsForRec.js';
-import { isFieldGloballyModlocked } from '../../../../shared/modlockUtils.js';
+import { isFieldGloballyModlockedFor } from '../../../../shared/modlockUtils.js';
 // import { markPrimaryAndNotPrimaryWorks } from './seriesUtils.js';
 
 // Adds a new fic rec. Checks for duplicates, fetches metadata, and builds the embed.
@@ -84,7 +84,7 @@ export default async function handleAddRecommendation(interaction) {
     if (ao3ID) {
       rec = await Recommendation.findOne({ where: { ao3ID } });
       if (rec) {
-        const lockedFields = await getLockedFieldsForRec(rec);
+        const lockedFields = await getLockedFieldsForRec(rec, interaction.user);
         for (const field of lockedFields) modLocksByField[field] = true;
       }
     }
@@ -93,7 +93,7 @@ export default async function handleAddRecommendation(interaction) {
       'title','summary','status','language','category','attachmentUrl','authors','tags','character_tags','fandom_tags','archive_warnings','wordCount','part','manual_seriesPart','rating','chapters','publishedDate','updatedDate','manualTitle','manualAuthor','manualSummary','manualWordCount','manualRating','manualChapters','manualStatus','manualArchiveWarnings','manualSeriesName','manualSeriesPart','manualSeriesUrl','rec_note','additional_tags'
     ];
     for (const field of allFields) {
-      if (await isFieldGloballyModlocked(field)) {
+      if (await isFieldGloballyModlockedFor(interaction.user, field)) {
         modLocksByField[field] = true;
       }
     }

@@ -1,5 +1,5 @@
 // Utility for global modlock field checks using Config table
-import { Config } from '../models/index.js';
+import { Config, User } from '../models/index.js';
 let globalModlockedFieldsCache = null;
 
 /**
@@ -28,6 +28,28 @@ export async function getGlobalModlockedFields() {
 export async function isFieldGloballyModlocked(fieldName) {
   const fields = await getGlobalModlockedFields();
   return fields.has(fieldName);
+}
+
+/**
+ * Permission-aware global modlock check: locks apply only to members.
+ * Staff (mod/admin/superadmin) bypass global locks.
+ * @param {{ id: string }} requestingUser
+ * @param {string} fieldName
+ * @returns {Promise<boolean>}
+ */
+export async function isFieldGloballyModlockedFor(requestingUser, fieldName) {
+  try {
+    if (requestingUser && requestingUser.id) {
+      const userRecord = await User.findOne({ where: { discordId: requestingUser.id } });
+      const level = (userRecord?.permissionLevel || 'member').toLowerCase();
+      if (level !== 'member') {
+        return false;
+      }
+    }
+  } catch (e) {
+    // On lookup failure, fall through to member behavior
+  }
+  return isFieldGloballyModlocked(fieldName);
 }
 
 /**

@@ -5,7 +5,7 @@ import { Series } from '../../../../models/index.js';
 import createOrJoinQueueEntry from '../../../../shared/recUtils/createOrJoinQueueEntry.js';
 import normalizeAO3Url from '../../../../shared/recUtils/normalizeAO3Url.js';
 import normalizeRating from '../../../../shared/recUtils/normalizeRating.js';
-import { isFieldGloballyModlocked } from '../../../../shared/modlockUtils.js';
+import { isFieldGloballyModlockedFor } from '../../../../shared/modlockUtils.js';
 import { getLockedFieldsForSeries } from '../../../../shared/getLockedFieldsForSeries.js';
 
 // Helper to deduplicate and lowercase tags
@@ -95,12 +95,12 @@ export default async function handleUpdateSeries(interaction, identifier) {
         }
 
         // Build modlock restrictions for the provided fields
-        const perSeriesLockedFields = await getLockedFieldsForSeries(series);
+        const perSeriesLockedFields = await getLockedFieldsForSeries(series, interaction.user);
         const globalLockedFields = new Set();
         if (manualOnly) {
             const allFields = ['title', 'author', 'summary', 'tags', 'rating', 'notes', 'status', 'deleted'];
             for (const field of allFields) {
-                if (await isFieldGloballyModlocked(field)) {
+                if (await isFieldGloballyModlockedFor(interaction.user, field)) {
                     globalLockedFields.add(field);
                 }
             }

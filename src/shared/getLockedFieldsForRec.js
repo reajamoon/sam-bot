@@ -1,5 +1,5 @@
 // Utility to fetch all locked fields for a given recommendation or series from ModLock
-import { ModLock, Series } from '../models/index.js';
+import { ModLock, Series, User } from '../models/index.js';
 import { Op } from 'sequelize';
 
 /**
@@ -9,8 +9,21 @@ import { Op } from 'sequelize';
  * @param {Object} recommendation - Recommendation object with ao3ID and seriesID
  * @returns {Promise<Set<string>>}
  */
-export async function getLockedFieldsForRec(recommendation) {
+export async function getLockedFieldsForRec(recommendation, requestingUser = null) {
   if (!recommendation) return new Set();
+
+  // Mod locks apply only to members; staff bypass all locks
+  try {
+    if (requestingUser && requestingUser.id) {
+      const userRecord = await User.findOne({ where: { discordId: requestingUser.id } });
+      const level = (userRecord?.permissionLevel || 'member').toLowerCase();
+      if (level !== 'member') {
+        return new Set();
+      }
+    }
+  } catch (e) {
+    // On lookup failure, treat as member (locks apply)
+  }
   
   const whereConditions = [];
   
