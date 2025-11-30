@@ -40,12 +40,12 @@ export default (sequelize) => {
       primaryKey: true,
     },
     ao3ID: {
-      type: DataTypes.STRING,
+      type: DataTypes.INTEGER,
       allowNull: true,
       comment: 'AO3 Work ID for work-based locks',
     },
     seriesId: {
-      type: DataTypes.STRING,
+      type: DataTypes.INTEGER,
       allowNull: true,
       comment: 'AO3 Series ID for series-based locks',
     },
@@ -74,21 +74,13 @@ export default (sequelize) => {
       allowNull: false,
       defaultValue: DataTypes.NOW,
     },
-    recommendationId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'Recommendations',
-        key: 'id',
-      },
-      onDelete: 'CASCADE',
-    },
   }, {
     sequelize,
     modelName: 'ModLock',
     tableName: 'modlocks',
     indexes: [
-      { fields: ['recommendationId', 'field'] },
+      { fields: ['ao3ID', 'field'] },
+      { fields: ['seriesId', 'field'] },
     ],
   });
   return ModLock;
