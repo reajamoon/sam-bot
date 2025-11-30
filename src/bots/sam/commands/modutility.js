@@ -1,6 +1,7 @@
 
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { Recommendation, ModLock, User, Config, ParseQueue, ParseQueueSubscriber } from '../../../models/index.js';
+import { Op } from 'sequelize';
 
 export default {
   data: new SlashCommandBuilder()
@@ -221,7 +222,21 @@ export default {
       if (!rec) {
         return await interaction.reply({ content: `Recommendation ID ${recId} not found.`, flags: MessageFlags.Ephemeral });
       }
-      const lock = await ModLock.findOne({ where: { recommendationId: recId, field, locked: true } });
+      
+      // Find lock using ao3ID or seriesId
+      const whereConditions = [];
+      if (rec.ao3ID) {
+        whereConditions.push({ ao3ID: rec.ao3ID, field, locked: true });
+      }
+      if (rec.seriesId) {
+        whereConditions.push({ seriesId: rec.seriesId, field, locked: true });
+      }
+      
+      if (whereConditions.length === 0) {
+        return await interaction.reply({ content: `No AO3 ID or series ID found for rec ID ${recId}.`, flags: MessageFlags.Ephemeral });
+      }
+      
+      const lock = await ModLock.findOne({ where: { [Op.or]: whereConditions } });
       if (!lock) {
         return await interaction.reply({ content: `No active lock found for field "${field}" on rec ID ${recId}.`, flags: MessageFlags.Ephemeral });
       }
