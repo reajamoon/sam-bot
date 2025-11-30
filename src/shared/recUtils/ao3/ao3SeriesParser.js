@@ -93,7 +93,15 @@ function parseAO3SeriesMetadata(html, url) {
     const wordsMatch = statsText.match(/Words:\s*([\d,]+)/i);
     if (wordsMatch) metadata.wordCount = parseInt(wordsMatch[1].replace(/,/g, ''), 10);
 
-    // Remove series-level tags, rating, and status extraction (not present on AO3 series pages)
+    // Extract series completion status from stats block
+    // Look for <dt>Complete:</dt><dd>Yes</dd> or <dt>Complete:</dt><dd>No</dd>
+    const completeElement = $('dl.stats dt:contains("Complete:")').next('dd');
+    if (completeElement.length > 0) {
+        const completeText = completeElement.text().trim().toLowerCase();
+        metadata.status = (completeText === 'yes') ? 'Complete' : 'In Progress';
+    } else {
+        metadata.status = 'Unknown';
+    }
 
     return metadata;
 }
