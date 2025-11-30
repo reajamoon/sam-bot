@@ -13,8 +13,9 @@ export async function getLockedFieldsForSeries(series) {
     try {
         const modLocks = await ModLock.findAll({
             where: {
-                seriesId: series.ao3SeriesId,
+                seriesId: String(series.ao3SeriesId),
                 // For series, we use seriesId field instead of ao3ID
+                // Convert to string to match database column type
             }
         });
 
