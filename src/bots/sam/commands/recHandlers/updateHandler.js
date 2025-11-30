@@ -586,7 +586,7 @@ export default async function handleUpdateRecommendation(interaction) {
                 }
                 // If still not found, fallback to queue message
                 await interaction.editReply({
-                    content: 'Your fic has been added to the parsing queue! I'll notify you when it's ready.'
+                    content: "Your fic has been added to the parsing queue! I'll notify you when it's ready."
                 });
                 return;
             }
