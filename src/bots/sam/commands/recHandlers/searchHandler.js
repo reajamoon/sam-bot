@@ -62,7 +62,27 @@ export default async function handleSearchRecommendations(interaction) {
         whereClauses.push({ url: { [Op.iLike]: `%/works/${workIdQuery}` } });
     }
     if (urlQuery) {
-        whereClauses.push({ url: urlQuery.trim() });
+        const urlTrimmed = urlQuery.trim();
+        
+        // Check if URL is an AO3 series URL
+        const seriesMatch = urlTrimmed.match(/archiveofourown\.org\/series\/(\d+)/);
+        if (seriesMatch) {
+            const ao3SeriesId = parseInt(seriesMatch[1], 10);
+            // Search for series by AO3 series ID, then find recommendations from that series
+            searchingSeries = true;
+            // Find series by ao3SeriesId, then get its internal ID for later use
+            const { Series } = await import('../../../../models/index.js');
+            const series = await Series.findOne({ where: { ao3SeriesId } });
+            if (series) {
+                seriesId = series.id;
+            } else {
+                await interaction.editReply({ content: `No series found with AO3 ID ${ao3SeriesId}.` });
+                return;
+            }
+        } else {
+            // Regular URL search for works
+            whereClauses.push({ url: urlTrimmed });
+        }
     }
     if (titleQuery) {
         whereClauses.push({ title: { [Op.iLike]: `%${titleQuery.trim()}%` } });

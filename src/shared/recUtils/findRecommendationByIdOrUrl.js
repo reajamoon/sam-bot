@@ -53,8 +53,24 @@ async function findRecommendationByIdOrUrl(interaction, identifier) {
     // Try as URL
     if (/^https?:\/\//.test(identifier)) {
         const normalizedUrl = normalizeAO3Url(identifier);
-        recommendation = await Recommendation.findOne({ where: { url: normalizedUrl } });
-        if (recommendation) return recommendation;
+        
+        // Check if it's a series URL
+        const seriesMatch = normalizedUrl.match(/archiveofourown\.org\/series\/(\d+)/);
+        if (seriesMatch) {
+            const ao3SeriesId = parseInt(seriesMatch[1], 10);
+            // Find series by AO3 series ID, then get a representative recommendation
+            const series = await Series.findOne({ where: { ao3SeriesId } });
+            if (series) {
+                recommendation = await Recommendation.findOne({ 
+                    where: { seriesId: series.id } 
+                });
+                if (recommendation) return recommendation;
+            }
+        } else {
+            // Regular work URL
+            recommendation = await Recommendation.findOne({ where: { url: normalizedUrl } });
+            if (recommendation) return recommendation;
+        }
     }
     // Try as exact case-sensitive title
     recommendation = await Recommendation.findOne({ where: { title: identifier } });
