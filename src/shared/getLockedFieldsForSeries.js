@@ -13,18 +13,17 @@ export async function getLockedFieldsForSeries(series) {
     try {
         const modLocks = await ModLock.findAll({
             where: {
-                ao3ID: series.ao3SeriesId,
-                // For series, we expect the type to be 'series' or similar
-                // This allows for future expansion if we need different lock types
+                seriesId: series.ao3SeriesId,
+                // For series, we use seriesId field instead of ao3ID
             }
         });
 
         const lockedFields = new Set();
         for (const lock of modLocks) {
-            if (lock.fieldName === 'ALL') {
+            if (lock.field === 'ALL') {
                 lockedFields.add('ALL');
             } else {
-                lockedFields.add(lock.fieldName);
+                lockedFields.add(lock.field);
             }
         }
 
