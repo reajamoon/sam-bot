@@ -135,7 +135,17 @@ async function processAO3Job(payload) {
       const validation = validateDeanCasRec(fandomTags, relationshipTags);
       
       if (!validation.valid) {
-        return { error: 'validation_failed', error_message: validation.reason || 'Failed Dean/Cas validation' };
+        // Defensive: re-check override just in case it was created during requeue
+        try {
+          const workOverride = ao3ID ? await ModLock.findOne({ where: { ao3ID, field: 'validation_override', locked: true } }) : null;
+          if (workOverride) {
+            console.log('[processAO3Job] Post-validation override detected; allowing work to pass.', { ao3ID });
+          } else {
+            return { error: 'validation_failed', error_message: validation.reason || 'Failed Dean/Cas validation' };
+          }
+        } catch {
+          return { error: 'validation_failed', error_message: validation.reason || 'Failed Dean/Cas validation' };
+        }
       }
     } catch (err) {
       console.error('[processAO3Job] Error in Dean/Cas validation:', err);
