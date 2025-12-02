@@ -19,6 +19,10 @@ async function notifyQueueSubscribers(client) {
         });
         heartbeat_n = nOTPJobs.length;
         for (const job of nOTPJobs) {
+            // Skip if we've already sent a modmail for this nOTP job
+            if (job.result && job.result.notified) {
+                continue;
+            }
             const subscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: job.id } });
             const userIds = subscribers.map(s => s.user_id);
             const users = userIds.length ? await User.findAll({ where: { discordId: userIds } }) : [];
@@ -75,10 +79,17 @@ async function notifyQueueSubscribers(client) {
             } catch (err) {
                 console.error('[Poller] Failed to send modmail notification or create thread for nOTP job:', err, `job id: ${job.id}, url: ${job.fic_url}`);
             }
+            // After notifying, clear subscribers to avoid duplicate mentions, but keep the job
             if (subscribers.length) {
                 await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
             }
-            await ParseQueue.destroy({ where: { id: job.id } });
+            // Mark as notified so we don't spam modmail; keep status 'nOTP' for override command
+            try {
+                const existingResult = job.result && typeof job.result === 'object' ? job.result : {};
+                await job.update({ result: { ...existingResult, notified: true } });
+            } catch (err) {
+                console.error('[Poller] Failed to mark nOTP job as notified:', err, `job id: ${job.id}, url: ${job.fic_url}`);
+            }
         }
 
         // Notify for completed jobs
