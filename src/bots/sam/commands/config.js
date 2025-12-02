@@ -8,7 +8,7 @@ function isStaff(userRow) {
   return level === 'admin' || level === 'superadmin' || level === 'mod';
 }
 
-export const data = new SlashCommandBuilder()
+const data = new SlashCommandBuilder()
   .setName('config')
   .setDescription('Admin: set runtime configuration flags')
   .addSubcommand(sub =>
@@ -24,7 +24,7 @@ export const data = new SlashCommandBuilder()
           .setRequired(true))
   );
 
-export default async function execute(interaction) {
+async function execute(interaction) {
   try {
     await interaction.deferReply({ ephemeral: true });
 
@@ -64,3 +64,7 @@ export default async function execute(interaction) {
     } catch {}
   }
 }
+
+// Provide both styles: named export and default object for backward compatibility
+export { data };
+export default { data, execute };

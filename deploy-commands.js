@@ -16,8 +16,15 @@ const commandsPath = join(__dirname, 'src', 'bots', 'sam', 'commands');
 const commandFiles = readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 for (const file of commandFiles) {
     const commandModule = await import(join(commandsPath, file));
-    const command = commandModule.default || commandModule;
-    commands.push(command.data.toJSON());
+    // Support both export styles:
+    // 1) default object with { data, execute }
+    // 2) named export `data` + default execute function
+    const dataExport = commandModule.data || (commandModule.default && commandModule.default.data);
+    if (!dataExport || typeof dataExport.toJSON !== 'function') {
+        console.warn(`Skipping command file ${file}: no SlashCommandBuilder 'data' export found.`);
+        continue;
+    }
+    commands.push(dataExport.toJSON());
 }
 
 // Construct and prepare an instance of the REST module
