@@ -7,11 +7,15 @@ const POLL_INTERVAL_MS = 10000;
 
 async function notifyQueueSubscribers(client) {
     try {
+        let heartbeat_n = 0;
+        let heartbeat_done = 0;
+        let heartbeat_series_done = 0;
         // Notify for jobs that failed Dean/Cas validation (nOTP)
         const nOTPJobs = await ParseQueue.findAll({
             where: { status: 'nOTP' },
             include: [{ model: ParseQueueSubscriber, as: 'subscribers' }]
         });
+        heartbeat_n = nOTPJobs.length;
         for (const job of nOTPJobs) {
             const subscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: job.id } });
             const userIds = subscribers.map(s => s.user_id);
@@ -80,12 +84,14 @@ async function notifyQueueSubscribers(client) {
             where: { status: 'done' },
             include: [{ model: ParseQueueSubscriber, as: 'subscribers' }]
         });
+        heartbeat_done = doneJobs.length;
         
         // Notify for completed series jobs
         const seriesDoneJobs = await ParseQueue.findAll({
             where: { status: 'series-done' },
             include: [{ model: ParseQueueSubscriber, as: 'subscribers' }]
         });
+        heartbeat_series_done = seriesDoneJobs.length;
         
         // Process regular done jobs
         for (const job of doneJobs) {
@@ -225,6 +231,8 @@ async function notifyQueueSubscribers(client) {
     } catch (err) {
         console.error('Error in queue notification poller:', err);
     }
+    // Heartbeat: summarize this cycle's job counts
+    console.log(`[Poller] Heartbeat — nOTP: ${heartbeat_n}, done: ${heartbeat_done}, series-done: ${heartbeat_series_done}`);
 }
 
 

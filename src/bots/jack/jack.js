@@ -271,9 +271,7 @@ async function pollQueue() {
 			} else {
 				// No pending jobs, wait before polling again (randomize 4–7s)
 				const idleDelay = 4000 + Math.floor(Math.random() * 3000);
-				console.log(`[QueueWorker] No pending jobs. Waiting idle delay: ${idleDelay}ms`);
 				await new Promise(res => setTimeout(res, idleDelay));
-				console.log(`[QueueWorker] Finished idle delay at ${new Date().toISOString()}`);
 			}
 		} catch (err) {
 			console.error('[QueueWorker] Polling error:', err);
