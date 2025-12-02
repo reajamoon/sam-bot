@@ -42,6 +42,67 @@ async function handleButton(interaction) {
     }
     try {
         const customId = interaction.customId;
+            // nOTP modmail buttons
+            if (customId && (customId.startsWith('notp_approve:') || customId.startsWith('notp_dismiss:'))) {
+                const action = customId.split(':')[0].replace('notp_', '');
+                const jobId = parseInt(customId.split(':')[1], 10);
+                const { ParseQueue, ParseQueueSubscriber, User, ModLock } = await import('../../../models/index.js');
+                const job = await ParseQueue.findByPk(jobId);
+                if (!job) {
+                    await interaction.reply({ content: 'I can’t find that job, it might be cleaned up.', flags: EPHEMERAL_FLAG });
+                    return;
+                }
+                if (job.status !== 'nOTP') {
+                    await interaction.reply({ content: `That’s not a nOTP job (current: ${job.status}).`, flags: EPHEMERAL_FLAG });
+                    return;
+                }
+                if (action === 'approve') {
+                    // Persist validation override and requeue
+                    try {
+                        const workMatch = job.fic_url && job.fic_url.match(/archiveofourown\.org\/works\/(\d+)/);
+                        const seriesMatch = job.fic_url && job.fic_url.match(/archiveofourown\.org\/series\/(\d+)/);
+                        const lockPayload = {
+                            field: 'validation_override',
+                            locked: true,
+                            lockLevel: 'mod',
+                            lockedBy: interaction.user.id,
+                            lockedAt: new Date()
+                        };
+                        if (workMatch) lockPayload.ao3ID = parseInt(workMatch[1], 10);
+                        if (!workMatch && seriesMatch) lockPayload.seriesId = parseInt(seriesMatch[1], 10);
+                        if (lockPayload.ao3ID || lockPayload.seriesId) {
+                            await ModLock.create(lockPayload);
+                        }
+                        // Requeue the job
+                        await job.update({ status: 'pending', validation_reason: null, error_message: null });
+                        // Re-add submitter as subscriber if present
+                        if (job.requested_by) {
+                            const submitter = await User.findOne({ where: { discordId: job.requested_by } });
+                            if (!submitter || submitter.queueNotifyTag !== false) {
+                                await ParseQueueSubscriber.create({ queue_id: job.id, user_id: job.requested_by }).catch(() => {});
+                            }
+                        }
+                        // Update message to reflect approval
+                        await interaction.reply({ content: 'Approved and requeued. I’ll skip validation next time.', flags: EPHEMERAL_FLAG });
+                        // Optionally disable buttons
+                        try {
+                            await interaction.message.edit({ components: [] });
+                        } catch {}
+                    } catch (e) {
+                        console.error('[ButtonHandler] Failed to approve & requeue nOTP job:', e);
+                        await interaction.reply({ content: 'Couldn’t approve & requeue. Try `/modutility override_validation`.', flags: EPHEMERAL_FLAG });
+                    }
+                    return;
+                } else if (action === 'dismiss') {
+                    // Keep job as nOTP; acknowledge
+                    await interaction.reply({ content: 'Dismissed. I’ll keep this flagged for validation.', flags: EPHEMERAL_FLAG });
+                    // Optionally disable buttons to prevent repeated actions
+                    try {
+                        await interaction.message.edit({ components: [] });
+                    } catch {}
+                    return;
+                }
+            }
     // logger.info(`[ButtonHandler] Received button interaction: customId=${customId}`);
 
         // Rec search pagination buttons

@@ -58,7 +58,7 @@ async function notifyQueueSubscribers(client) {
                 // Fallback when no submitter or subscribers are present
                 contentMsg += `\n**Submitted by:** Unknown`;
             }
-            contentMsg += `\n\nIf this was flagged by mistake, you can approve it manually. Otherwise, you can let the member know why their fic was bounced by using @relay in this thread.`;
+            contentMsg += `\n\nIf this got flagged by mistake, go ahead and approve it. Otherwise, use @relay in this thread and I’ll pass a note to them about why it got bounced.`;
             try {
                 // Try to get fic title from Recommendation if it exists
                 let threadTitle = null;
@@ -76,6 +76,66 @@ async function notifyQueueSubscribers(client) {
                     autoArchiveDuration: 1440, // 24 hours
                     reason: 'AO3 rec validation failed (nOTP)'
                 });
+                // Send action buttons inside the thread for intuitive mod actions
+                try {
+                    // Compose a detailed thread summary to preserve mod relay expectations
+                    let threadSummary = `🔗 <${job.fic_url}>`;
+                    if (job.validation_reason) threadSummary += `\n**Validation reason:** ${job.validation_reason}`;
+                    // Build submitter + subscribers mention list similar to channel message
+                    let submitterMention = '';
+                    if (job.requested_by) {
+                        const submitterId = job.requested_by.split(',')[0].trim();
+                        if (submitterId) submitterMention = `<@${submitterId}>`;
+                    }
+                    const subscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: job.id } });
+                    const userIds = subscribers.map(s => s.user_id);
+                    const users = userIds.length ? await User.findAll({ where: { discordId: userIds } }) : [];
+                    let mentionList = users.filter(u => u.queueNotifyTag !== false).map(u => `<@${u.discordId}>`).filter(m => m !== submitterMention);
+                    let allMentions = submitterMention;
+                    if (mentionList.length) allMentions += (allMentions ? ' ' : '') + mentionList.join(' ');
+                    if (allMentions) {
+                        threadSummary += `\n**Submitted by:** ${allMentions}`;
+                    } else {
+                        threadSummary += `\n**Submitted by:** Unknown`;
+                    }
+                    await thread.send({ content: threadSummary });
+                    // Try to include a compact summary embed for context
+                    try {
+                        const rec = await Recommendation.findOne({ where: { url: job.fic_url } });
+                        if (rec) {
+                            const embed = createRecEmbed(rec);
+                            await thread.send({ embeds: [embed] });
+                        } else {
+                            await thread.send({ content: `Context: <${job.fic_url}>` });
+                        }
+                    } catch (ctxErr) {
+                        console.error('[Poller] Failed to send context embed in thread:', ctxErr);
+                    }
+                    await thread.send({
+                        content: 'Mod tools:',
+                        components: [
+                            {
+                                type: 1,
+                                components: [
+                                    {
+                                        type: 2,
+                                        style: 3,
+                                        label: 'Approve & requeue',
+                                        custom_id: `notp_approve:${job.id}`
+                                    },
+                                    {
+                                        type: 2,
+                                        style: 2,
+                                        label: 'Dismiss (keep nOTP)',
+                                        custom_id: `notp_dismiss:${job.id}`
+                                    }
+                                ]
+                            }
+                        ]
+                    });
+                } catch (btnErr) {
+                    console.error('[Poller] Failed to send mod buttons in thread:', btnErr);
+                }
             } catch (err) {
                 console.error('[Poller] Failed to send modmail notification or create thread for nOTP job:', err, `job id: ${job.id}, url: ${job.fic_url}`);
             }

@@ -80,20 +80,40 @@ export default {
     const sub = interaction.options.getSubcommand();
     if (sub === 'override_validation') {
       if (!isMod) {
-        return await interaction.reply({ content: 'Only moderators can use this command.', flags: MessageFlags.Ephemeral });
+        return await interaction.reply({ content: 'You need mod permission for this one.', flags: MessageFlags.Ephemeral });
       }
       const ficUrl = interaction.options.getString('fic_url');
       const note = interaction.options.getString('note');
       const isSeries = ficUrl.includes('/series/');
       const noun = isSeries ? 'Series' : 'Fic';
+      // Persist a validation override lock immediately so future runs skip validation,
+      // even if the fic isn't currently in the queue
+      try {
+        const workMatch = ficUrl.match(/archiveofourown\.org\/works\/(\d+)/);
+        const seriesMatch = ficUrl.match(/archiveofourown\.org\/series\/(\d+)/);
+        const lockPayload = {
+          field: 'validation_override',
+          locked: true,
+          lockLevel: 'mod',
+          lockedBy: interaction.user.id,
+          lockedAt: new Date()
+        };
+        if (workMatch) lockPayload.ao3ID = parseInt(workMatch[1], 10);
+        if (!workMatch && seriesMatch) lockPayload.seriesId = parseInt(seriesMatch[1], 10);
+        if (lockPayload.ao3ID || lockPayload.seriesId) {
+          await ModLock.create(lockPayload);
+        }
+      } catch (lockErr) {
+        console.error('[modutility] Failed to persist validation override lock:', lockErr);
+      }
       // Try to find the fic in the queue (nOTP or pending)
       let job = await ParseQueue.findOne({ where: { fic_url: ficUrl } });
       if (!job) {
-        return await interaction.reply({ content: `No queue entry found for <${ficUrl}>. If you need to force requeue, add it normally first.`, flags: MessageFlags.Ephemeral });
+        return await interaction.reply({ content: `I set the validation override for <${ficUrl}>. Add it to the queue and I’ll skip validation next run.`, flags: MessageFlags.Ephemeral });
       }
       // Only allow override if status is nOTP or error
       if (!['nOTP', 'error'].includes(job.status)) {
-        return await interaction.reply({ content: `This ${isSeries ? 'series' : 'fic'} is not flagged as nOTP or error. Current status: ${job.status}`, flags: MessageFlags.Ephemeral });
+        return await interaction.reply({ content: `This ${isSeries ? 'series' : 'fic'} isn’t flagged (current: ${job.status}).`, flags: MessageFlags.Ephemeral });
       }
       // Find the original submitter (requested_by)
       const originalSubmitterId = job.requested_by;
@@ -117,9 +137,9 @@ export default {
       if (modmailChannelId) {
         const modmailChannel = interaction.client.channels.cache.get(modmailChannelId);
         if (modmailChannel) {
-          let modmailMsg = `✅ Okay, I just approved and requeued this ${isSeries ? 'series' : 'fic'} after a mod review: <${ficUrl}>\nSubmitted by: <@${originalSubmitterId}>\nApproved by: <@${interaction.user.id}>`;
+          let modmailMsg = `✅ Okay, I approved and requeued this ${isSeries ? 'series' : 'fic'} after a mod review: <${ficUrl}>\nSubmitted by: <@${originalSubmitterId}>\nApproved by: <@${interaction.user.id}>`;
           if (note) modmailMsg += `\nNote: ${note}`;
-          modmailMsg += `\n> If you have questions or want to leave a note for the submitter, just reply in this thread and I’ll send it along.`;
+          modmailMsg += `\n> Got questions or want me to relay a note to them? Reply here and I’ll DM them.`;
           // Start a thread for this modmail message
           const threadName = ficUrl.length > 80 ? ficUrl.slice(0, 77) + '...' : ficUrl;
           const modmailMsgObj = await modmailChannel.send({ content: modmailMsg });
@@ -139,14 +159,14 @@ export default {
           const dmUser = await interaction.client.users.fetch(originalSubmitterId);
           if (dmUser) {
             await dmUser.send({
-              content: `Hey, just a heads up: your ${isSeries ? 'series' : 'fic'} <${ficUrl}> was reviewed and approved by a mod. I’ve put it back in the queue for you, so you’ll get updates as it moves through the stacks. Thanks for sticking with it.`
+              content: `Hey, quick heads up. Your ${isSeries ? 'series' : 'fic'} <${ficUrl}> got a mod thumbs-up, so I put it back in the queue. You’ll get updates as it moves through. Thanks for sticking with it.`
             });
           }
         }
       } catch (err) {
         // Ignore DM errors
       }
-      return await interaction.reply({ content: `${noun} <${ficUrl}> has been approved and requeued.`, flags: MessageFlags.Ephemeral });
+      return await interaction.reply({ content: `${noun} <${ficUrl}> approved, override set, and requeued.`, flags: MessageFlags.Ephemeral });
     }
 
     // Logging for upsert/debug
@@ -159,19 +179,19 @@ export default {
     }
     if (sub === 'modmailchannelset') {
       if (!isSuperadmin) {
-        return await interaction.reply({ content: 'Only superadmins can set the modmail channel.', flags: MessageFlags.Ephemeral });
+        return await interaction.reply({ content: 'You need superadmin for this.', flags: MessageFlags.Ephemeral });
       }
       const channelId = interaction.channelId;
       await Config.upsert({ key: 'modmail_channel_id', value: channelId });
-      return await interaction.reply({ content: `Set modmail channel ID to this channel (${channelId}).`, flags: MessageFlags.Ephemeral });
+      return await interaction.reply({ content: `Set modmail channel to this one (${channelId}).`, flags: MessageFlags.Ephemeral });
     }
     if (sub === 'setgloballocks') {
       if (!isSuperadmin) {
-        return await interaction.reply({ content: 'Only superadmins can set global modlocked fields.', flags: MessageFlags.Ephemeral });
+        return await interaction.reply({ content: 'You need superadmin for global locks.', flags: MessageFlags.Ephemeral });
       }
       const fields = interaction.options.getString('fields');
       await Config.upsert({ key: 'global_modlocked_fields', value: fields });
-      return await interaction.reply({ content: `Set global modlocked fields to: ${fields}`, flags: MessageFlags.Ephemeral });
+      return await interaction.reply({ content: `Global locks set: ${fields}`, flags: MessageFlags.Ephemeral });
     }
     if (sub === 'setmodlock') {
       const recId = interaction.options.getString('rec_id');
@@ -179,7 +199,7 @@ export default {
       const userId = interaction.user.id;
       const rec = await Recommendation.findByPk(recId);
       if (!rec) {
-        return await interaction.reply({ content: `Recommendation ID ${recId} not found.`, flags: MessageFlags.Ephemeral });
+        return await interaction.reply({ content: `I couldn’t find recommendation ID ${recId}.`, flags: MessageFlags.Ephemeral });
       }
       // Upsert user with permissionLevel if not present
       let level = 'mod';
