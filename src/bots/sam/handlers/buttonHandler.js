@@ -68,7 +68,7 @@ async function handleButton(interaction) {
                             lockedBy: interaction.user.id,
                             lockedAt: new Date()
                         };
-                        if (workMatch) lockPayload.ao3ID = parseInt(workMatch[1], 10);
+                        if (workMatch) lockPayload.ao3ID = String(parseInt(workMatch[1], 10));
                         if (!workMatch && seriesMatch) lockPayload.seriesId = parseInt(seriesMatch[1], 10);
                         if (lockPayload.ao3ID || lockPayload.seriesId) {
                             await ModLock.create(lockPayload);

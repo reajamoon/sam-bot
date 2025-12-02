@@ -106,7 +106,7 @@ export default {
           lockedBy: interaction.user.id,
           lockedAt: new Date()
         };
-        if (workMatch) lockPayload.ao3ID = parseInt(workMatch[1], 10);
+        if (workMatch) lockPayload.ao3ID = String(parseInt(workMatch[1], 10));
         if (!workMatch && seriesMatch) lockPayload.seriesId = parseInt(seriesMatch[1], 10);
         if (lockPayload.ao3ID || lockPayload.seriesId) {
           await ModLock.create(lockPayload);
@@ -192,7 +192,7 @@ export default {
         let workOverride = null;
         let seriesOverride = null;
         if (workId) {
-          workOverride = await ModLock.findOne({ where: { ao3ID: workId, field: 'validation_override', locked: true } });
+          workOverride = await ModLock.findOne({ where: { ao3ID: String(workId), field: 'validation_override', locked: true } });
         }
         if (seriesId) {
           seriesOverride = await ModLock.findOne({ where: { seriesId: seriesId, field: 'validation_override', locked: true } });

@@ -86,7 +86,7 @@ async function processAO3Job(payload) {
     // Prefer ao3ID match; fallback to seriesId-based override
     const overrides = [];
     if (ao3ID) {
-      overrides.push(await ModLock.findOne({ where: { ao3ID, field: 'validation_override', locked: true } }));
+      overrides.push(await ModLock.findOne({ where: { ao3ID: String(ao3ID), field: 'validation_override', locked: true } }));
     }
     if (!overrides[0] && seriesId) {
       // Map DB seriesId to AO3 series numeric ID via Series.url
@@ -137,7 +137,7 @@ async function processAO3Job(payload) {
       if (!validation.valid) {
         // Defensive: re-check override just in case it was created during requeue
         try {
-          const workOverride = ao3ID ? await ModLock.findOne({ where: { ao3ID, field: 'validation_override', locked: true } }) : null;
+          const workOverride = ao3ID ? await ModLock.findOne({ where: { ao3ID: String(ao3ID), field: 'validation_override', locked: true } }) : null;
           if (workOverride) {
             console.log('[processAO3Job] Post-validation override detected; allowing work to pass.', { ao3ID });
           } else {
