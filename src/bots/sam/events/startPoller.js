@@ -173,30 +173,28 @@ async function notifyQueueSubscribers(client) {
         });
         heartbeat_error = errorJobs.length;
         for (const job of errorJobs) {
+            // Notify subscribers via DM and then clean up the job
             try {
-                const modmailConfig = await Config.findOne({ where: { key: 'modmail_channel_id' } });
-                const modmailChannelId = modmailConfig ? modmailConfig.value : null;
-                if (!modmailChannelId) {
-                    console.warn(`[Poller] No modmail_channel_id configured; skipping error notification for job id: ${job.id}, url: ${job.fic_url}`);
-                } else {
-                    const modmailChannel = client.channels.cache.get(modmailChannelId);
-                    if (modmailChannel) {
-                        const errMsg = job.error_message || 'Unknown error';
-                        let contentMsg = `Heads up: a fic parsing job hit an error and was dropped.`;
-                        contentMsg += `\n\n🔗 <${job.fic_url}>`;
-                        contentMsg += `\n**Error:** ${errMsg}`;
-                        const sent = await modmailChannel.send({ content: contentMsg });
-                        // no thread for errors; keep noise low
+                const subscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: job.id } });
+                const errMsg = job.error_message || 'Unknown error';
+                for (const sub of subscribers) {
+                    const user = await User.findOne({ where: { discordId: sub.user_id } });
+                    if (user && user.queueNotifyTag !== false) {
+                        const dmUser = await client.users.fetch(sub.user_id).catch(() => null);
+                        if (dmUser) {
+                            await dmUser.send({
+                                content: `Hey—quick heads up. Your fic job for <${job.fic_url}> hit an error and I had to drop it. (${errMsg})\n\nYou can try again, or tweak the URL if needed. To turn off these DMs, use \`/rec notifytag\`.`
+                            });
+                        }
                     }
                 }
             } catch (err) {
-                console.error('[Poller] Failed to send error notification for job:', err, `job id: ${job.id}, url: ${job.fic_url}`);
+                console.error('[Poller] Failed to DM subscribers for error job:', err, `job id: ${job.id}, url: ${job.fic_url}`);
             }
             // Clean up subscribers and delete job
-            const subscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: job.id } });
-            if (subscribers.length) {
+            try {
                 await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
-            }
+            } catch {}
             await ParseQueue.destroy({ where: { id: job.id } });
         }
         
