@@ -74,6 +74,7 @@ export default async function onMessageCreate(message) {
       // If modmail channel is a Forum, create a thread directly with the embed
       try {
         const { ChannelType } = await import('discord.js');
+        console.log('[cas.modmail] Creating thread. Channel type:', channel.type, 'Forum?', channel.type === ChannelType.GuildForum, 'User:', message.author.id);
         if (channel.type === ChannelType.GuildForum) {
           thread = await channel.threads.create({
             name: threadName,
@@ -81,26 +82,48 @@ export default async function onMessageCreate(message) {
             reason: 'User-initiated modmail (DM)',
             message: { embeds: [baseEmbed] }
           });
+          console.log('[cas.modmail] Forum thread created:', thread?.id);
         } else {
           const { PermissionFlagsBits, ChannelType } = await import('discord.js');
           const perms = channel.permissionsFor(client.user);
           if (!perms || (!perms.has(PermissionFlagsBits.CreatePublicThreads) && !perms.has(PermissionFlagsBits.CreatePrivateThreads))) {
             base = await channel.send({ embeds: [baseEmbed] });
             await message.reply("I can’t create threads in this channel. Please grant thread permissions or ping a mod.");
+            console.warn('[cas.modmail] Missing thread permissions. Base message id:', base?.id);
             return;
           }
           base = await channel.send({ embeds: [baseEmbed] });
+          console.log('[cas.modmail] Base message sent. base.id:', base?.id);
           // On regular text channels, start a public thread by default
           thread = await base.startThread({ name: threadName, autoArchiveDuration: 1440, reason: 'User-initiated modmail (DM)' });
+          console.log('[cas.modmail] startThread result:', thread?.id, 'isThread?', typeof thread?.isThread === 'function' ? thread.isThread() : null, 'ownerId:', thread?.ownerId);
           if (!thread || !thread.isThread()) {
             await message.reply("I sent the modmail message but couldn’t start the thread. Please ping a mod.");
+            console.error('[cas.modmail] startThread failed to return a ThreadChannel. base.id:', base?.id);
             return;
           }
         }
       } catch (e) {
+        console.error('[cas.modmail] Exception during thread creation:', e);
         await message.reply("I couldn't start a modmail thread here. Please ping a mod.");
         return;
       }
+      // Always post an intro message inside the thread and use its ID as anchor
+      try {
+        const intro = new EmbedBuilder()
+          .setColor(0x3b88c3)
+          .setTitle('Modmail Opened')
+          .setDescription('Use these to manage this ticket:')
+          .addFields(
+            { name: 'Show Ticket', value: '`@ticket` or `/ticket`', inline: true },
+            { name: 'Relay to User', value: '`@relay <message>`', inline: true },
+            { name: 'Close Ticket', value: '`@close` or `/close`', inline: true }
+          )
+          .setTimestamp(new Date());
+        const introMsg = await thread.send({ embeds: [intro] });
+        // Use thread intro as base anchor regardless of parent message
+        base = base || { id: introMsg.id };
+      } catch {}
       // Compute sequential ticket per bot (simple max+1; safe under single process)
       const last = await ModmailRelay.findOne({ where: { bot_name: 'cas' }, order: [['ticket_seq', 'DESC']] });
       const nextSeq = (last && last.ticket_seq ? last.ticket_seq : 0) + 1;
@@ -111,13 +134,14 @@ export default async function onMessageCreate(message) {
         ticket_number: ticket,
         ticket_seq: nextSeq,
         fic_url: null,
-        base_message_id: base.id,
+        base_message_id: base ? base.id : null,
         thread_id: thread.id,
         open: true,
         status: 'open',
         created_at: new Date(),
         last_user_message_at: new Date()
       });
+      console.log('[cas.modmail] Relay created:', { user_id: message.author.id, ticket, base_message_id: base ? base.id : null, thread_id: thread?.id });
       await message.reply(`I’ve opened a thread for you. Your ticket is ${ticket}. The moderators will reply shortly.`);
     } else if (isDM) {
       // Post into existing Cas-owned thread
@@ -158,7 +182,7 @@ export default async function onMessageCreate(message) {
           )
           .setFooter({ text: `Resumed by Cas • User ID: ${message.author.id}` })
           .setTimestamp(new Date());
-        const { ChannelType } = await import('discord.js');
+        const { ChannelType, EmbedBuilder } = await import('discord.js');
         const threadName2 = `ModMail: ${message.author.username}`.substring(0, 100);
         let base2 = null;
         let thread2 = null;
@@ -189,7 +213,23 @@ export default async function onMessageCreate(message) {
           await message.reply("I couldn't reopen the modmail thread. Please ping a mod.");
           return;
         }
-        await relay.update({ base_message_id: base2 ? base2.id : null, thread_id: thread2.id, last_user_message_at: new Date() });
+        // Post an intro in the reopened thread and use it as anchor if needed
+        try {
+          const intro2 = new EmbedBuilder()
+            .setColor(0x3b88c3)
+            .setTitle('Modmail Resumed')
+            .setDescription('Use these to manage this ticket:')
+            .addFields(
+              { name: 'Show Ticket', value: '`@ticket` or `/ticket`', inline: true },
+              { name: 'Relay to User', value: '`@relay <message>`', inline: true },
+              { name: 'Close Ticket', value: '`@close` or `/close`', inline: true }
+            )
+            .setTimestamp(new Date());
+          const introMsg2 = await thread2.send({ embeds: [intro2] });
+          await relay.update({ base_message_id: base2 ? base2.id : introMsg2.id, thread_id: thread2.id, last_user_message_at: new Date() });
+        } catch {
+          await relay.update({ base_message_id: base2 ? base2.id : null, thread_id: thread2.id, last_user_message_at: new Date() });
+        }
         await message.reply('Your modmail thread was missing; I’ve reopened it.');
       }
     }
