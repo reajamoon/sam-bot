@@ -8,6 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'url';
 import dotenv from 'dotenv';
 import logger from '../../shared/utils/logger.js';
 import BirthdayNotificationManager from './utils/birthdayNotifications.js';
+import registerSamCommands from './registerCommands.js';
 
 dotenv.config();
 
@@ -71,6 +72,8 @@ async function startBot() {
         logger.info('Database connection has been established successfully.');
         await sequelize.sync();
         logger.info('Database synchronized successfully.');
+        // Ensure slash commands are registered
+        await registerSamCommands(client);
         await client.login(process.env.BOT_TOKEN);
     } catch (error) {
         logger.error('Failed to start bot:', error);

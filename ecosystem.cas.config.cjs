@@ -1,21 +1,22 @@
-// PM2 ecosystem file for Jack (queue worker)
 module.exports = {
   apps: [
     {
-      name: 'jack',
-      script: './src/bots/jack/jack.js',
+      name: 'cas-bot',
+      script: 'node',
+      args: './src/bots/cas/cas.js',
+      watch: false,
       instances: 1,
       autorestart: true,
-      watch: false,
-      exec_mode: "fork",
+      exec_mode: "cluster",
       max_memory_restart: '700M',
       max_restarts: 5,
       restart_delay: 10000,
-      interpreter: 'node',
       env: {
         NODE_ENV: 'production',
+        CAS_BOT_TOKEN: process.env.CAS_BOT_TOKEN,
+        CAS_APP_ID: process.env.CAS_APP_ID,
         DATABASE_URL: process.env.DATABASE_URL
       }
     }
-  ],
+  ]
 };

@@ -12,7 +12,17 @@
     "migrate": "node migration-runner.mjs db:migrate",
     "db:seed": "node migration-runner.mjs db:seed:all",
     "db:reset": "node migration-runner.mjs db:migrate:undo:all && npm run migrate && npm run db:seed",
-    "deploy": "pm2 start ecosystem.sam.config.cjs --env production"
+    "deploy": "pm2 start ecosystem.sam.config.cjs --env production",
+    "start:dean": "node ./src/bots/dean/index.js",
+    "deploy:dean": "pm2 start ecosystem.dean.config.cjs --env production",
+    "start:cas": "node ./src/bots/cas/index.js",
+    "deploy:cas": "pm2 start ecosystem.cas.config.cjs --env production",
+    "register:sam": "node ./scripts/sam/deploy-commands.js",
+    "clear:sam": "node ./scripts/sam/clear-commands.js",
+    "register:dean": "node ./scripts/dean/deploy-commands.js",
+    "clear:dean": "node ./scripts/dean/clear-commands.js",
+    "register:cas": "node ./scripts/cas/deploy-commands.js",
+    "clear:cas": "node ./scripts/cas/clear-commands.js"
   },
   "keywords": [
     "discord",

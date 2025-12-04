@@ -6,6 +6,7 @@ import { Recommendation, Config } from '../../../../models/index.js';
 import { User } from '../../../../models/index.js';
 import createOrJoinQueueEntry from '../../../../shared/recUtils/createOrJoinQueueEntry.js';
 import { createRecEmbed } from '../../../../shared/recUtils/createRecEmbed.js';
+import { createSeriesEmbed } from '../../../../shared/recUtils/createSeriesEmbed.js';
 import { fetchRecWithSeries } from '../../../../models/fetchRecWithSeries.js';
 import normalizeRating from '../../../../shared/recUtils/normalizeRating.js';
 import { getLockedFieldsForRec } from '../../../../shared/getLockedFieldsForRec.js';
@@ -147,11 +148,46 @@ export default async function handleAddRecommendation(interaction) {
       const { Series } = await import('../../../../models/index.js');
       const existingSeries = await Series.findOne({ where: { url } });
       if (existingSeries) {
-        const addedDate = existingSeries.createdAt ? `<t:${Math.floor(new Date(existingSeries.createdAt).getTime()/1000)}:F>` : '';
-        // UserFicMetadata already saved above via saveUserMetadata
-        return await interaction.editReply({
-          content: `*${existingSeries.name || existingSeries.title || 'Series'}* (series) is already in the library${addedDate ? `, since ${addedDate}` : ''}.`
+        // Always attach per-user notes/tags on duplicates
+        await saveUserMetadata({
+          url: existingSeries.url,
+          user: interaction.user,
+          notes: notes || '',
+          additionalTags: additionalTags || []
         });
+        // If record is older than 3 days, queue for refresh with serialized notes/tags
+        const oneDayMs = 24 * 60 * 60 * 1000;
+        const ageMs = Date.now() - new Date(existingSeries.updatedAt || existingSeries.createdAt).getTime();
+        if (ageMs > oneDayMs) {
+          const { queueEntry } = await createOrJoinQueueEntry(existingSeries.url, interaction.user.id);
+          const additionalTagsString = Array.isArray(additionalTags)
+            ? additionalTags.join(', ')
+            : (typeof additionalTags === 'string' ? additionalTags : '');
+          await queueEntry.update({
+            notes: notes || '',
+            additional_tags: additionalTagsString || null
+          });
+          // Do not send embed now; poller will send one when refresh completes
+          await interaction.editReply({ content: null });
+          try { await interaction.deleteReply(); } catch {}
+          await interaction.followUp({
+            content: 'Saved your note and tags; refreshing the series now and will post the updated embed shortly.',
+            ephemeral: true
+          });
+          return;
+        } else {
+          // No refresh needed; send a single embed now with the user’s note override
+          const embed = await createSeriesEmbed({
+            series: existingSeries,
+            userId: interaction.user.id,
+            overrideNotes: notes || '',
+            includeAdditionalTags: additionalTags || []
+          });
+          return await interaction.editReply({
+            content: 'Saved your note and tags.',
+            embeds: [embed]
+          });
+        }
       }
       // Add the series to the processing queue (never fetch AO3 directly)
       const { queueEntry, status, message } = await createOrJoinQueueEntry(url, interaction.user.id);
@@ -192,23 +228,46 @@ export default async function handleAddRecommendation(interaction) {
     // Check if fic is already in the library
     const existingRec = await Recommendation.findOne({ where: { url } });
     if (existingRec) {
-      const addedDate = existingRec.createdAt ? `<t:${Math.floor(new Date(existingRec.createdAt).getTime()/1000)}:F>` : '';
-      // Sassiest message for user 638765542739673089 if they try to add their own rec again hehehe
-      if (interaction.user.id === existingRec.recommendedBy) {
-        // UserFicMetadata already saved above via saveUserMetadata
-        if (interaction.user.id === '638765542739673089') {
-          return await interaction.editReply({
-            content: `Alright, overachiever—*${existingRec.title}* is already in the library${addedDate ? `, since ${addedDate}` : ''}. I swear, I’m not lying to you. (But if you want to recommend it a third time, I’ll start keeping score.)`
-          });
-        }
+      // Always attach per-user notes/tags on duplicates
+      await saveUserMetadata({
+        url: existingRec.url,
+        user: interaction.user,
+        notes: notes || '',
+        additionalTags: additionalTags || []
+      });
+      // Queue for refresh if older than 3 days
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      const ageMs = Date.now() - new Date(existingRec.updatedAt || existingRec.createdAt).getTime();
+      if (ageMs > oneDayMs) {
+        const { queueEntry } = await createOrJoinQueueEntry(existingRec.url, interaction.user.id);
+        const additionalTagsString = Array.isArray(additionalTags)
+          ? additionalTags.join(', ')
+          : (typeof additionalTags === 'string' ? additionalTags : '');
+        await queueEntry.update({
+          notes: notes || '',
+          additional_tags: additionalTagsString || null
+        });
+        // Do not send embed now; poller will send one when refresh completes
+        await interaction.editReply({ content: null });
+        try { await interaction.deleteReply(); } catch {}
+        await interaction.followUp({
+          content: 'Saved your note and tags; refreshing the fic now and will post the updated embed shortly.',
+          ephemeral: true
+        });
+        return;
+      } else {
+        // No refresh needed; send a single embed now with the user’s note override
+        const recWithSeries = await fetchRecWithSeries(existingRec.id, true);
+        const embed = createRecEmbed(recWithSeries, {
+          overrideNotes: notes || '',
+          userId: interaction.user.id,
+          includeAdditionalTags: additionalTags || []
+        });
         return await interaction.editReply({
-          content: `Dude. You already added *${existingRec.title}* to the library${addedDate ? `, on ${addedDate}` : ''}. I know you’re excited, but even I can’t recommend the same fic twice. (Nice try though.)`
+          content: 'Saved your note and tags.',
+          embeds: [embed]
         });
       }
-      // UserFicMetadata already saved above via saveUserMetadata
-      return await interaction.editReply({
-        content: `*${existingRec.title}* was already added to the library by **${existingRec.recommendedByUsername}**${addedDate ? `, on ${addedDate}` : ''}! Great minds think alike though.`
-      });
     }
     // Step 1: Save user metadata immediately using new architecture
     const manualFields = {};

@@ -231,7 +231,7 @@ async function notifyQueueSubscribers(client) {
                         const dmUser = await client.users.fetch(sub.user_id).catch(() => null);
                         if (dmUser) {
                             await dmUser.send({
-                                content: `Hey—quick heads up. Your fic job for <${job.fic_url}> hit an error and I had to drop it. (${errMsg})\n\nYou can try again, or tweak the URL if needed. To turn off these DMs, use \`/rec notifytag\`.`
+                                content: `Hey, quick heads up. Your fic job for <${job.fic_url}> hit an error and I had to drop it. (${errMsg})\n\nYou can try again, or tweak the URL if needed. To turn off these DMs, use \`/rec notifytag\`.`
                             });
                         }
                     }
@@ -248,6 +248,14 @@ async function notifyQueueSubscribers(client) {
         
         // Process regular done jobs
         for (const job of doneJobs) {
+            // Skip silent refresh notifications triggered by duplicate-adds
+            try {
+                if (job.queue_notify_tag === 'silent-refresh') {
+                    await ParseQueueSubscriber.destroy({ where: { queue_id: job.id } });
+                    await ParseQueue.destroy({ where: { id: job.id } });
+                    continue;
+                }
+            } catch {}
             const subscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: job.id } });
             const userIds = subscribers.map(s => s.user_id);
             const users = userIds.length ? await User.findAll({ where: { discordId: userIds } }) : [];
