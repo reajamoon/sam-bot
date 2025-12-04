@@ -240,6 +240,10 @@ export default async function onMessageCreate(message) {
       const modmailChannelId = modmailConfig ? modmailConfig.value : null;
       const parent = message.channel.parent;
       if (parent && parent.id === modmailChannelId) {
+        // Only handle commands in threads owned by Cas
+        if (message.channel.ownerId !== message.client.user.id) {
+          return;
+        }
         const content = (message.content || '').trim();
         if (/^(@ticket|\/ticket)/i.test(content)) {
           const relayEntry = await ModmailRelay.findOne({ where: { thread_id: message.channel.id } });

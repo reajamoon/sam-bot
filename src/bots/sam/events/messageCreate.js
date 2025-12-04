@@ -82,6 +82,10 @@ export default {
                 console.log('[ModmailRelay] No modmail channel configured');
                 // Continue to message tracking
             } else if (parent.id === modmailConfig.value) {
+                // Only handle commands in threads owned by Sam
+                if (message.channel.ownerId !== message.client.user.id) {
+                    return;
+                }
                 // Don't relay the starter message
                 if (message.id === message.channel.id) {
                     // Continue to message tracking

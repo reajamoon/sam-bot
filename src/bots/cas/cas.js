@@ -29,6 +29,15 @@ client.once('ready', async () => {
   if (!ok) {
     console.warn('[cas] Emoji store did not initialize. Check guild ID env.');
   }
+  // Set presence: Listening
+  try {
+    client.user.setPresence({
+      activities: [{ name: 'Angel Radio', type: 2 }], // 2 = Listening
+      status: 'online'
+    });
+  } catch (e) {
+    console.warn('[cas] Failed to set presence:', e?.message || e);
+  }
 });
 
 client.on('interactionCreate', async interaction => {
