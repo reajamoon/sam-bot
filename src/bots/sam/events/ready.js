@@ -12,7 +12,7 @@ export default {
         console.log(`Hey, it's Sam. I'm online and ready to help out.`);
         // Set bot status
         client.user.setPresence({
-                activities: [{ name: 'The Family Business', type: 5 }],
+                activities: [{ name: '📚 Managing the library', type: 5 }],
                 status: 'online'
             });
         // Start poller and birthday manager
