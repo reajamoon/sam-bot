@@ -108,6 +108,40 @@ export default async function handleAddRecommendation(interaction) {
       }); // Not in updateMessages, but could be added if reused
     }
 
+      // Enforce per-user daily successful-add limit (count Recommendations)
+      try {
+        const { Config, Recommendation, Series } = await import('../../../../models/index.js');
+        const limitConfig = await Config.findOne({ where: { key: 'daily_rec_add_limit' } });
+        const dailyLimit = limitConfig && Number(limitConfig.value) > 0 ? Number(limitConfig.value) : 10; // default 10
+        const startOfDay = new Date();
+        startOfDay.setUTCHours(0, 0, 0, 0);
+        const { Op } = await import('sequelize');
+        const successfulRecAddsToday = await Recommendation.count({
+          where: {
+            recommendedBy: interaction.user.id,
+            createdAt: { [Op.gte]: startOfDay }
+          }
+        });
+        // Count series adds (requires Series.recommendedBy to be set)
+        const successfulSeriesAddsToday = await Series.count({
+          where: {
+            recommendedBy: interaction.user.id,
+            createdAt: { [Op.gte]: startOfDay }
+          }
+        });
+        const successfulAddsToday = successfulRecAddsToday + successfulSeriesAddsToday;
+        if (successfulAddsToday >= dailyLimit) {
+          const { MessageFlags } = await import('discord.js');
+          await interaction.followUp({
+            content: `You’ve hit today’s add limit (${dailyLimit}). Try again tomorrow, or ask a mod if you need a bump.`,
+            flags: MessageFlags.Ephemeral
+          });
+          return;
+        }
+      } catch (limitErr) {
+        console.warn('[rec add] Daily successful-add limit check failed; proceeding without limit:', limitErr);
+      }
+
     if (/archiveofourown\.org\/series\//.test(url)) {
       // Check if series already exists
       const { Series } = await import('../../../../models/index.js');
