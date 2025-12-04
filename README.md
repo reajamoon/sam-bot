@@ -15,11 +15,15 @@ Heya! If you’re reading this, you probably already know the deal. Destiel, Sup
 
 ## Project Overview
 
-- **Dual Bot Architecture:** Sam handles Discord interactions while Jack processes the fic metadata queue in the background. All features are split into dedicated command, handler, event, model, and utility modules. See `docs/bot-architecture-overview.md` for details.
+- **Multi Bot Architecture:** Sam handles Discord interactions while Jack processes the fic metadata queue in the background. All features are split into dedicated command, handler, event, model, and utility modules. See `docs/bot-architecture-overview.md` for details.
 - **Queue System:** All fic metadata fetching goes through a robust, deduplicated queue system with rate limiting and notification features.
 - **Sam Winchester's Voice:** All member-facing text uses Sam's voice—dry wit, practical, and a little snarky. See `docs/sam-voice-guidelines.md`. These guidelines exist for my own reference but also to kind of explain my Sam headcanons and characterizations I use for Sambot.
 - **Database:** Uses SQLite for development and PostgreSQL for production. Database files are ignored via `.gitignore` for security.
 - **Process Management:** Uses PM2 for deployment. Both Sam and Jack run as separate PM2 processes. Use `./start-bots.sh` to start both, or run them individually with their respective ecosystem config files.
+
+## Deployment
+
+See `docs/deployment.md` for PM2 commands and operational details.
 
 ## Documentation
 
@@ -28,10 +32,8 @@ Heya! If you’re reading this, you probably already know the deal. Destiel, Sup
 - [Bot Architecture Overview](docs/bot-architecture-overview.md)
 - [Fic Parsing Queue System](docs/fic-parsing-queue-implementation.md)
 - [Sam's Voice Guidelines](docs/sam-voice-guidelines.md)
-- [Cas's Voice Guidelines](docs/cas-voice-guidelines.md)
-- [Message Tracking Utility](docs/message-tracking-utility.md)
-- [Naming Reference](docs/NAMING_REFERENCE.md)
 - [Changelog](CHANGELOG.md)
+- And many more in the /docs project folder. You can find project planning documents, technical spec docs, and other roadmarkers I've left for myself and folks who might want to try to build a similar project.
 
 ## Project Status & Issues
 
@@ -39,21 +41,15 @@ This is a single developer project. The source is public for transparency, featu
 
 ## Extending the Bot
 
-- Add new commands by creating handler modules in `src/bots/sam/commands/`.
-- Add new profile fields or rec features by updating models and utility logic.
-- Uses standardized custom ID formats for all buttons and navigation.
-- The queue system handles all fic metadata parsing. Don't bypass it.
-- Reference the docs for architecture, naming, and best practices.
+See `docs/extending.md` for guidance on adding commands, features, and using the queue.
 
 ## Security Best Practices
 
-- Never commits database files or secrets.
-- Uses environment variables for all sensitive config.
-- Always validates user input and handles errors gracefully.
+See `docs/security.md` for security recommendations and configuration tips.
 
 ## In-Jokes & Personality
 
-SamBot is basically Sam Winchester trapped in Discord. He’s snarky, helpful, and a  giant nerd. If he recs the same super angsty omegaverse fic for the hundredth time, just let him cook.
+Sambot is basically Sam Winchester trapped in Discord. He’s snarky, helpful, and a  giant nerd. If he recs the same super angsty omegaverse fic for the hundredth time, just let him cook.
 
 ## Already Here?
 

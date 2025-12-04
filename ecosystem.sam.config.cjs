@@ -3,7 +3,8 @@ module.exports = {
   apps: [
     {
       name: "sam",
-      script: "./src/bots/sam/sam.js",
+      script: 'node',
+      args: "./src/bots/sam/sam.js",
       instances: 1,
       autorestart: true,
       watch: false,

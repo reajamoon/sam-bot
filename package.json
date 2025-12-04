@@ -1,7 +1,7 @@
 {
-  "name": "sam",
-  "version": "3.1.0",
-  "description": "A Discord bot built with discord.js and Sequelize",
+  "name": "pb-bots",
+  "version": "2.0.0",
+  "description": "Discord multi-bot project built with discord.js and Sequelize",
   "type": "module",
   "main": "src/bots/sam/sam.js",
   "scripts": {
@@ -15,6 +15,11 @@
     "deploy:sam": "pm2 start ecosystem.sam.config.cjs --env production",
     "deploy:dean": "pm2 start ecosystem.dean.config.cjs --env production",
     "deploy:cas": "pm2 start ecosystem.cas.config.cjs --env production",
+    "deploy:jack": "pm2 start ecosystem.jack.config.cjs --env production",
+    "deploy:all": "pm2 start ecosystem.sam.config.cjs --env production && pm2 start ecosystem.dean.config.cjs --env production && pm2 start ecosystem.cas.config.cjs --env production && pm2 start ecosystem.jack.config.cjs --env production",
+    "deploy:all:save": "pm2 start ecosystem.sam.config.cjs --env production && pm2 start ecosystem.dean.config.cjs --env production && pm2 start ecosystem.cas.config.cjs --env production && pm2 start ecosystem.jack.config.cjs --env production && pm2 save",
+    "stop:all": "pm2 stop cas && pm2 stop dean && pm2 stop sam && pm2 stop jack",
+    "restart:all": "pm2 restart cas && pm2 restart dean && pm2 restart sam && pm2 restart jack",
     "register:sam": "node ./scripts/sam/deploy-commands.js",
     "clear:sam": "node ./scripts/sam/clear-commands.js",
     "register:dean": "node ./scripts/dean/deploy-commands.js",

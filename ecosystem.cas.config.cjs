@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: 'cas-bot',
+      name: 'cas',
       script: 'node',
       args: './src/bots/cas/cas.js',
       watch: false,

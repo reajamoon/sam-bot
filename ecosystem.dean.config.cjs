@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: 'dean-bot',
+      name: 'dean',
       script: 'node',
       args: './src/bots/dean/dean.js',
       watch: false,
