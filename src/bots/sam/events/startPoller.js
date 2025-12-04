@@ -7,6 +7,8 @@ import { createRecEmbed } from '../../../shared/recUtils/createRecEmbed.js';
 import { createSeriesEmbed } from '../../../shared/recUtils/createSeriesEmbed.js';
 
 const POLL_INTERVAL_MS = 10000;
+// Single-flight guard for nOTP jobs per heartbeat
+const nOTPInFlight = new Set();
 
 async function notifyQueueSubscribers(client) {
     // Heartbeat counters for this cycle
@@ -22,8 +24,19 @@ async function notifyQueueSubscribers(client) {
         });
         heartbeat_n = nOTPJobs.length;
         for (const job of nOTPJobs) {
+            // Simple backoff: if we attempted notify in the last 10s, skip this heartbeat
+            try {
+                const lastTs = job.result && job.result.lastNotifyAttempt;
+                if (lastTs && Date.now() - lastTs < POLL_INTERVAL_MS) {
+                    continue;
+                }
+            } catch {}
+            // Skip if job already in-flight this heartbeat
+            if (nOTPInFlight.has(job.id)) continue;
+            nOTPInFlight.add(job.id);
             // Skip if we've already sent a modmail for this nOTP job
             if (job.result && job.result.notified) {
+                nOTPInFlight.delete(job.id);
                 continue;
             }
             const subscribers = await ParseQueueSubscriber.findAll({ where: { queue_id: job.id } });
@@ -72,8 +85,18 @@ async function notifyQueueSubscribers(client) {
                     // Fallback: use fic URL (truncated)
                     threadTitle = `Rec Validation: ${job.fic_url.substring(0, 60)}`;
                 }
-                // Try to find an existing thread for this fic URL
-                let thread = await findModmailThreadByUrl(modmailChannel, job.fic_url, modmailThreadCache);
+                // If a threadId is stored on the job, prefer reusing it
+                let thread = null;
+                try {
+                    const storedId = job.result && job.result.threadId;
+                    if (storedId) {
+                        thread = modmailChannel.threads.cache.get(storedId) || await modmailChannel.threads.fetch(storedId).catch(() => null);
+                    }
+                } catch {}
+                // Otherwise, try to find an existing thread for this fic URL
+                if (!thread) {
+                    thread = await findModmailThreadByUrl(modmailChannel, job.fic_url, modmailThreadCache);
+                }
                 if (!thread) {
                     const sentMsg = await modmailChannel.send({ content: contentMsg });
                     // Create a thread for this modmail
@@ -83,6 +106,13 @@ async function notifyQueueSubscribers(client) {
                         reason: 'AO3 rec validation failed (nOTP)'
                     });
                     try { modmailThreadCache.set(job.fic_url, thread.id); } catch {}
+                    // Persist threadId immediately to avoid duplicates on next heartbeat
+                    try {
+                        const existingResult = job.result && typeof job.result === 'object' ? job.result : {};
+                        await job.update({ result: { ...existingResult, threadId: thread.id, notified: true, lastNotifyAttempt: Date.now() } });
+                    } catch (persistErr) {
+                        console.error('[Poller] Failed to persist threadId on nOTP job:', persistErr);
+                    }
                 }
                 // Send action buttons inside the thread for intuitive mod actions
                 try {
@@ -162,10 +192,12 @@ async function notifyQueueSubscribers(client) {
             // Mark as notified so we don't spam modmail; keep status 'nOTP' for override command
             try {
                 const existingResult = job.result && typeof job.result === 'object' ? job.result : {};
-                await job.update({ result: { ...existingResult, notified: true } });
+                await job.update({ result: { ...existingResult, notified: true, lastNotifyAttempt: Date.now() } });
             } catch (err) {
                 console.error('[Poller] Failed to mark nOTP job as notified:', err, `job id: ${job.id}, url: ${job.fic_url}`);
             }
+            // Clear single-flight guard
+            nOTPInFlight.delete(job.id);
         }
 
         // Notify for completed jobs
