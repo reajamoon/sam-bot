@@ -19,6 +19,20 @@ export default async function onMessageCreate(message) {
       return;
     }
 
+    // If a relay exists but the thread belongs to another bot (e.g., Sam), ignore it
+    if (relay) {
+      const existingThread = client.channels.cache.get(relay.thread_id);
+      if (existingThread && existingThread.isThread()) {
+        // Only reuse threads created by Cas
+        if (existingThread.ownerId !== client.user.id) {
+          relay = null; // force new thread creation for Cas
+        }
+      } else {
+        // Missing thread; allow recreation below
+        relay = null;
+      }
+    }
+
     if (!relay) {
       // Create a new modmail thread
       const base = await channel.send({ content: `New modmail from <@${message.author.id}>:\n\n${message.content}` });
@@ -34,14 +48,14 @@ export default async function onMessageCreate(message) {
       });
       await message.reply('Thanks! I’ve opened a modmail thread and the team will reply shortly.');
     } else {
-      // Post into existing thread
+      // Post into existing Cas-owned thread
       const thread = client.channels.cache.get(relay.thread_id);
       if (thread && thread.isThread()) {
         await thread.send({ content: `<@${message.author.id}>: ${message.content}` });
         await relay.update({ last_user_message_at: new Date() });
         await message.react('✅');
       } else {
-        // Thread missing; recreate
+        // Thread missing; recreate a Cas-owned thread
         const base = await channel.send({ content: `Modmail resumed for <@${message.author.id}>:\n\n${message.content}` });
         const threadName = `ModMail: ${message.author.username}`.substring(0, 100);
         const thread = await base.startThread({ name: threadName, autoArchiveDuration: 1440, reason: 'Resume modmail (thread missing)' });
