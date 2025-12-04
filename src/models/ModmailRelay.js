@@ -8,11 +8,24 @@ export default (sequelize) => {
     },
     fic_url: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
     },
     thread_id: {
       type: DataTypes.STRING,
       allowNull: false,
+    },
+    base_message_id: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    open: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+    },
+    last_user_message_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
     },
     last_relayed_at: {
       type: DataTypes.DATE,
@@ -23,7 +36,7 @@ export default (sequelize) => {
     timestamps: false,
     tableName: 'ModmailRelay',
     indexes: [
-      { unique: false, fields: ['user_id', 'fic_url'] },
+      { unique: false, fields: ['user_id'] },
       { unique: false, fields: ['thread_id'] }
     ]
   });

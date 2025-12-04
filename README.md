@@ -28,6 +28,7 @@ Heya! If you’re reading this, you probably already know the deal. Destiel, Sup
 - [Bot Architecture Overview](docs/bot-architecture-overview.md)
 - [Fic Parsing Queue System](docs/fic-parsing-queue-implementation.md)
 - [Sam's Voice Guidelines](docs/sam-voice-guidelines.md)
+- [Cas's Voice Guidelines](docs/cas-voice-guidelines.md)
 - [Message Tracking Utility](docs/message-tracking-utility.md)
 - [Naming Reference](docs/NAMING_REFERENCE.md)
 - [Changelog](CHANGELOG.md)

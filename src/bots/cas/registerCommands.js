@@ -1,5 +1,9 @@
 import { REST, Routes } from 'discord.js';
 import ping from './commands/ping.js';
+import modmail from './commands/modmail.js';
+import modmailClose from './commands/modmailClose.js';
+import hug from './commands/hug.js';
+import emojis from './commands/emojis.js';
 
 export default async function registerCasCommands(client) {
   const guildId = process.env.CAS_GUILD_ID;
@@ -10,8 +14,12 @@ export default async function registerCasCommands(client) {
   }
 
   client.commands.set(ping.data.name, ping);
+  client.commands.set(modmail.data.name, modmail);
+  client.commands.set(modmailClose.data.name, modmailClose);
+  client.commands.set(hug.data.name, hug);
+  client.commands.set(emojis.data.name, emojis);
 
-  const commands = [ping.data.toJSON()];
+  const commands = [ping.data.toJSON(), modmail.data.toJSON(), modmailClose.data.toJSON(), hug.data.toJSON(), emojis.data.toJSON()];
   const rest = new REST({ version: '10' }).setToken(token);
   try {
     if (guildId) {
