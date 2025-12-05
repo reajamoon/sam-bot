@@ -4,7 +4,6 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join, resolve as pathResolve } from 'path';
 import { readdirSync } from 'fs';
-import { join } from 'path';
 // Ensure we load .env from the repo root, regardless of CWD
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -18,11 +17,6 @@ if (envResult.error) {
 }
 
 const commands = [];
-
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 const commandsPath = join(__dirname, '../../src', 'bots', 'sam', 'commands');
 const commandFiles = readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 for (const file of commandFiles) {
@@ -35,29 +29,13 @@ for (const file of commandFiles) {
   commands.push(dataExport.toJSON());
 }
 
-let token = (process.env.BOT_TOKEN || '').trim();
-// Normalize token if user mistakenly prefixed with "Bot "
-if (token.toLowerCase().startsWith('bot ')) {
-  console.warn('⚠️ BOT_TOKEN appears to include the "Bot " prefix; removing it for REST client.');
-  token = token.slice(4).trim();
-}
-// Guard common quoting mistakes
-if ((token.startsWith('"') && token.endsWith('"')) || (token.startsWith("'") && token.endsWith("'"))) {
-  console.warn('⚠️ BOT_TOKEN appears to be quoted; stripping quotes.');
-  token = token.slice(1, -1).trim();
-}
-console.log(`[sam] Using BOT_TOKEN length: ${token.length}`);
-if (!token) {
-  console.error('❌ BOT_TOKEN is missing or empty. Set it in your environment/PM2 ecosystem.');
-  process.exit(1);
-}
 const token = process.env.BOT_TOKEN;
 if (!token) {
   console.error('❌ BOT_TOKEN is missing or empty. Define it in .env.');
   process.exit(1);
 }
 console.log(`[sam] BOT_TOKEN present (length: ${token.length}).`);
-const rest = new REST({ version: '10' }).setToken(token);
+const rest = new REST({ version: '10' }).setToken(token, 'Bot');
 
 (async () => {
   try {
