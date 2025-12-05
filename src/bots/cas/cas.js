@@ -4,7 +4,7 @@ import registerCasCommands from './registerCommands.js';
 import onMessageCreate from './events/messageCreate.js';
 import { initEmojiStore } from '../../shared/emojiStore.js';
 
-const token = process.env.CAS_BOT_TOKEN;
+const token = (process.env.CAS_BOT_TOKEN || '').trim();
 if (!token) {
   console.error('CAS_BOT_TOKEN is not set.');
   process.exit(1);
@@ -61,7 +61,7 @@ client.on('messageCreate', async (message) => {
   await onMessageCreate(message);
 });
 
-const REGISTER_ON_BOOT = (process.env.CAS_REGISTER_ON_BOOT || process.env.REGISTER_ON_BOOT || 'false').toLowerCase() === 'true';
+const REGISTER_ON_BOOT = String(process.env.CAS_REGISTER_ON_BOOT || 'false').toLowerCase() === 'true';
 await client.login(token);
 if (REGISTER_ON_BOOT) {
   await registerCasCommands(client);

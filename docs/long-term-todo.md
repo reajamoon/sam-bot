@@ -39,6 +39,12 @@
 ## DevOps
 - [/] Add test coverage for all modules
 
+## Deprecations
+- [ ] Deprecate and remove `*_REGISTER_ON_BOOT` flags across bots
+    - Rationale: Boot-time registration is brittle under PM2 restarts and causes REST churn and silent failures.
+    - Keep: Direct registration scripts under `scripts/*/deploy-commands-direct.js`.
+    - Steps: Remove env references once direct scripts are stable; verify command counts via logs.
+
 ## Privacy Modularization Implementation Details
 - [ ] If privacy button bugs persist, plan to rebuild privacy buttons from scratch
 

@@ -70,10 +70,11 @@ const req = https.request(
     res.on('end', () => {
       if (res.statusCode >= 200 && res.statusCode < 300) {
         console.log(`[cas] Registered ${commands.length} commands${guildId ? ' (guild)' : ''}.`);
+        process.exit(0);
       } else {
         console.error(`[cas] Failed to register commands: ${res.statusCode}`);
         console.error(data);
-        process.exitCode = 1;
+        process.exit(1);
       }
     });
   }

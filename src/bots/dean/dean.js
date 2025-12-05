@@ -6,7 +6,7 @@ import { initEmojiStore } from '../../shared/emojiStore.js';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { join, dirname } from 'path';
 
-const token = process.env.DEAN_BOT_TOKEN;
+const token = (process.env.DEAN_BOT_TOKEN || '').trim();
 if (!token) {
   console.error('DEAN_BOT_TOKEN is not set.');
   process.exit(1);
@@ -68,7 +68,7 @@ process.on('unhandledRejection', (reason) => {
   console.error('[dean] unhandledRejection:', reason && reason.stack ? reason.stack : reason);
 });
 
-const REGISTER_ON_BOOT = (process.env.DEAN_REGISTER_ON_BOOT || process.env.REGISTER_ON_BOOT || 'false').toLowerCase() === 'true';
+const REGISTER_ON_BOOT = String(process.env.DEAN_REGISTER_ON_BOOT || 'false').toLowerCase() === 'true';
 await client.login(token);
 if (REGISTER_ON_BOOT) {
   await registerDeanCommands(client);
