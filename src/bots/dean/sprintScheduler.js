@@ -35,7 +35,7 @@ export async function scheduleSprintNotifications(sprint, client) {
         await targetChannel.send({ embeds: [embed] });
         await fresh.update({ midpointNotified: true });
       } catch (e) {
-        console.warn('[dean] midpoint notify failed', e?.message || e);
+        console.warn('[dean] midpoint notify failed', (e && e.message) || e);
       }
     }, midpointDelay);
   }
@@ -61,7 +61,7 @@ export async function scheduleSprintNotifications(sprint, client) {
 
       // Optional summary posting
       const settings = await GuildSprintSettings.findOne({ where: { guildId: fresh.guildId } });
-      if (settings?.defaultSummaryChannelId) {
+      if (settings && settings.defaultSummaryChannelId) {
         const summaryChannel = getChannelFromIds(client, fresh.guildId, settings.defaultSummaryChannelId);
         if (summaryChannel) {
           const sum = await buildSummaryForSprintGroup(fresh);
@@ -70,7 +70,7 @@ export async function scheduleSprintNotifications(sprint, client) {
         }
       }
     } catch (e) {
-      console.warn('[dean] end notify failed', e?.message || e);
+      console.warn('[dean] end notify failed', (e && e.message) || e);
     }
   }, endDelay);
 }
