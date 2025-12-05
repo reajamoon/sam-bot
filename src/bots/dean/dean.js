@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { Client, GatewayIntentBits, Partials, Collection } from 'discord.js';
 import registerDeanCommands from './registerCommands.js';
+import { startSprintWatchdog } from './sprintScheduler.js';
 import { initEmojiStore } from '../../shared/emojiStore.js';
 
 const token = process.env.DEAN_BOT_TOKEN;
@@ -26,6 +27,8 @@ client.once('ready', async () => {
   if (!ok) {
     console.warn('[dean] Emoji store did not initialize. Check guild ID env (DEAN_GUILD_ID or GUILD_ID).');
   }
+  // Start sprint watchdog after ready
+  startSprintWatchdog(client);
 });
 
 client.on('interactionCreate', async interaction => {

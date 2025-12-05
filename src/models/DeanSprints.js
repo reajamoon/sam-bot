@@ -6,6 +6,9 @@ export default (sequelize) => {
     guildId: { type: DataTypes.STRING, allowNull: false },
     channelId: { type: DataTypes.STRING, allowNull: true },
     threadId: { type: DataTypes.STRING, allowNull: true },
+    groupId: { type: DataTypes.STRING, allowNull: true },
+    hostId: { type: DataTypes.STRING, allowNull: true },
+    role: { type: DataTypes.STRING, allowNull: false, defaultValue: 'participant' },
     type: { type: DataTypes.STRING, allowNull: false, defaultValue: 'solo' },
     visibility: { type: DataTypes.STRING, allowNull: false, defaultValue: 'public' },
     startedAt: { type: DataTypes.DATE, allowNull: false },
@@ -24,6 +27,8 @@ export default (sequelize) => {
       { fields: ['userId', 'status'] },
       { fields: ['guildId', 'channelId'] },
       { fields: ['startedAt'] },
+      { fields: ['groupId'] },
+      { fields: ['hostId'] },
     ],
   });
 

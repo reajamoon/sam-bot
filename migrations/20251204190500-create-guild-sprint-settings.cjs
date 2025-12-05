@@ -14,11 +14,7 @@ module.exports = {
       createdAt: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
       updatedAt: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     });
-    const existing = await queryInterface.showIndex('GuildSprintSettings');
-    const hasGuildIdIndex = existing.some(idx => (idx.name === 'guild_sprint_settings_guild_id' || (Array.isArray(idx.fields) && idx.fields.some(f => f.attribute === 'guildId'))));
-    if (!hasGuildIdIndex) {
-      await queryInterface.addIndex('GuildSprintSettings', ['guildId'], { name: 'guild_sprint_settings_guild_id' });
-    }
+    // No separate non-unique index needed; unique constraint on guildId already creates an index.
   },
 
   down: async (queryInterface) => {

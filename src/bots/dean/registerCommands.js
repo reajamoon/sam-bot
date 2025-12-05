@@ -1,5 +1,6 @@
 import { REST, Routes } from 'discord.js';
 import ping from './commands/ping.js';
+import * as sprint from './commands/sprint.js';
 
 export default async function registerDeanCommands(client) {
   const guildId = process.env.DEAN_GUILD_ID;
@@ -10,8 +11,9 @@ export default async function registerDeanCommands(client) {
   }
 
   client.commands.set(ping.data.name, ping);
+  client.commands.set(sprint.data.name, sprint);
 
-  const commands = [ping.data.toJSON()];
+  const commands = [ping.data.toJSON(), sprint.data.toJSON()];
   const rest = new REST({ version: '10' }).setToken(token);
   try {
     if (guildId) {
