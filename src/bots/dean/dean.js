@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { Client, GatewayIntentBits, Partials, Collection } from 'discord.js';
 import registerDeanCommands from './registerCommands.js';
-import { startSprintWatchdog } from './sprintScheduler.js';
+import onReady from './events/ready.js';
 import { initEmojiStore } from '../../shared/emojiStore.js';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { join, dirname } from 'path';
@@ -34,15 +34,8 @@ try {
   console.log('[dean] startup diagnostics failed:', e && e.message ? e.message : e);
 }
 
-client.once('ready', async () => {
-  console.log(`[dean] Logged in as ${client.user.tag}`);
-  const ok = await initEmojiStore(client).catch(() => false);
-  if (!ok) {
-    console.warn('[dean] Emoji store did not initialize. Check guild ID env (DEAN_GUILD_ID or GUILD_ID).');
-  }
-  // Start sprint watchdog after ready
-  startSprintWatchdog(client);
-});
+// Delegate ready handling to modular event file
+onReady(client);
 
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;

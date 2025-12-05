@@ -1,6 +1,6 @@
 import { initEmojiStore } from '../../shared/emojiStore.js';
 import { DeanSprints } from '../../../models/index.js';
-import { scheduleSprintNotifications } from '../sprintScheduler.js';
+import { scheduleSprintNotifications, startSprintWatchdog } from '../sprintScheduler.js';
 
 export default function onReady(client) {
   client.once('ready', async () => {
@@ -42,6 +42,13 @@ export default function onReady(client) {
       }
     } catch (e) {
       console.warn('[dean] Failed to reschedule sprints on boot:', (e && e.message) || e);
+    }
+
+    // Start sprint watchdog now that the client is ready
+    try {
+      startSprintWatchdog(client);
+    } catch (e) {
+      console.warn('[dean] Failed to start sprint watchdog:', (e && e.message) || e);
     }
   });
 }
