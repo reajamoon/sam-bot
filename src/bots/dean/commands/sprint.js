@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { DeanSprints, GuildSprintSettings, User, sequelize } from '../../../models/index.js';
-import { startSoloEmbed, hostTeamEmbed, joinTeamEmbed, endSoloEmbed, endTeamEmbed, statusSoloEmbed, statusTeamEmbed, leaveTeamEmbed, listEmbeds, formatListLine } from '../text/sprintText.js';
+import { startSoloEmbed, hostTeamEmbed, joinTeamEmbed, endSoloEmbed, endTeamEmbed, statusSoloEmbed, statusTeamEmbed, leaveTeamEmbed, listEmbeds, formatListLine, notEnabledInChannelText, noActiveTeamText, alreadyActiveSprintText, noActiveSprintText, notInTeamSprintText, hostsUseEndText, selectAChannelText, onlyStaffSetChannelText, sprintChannelSetText } from '../text/sprintText.js';
 import { scheduleSprintNotifications } from '../sprintScheduler.js';
 
 export const data = new SlashCommandBuilder()
@@ -56,7 +56,20 @@ export async function execute(interaction) {
     const allowed = Array.isArray(settings.allowedChannelIds) ? settings.allowedChannelIds.includes(channelId) : true;
     const blocked = Array.isArray(settings.blockedChannelIds) && settings.blockedChannelIds.includes(channelId);
     if (blocked || !allowed) {
-      return interaction.editReply({ content: 'Sprints are not enabled in this channel.' });
+      let mention = '';
+      if (settings.defaultSummaryChannelId) {
+        mention = `<#${settings.defaultSummaryChannelId}>`;
+      } else if (Array.isArray(settings.allowedChannelIds) && settings.allowedChannelIds.length) {
+        mention = `<#${settings.allowedChannelIds[0]}>`;
+      } else if (interaction.guild && interaction.guild.channels && interaction.guild.channels.cache) {
+        const sprintsChan = interaction.guild.channels.cache.find(ch => ch.name === 'sprints' && typeof ch.isTextBased === 'function' && ch.isTextBased());
+        if (sprintsChan) mention = `<#${sprintsChan.id}>`;
+      }
+      if (!mention) {
+        // Single-server fallback to main sprint channel
+        mention = '<#392787812073734144>';
+      }
+      return interaction.editReply({ content: notEnabledInChannelText(mention) });
     }
   }
 
@@ -125,11 +138,11 @@ export async function execute(interaction) {
       host = await DeanSprints.findOne({ where: { guildId, channelId, status: 'processing', type: 'team', role: 'host' }, order: [['createdAt', 'DESC']] });
     }
     if (!host) {
-      return interaction.editReply({ content: 'No active team sprint found in this channel.' });
+      return interaction.editReply({ content: noActiveTeamText() });
     }
     const existing = await DeanSprints.findOne({ where: { userId: discordId, guildId, status: 'processing' } });
     if (existing) {
-      return interaction.editReply({ content: 'You already have an active sprint.' });
+      return interaction.editReply({ content: alreadyActiveSprintText() });
     }
     await DeanSprints.create({
       userId: discordId,
@@ -151,7 +164,7 @@ export async function execute(interaction) {
     const discordId = interaction.user.id;
     const active = await DeanSprints.findOne({ where: { userId: discordId, guildId, status: 'processing' } });
     if (!active) {
-      return interaction.editReply({ content: 'No active sprint found.' });
+      return interaction.editReply({ content: noActiveSprintText() });
     }
     if (active.type === 'team' && active.role === 'host' && active.groupId) {
       // End the team (host + all participants)
@@ -165,7 +178,7 @@ export async function execute(interaction) {
     const discordId = interaction.user.id;
     const active = await DeanSprints.findOne({ where: { userId: discordId, guildId, status: 'processing' } });
     if (!active) {
-      return interaction.editReply({ content: 'No active sprint found.' });
+      return interaction.editReply({ content: noActiveSprintText() });
     }
     const endsAt = new Date(active.startedAt.getTime() + active.durationMinutes * 60000);
     const remainingMs = endsAt.getTime() - Date.now();
@@ -180,10 +193,10 @@ export async function execute(interaction) {
     const discordId = interaction.user.id;
     const active = await DeanSprints.findOne({ where: { userId: discordId, guildId, status: 'processing', type: 'team' } });
     if (!active) {
-      return interaction.editReply({ content: 'You are not in an active team sprint.' });
+      return interaction.editReply({ content: notInTeamSprintText() });
     }
     if (active.role === 'host') {
-      return interaction.editReply({ content: 'Hosts should use /sprint end to end the team sprint.' });
+      return interaction.editReply({ content: hostsUseEndText() });
     }
     await active.update({ status: 'done', endNotified: true });
     await interaction.editReply({ embeds: [leaveTeamEmbed()] });
@@ -198,16 +211,17 @@ export async function execute(interaction) {
     const embed = listEmbeds(lines);
     await interaction.editReply({ embeds: [embed] });
   } else if (sub === 'setchannel') {
-    // Require ManageGuild permission to change settings
-    const member = interaction.member;
-    const hasPerm = member?.permissions?.has?.('ManageGuild') || member?.permissions?.has?.('Administrator');
-    if (!hasPerm) {
-      return interaction.editReply({ content: 'You need Manage Server to set the sprint channel.' });
+    // Require internal permission level (mods/admins) to change settings
+    const discordId = interaction.user.id;
+    const requester = await User.findOne({ where: { discordId } });
+    const level = (requester?.permissionLevel || 'member').toLowerCase();
+    if (level === 'member') {
+      return interaction.editReply({ content: onlyStaffSetChannelText() });
     }
     const target = interaction.options.getChannel('channel');
     const allowThreads = interaction.options.getBoolean('allow_threads') ?? true;
     if (!target) {
-      return interaction.editReply({ content: 'Please select a channel.' });
+      return interaction.editReply({ content: selectAChannelText() });
     }
     const allowed = [target.id];
     const payload = {
@@ -221,6 +235,6 @@ export async function execute(interaction) {
     } else {
       await GuildSprintSettings.create({ guildId, ...payload });
     }
-    await interaction.editReply({ content: `Sprint channel set to <#${target.id}>. Threads allowed: ${allowThreads ? 'yes' : 'no'}.` });
+    await interaction.editReply({ content: sprintChannelSetText(target.id, allowThreads) });
   }
 }
