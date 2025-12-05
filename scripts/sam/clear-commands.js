@@ -3,9 +3,18 @@ const { REST, Routes } = Discord;
 import dotenv from 'dotenv';
 dotenv.config();
 
-const token = process.env.BOT_TOKEN;
-const clientId = process.env.CLIENT_ID;
-const guildId = process.env.GUILD_ID;
+const rawToken = process.env.BOT_TOKEN || '';
+const rawClientId = process.env.CLIENT_ID || '';
+const rawGuildId = process.env.GUILD_ID || '';
+
+const token = rawToken.trim();
+const clientId = rawClientId.trim();
+const guildId = rawGuildId.trim();
+
+if (!token || !clientId) {
+  console.error('[sam:clear] Missing env: CLIENT_ID or BOT_TOKEN');
+  process.exit(1);
+}
 
 const rest = new REST({ version: '10' }).setToken(token);
 

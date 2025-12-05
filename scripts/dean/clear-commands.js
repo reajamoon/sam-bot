@@ -3,9 +3,18 @@ const { REST, Routes } = Discord;
 import dotenv from 'dotenv';
 dotenv.config();
 
-const token = process.env.DEAN_BOT_TOKEN;
-const appId = process.env.DEAN_APP_ID;
-const guildId = process.env.DEAN_GUILD_ID;
+const rawToken = process.env.DEAN_BOT_TOKEN || '';
+const rawAppId = process.env.DEAN_CLIENT_ID || '';
+const rawGuildId = process.env.DEAN_GUILD_ID || '';
+
+const token = rawToken.trim();
+const appId = rawAppId.trim();
+const guildId = rawGuildId.trim();
+
+if (!token || !appId) {
+  console.error('[dean:clear] Missing env: DEAN_CLIENT_ID or DEAN_BOT_TOKEN');
+  process.exit(1);
+}
 
 const rest = new REST({ version: '10' }).setToken(token);
 
