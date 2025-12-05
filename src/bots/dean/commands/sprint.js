@@ -19,7 +19,7 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(sub => sub
     .setName('join')
     .setDescription('Join the active team sprint in this channel')
-    .addStringOption(opt => opt.setName('code').setDescription('Host code if multiple sprints exist'))
+    .addStringOption(opt => opt.setName('code').setDescription('Host code if multiple sprints exist')))
   .addSubcommand(sub => sub
     .setName('end')
     .setDescription('End your active sprint'))
