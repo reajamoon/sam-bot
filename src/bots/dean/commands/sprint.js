@@ -46,6 +46,14 @@ export const data = new SlashCommandBuilder()
     .setDescription('List active sprints in this channel')
     .addBooleanOption(opt => opt.setName('ephemeral').setDescription('Respond privately (default is public)')));
 
+  // Admin/mod-only: set default sprint channel for this guild
+data.addSubcommand(sub => sub
+  .setName('setchannel')
+  .setDescription('Set the default channel where sprints run')
+  .addChannelOption(opt => opt.setName('channel').setDescription('Channel to host sprints').setRequired(true))
+  .addBooleanOption(opt => opt.setName('allow_threads').setDescription('Allow threads by default (true)'))
+);
+
 export async function execute(interaction) {
   const ephemeral = interaction.options.getBoolean('ephemeral') ?? false;
   const flags = ephemeral ? MessageFlags.Ephemeral : undefined;
@@ -204,5 +212,30 @@ export async function execute(interaction) {
     });
     const embed = listEmbeds(lines);
     await interaction.reply({ embeds: [embed], flags: listFlags });
+  } else if (sub === 'setchannel') {
+    // Require ManageGuild permission to change settings
+    const member = interaction.member;
+    const hasPerm = member?.permissions?.has?.('ManageGuild') || member?.permissions?.has?.('Administrator');
+    if (!hasPerm) {
+      return interaction.reply({ content: 'You need Manage Server to set the sprint channel.', flags });
+    }
+    const target = interaction.options.getChannel('channel');
+    const allowThreads = interaction.options.getBoolean('allow_threads') ?? true;
+    if (!target) {
+      return interaction.reply({ content: 'Please select a channel.', flags });
+    }
+    const allowed = [target.id];
+    const payload = {
+      allowedChannelIds: allowed,
+      allowThreadsByDefault: !!allowThreads,
+      defaultSummaryChannelId: target.id,
+    };
+    const existing = await GuildSprintSettings.findOne({ where: { guildId } });
+    if (existing) {
+      await existing.update(payload);
+    } else {
+      await GuildSprintSettings.create({ guildId, ...payload });
+    }
+    await interaction.reply({ content: `Sprint channel set to <#${target.id}>. Threads allowed: ${allowThreads ? 'yes' : 'no'}.`, flags });
   }
 }
