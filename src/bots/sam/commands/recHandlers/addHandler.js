@@ -10,7 +10,7 @@ import { createSeriesEmbed } from '../../../../shared/recUtils/createSeriesEmbed
 import { fetchRecWithSeries } from '../../../../models/fetchRecWithSeries.js';
 import normalizeRating from '../../../../shared/recUtils/normalizeRating.js';
 import { getLockedFieldsForRec } from '../../../../shared/getLockedFieldsForRec.js';
-import { isFieldGloballyModlockedFor } from '../../../../shared/modlockUtils.js';
+import { isFieldGloballyModlockedFor } from '../../../../shared/utils/globalModlockUtils.js';
 // import { markPrimaryAndNotPrimaryWorks } from './seriesUtils.js';
 
 // Adds a new fic rec. Checks for duplicates, fetches metadata, and builds the embed.

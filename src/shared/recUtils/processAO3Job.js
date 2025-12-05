@@ -4,7 +4,7 @@
 
 import { Recommendation, Series, ModLock } from '../../models/index.js';
 import { fetchFicMetadata } from './ficParser.js';
-import { isFieldGloballyModlocked, shouldBotsRespectGlobalModlocks } from '../modlockUtils.js';
+import { isFieldGloballyModlocked, shouldBotsRespectGlobalModlocks } from '../utils/globalModlockUtils.js';
 import { createRecEmbed } from './createRecEmbed.js';
 import normalizeAO3Url from './normalizeAO3Url.js';
 import updateMessages from '../text/updateMessages.js';

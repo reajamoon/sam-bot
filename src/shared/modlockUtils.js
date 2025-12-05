@@ -1,4 +1,7 @@
 // Utility for global modlock field checks using Config table
+// Note: This module handles GLOBAL modlock policy sourced from Config.
+// For per-record setters (toggling a specific recommendation field), use
+// `src/shared/utils/modLockUtils.js` which provides `setModLock(rec, field, value)`.
 import { Config, User } from '../models/index.js';
 let globalModlockedFieldsCache = null;
 let botsRespectGlobalModlocksCache = null;

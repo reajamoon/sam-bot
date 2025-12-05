@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { Config } from '../../../models/index.js';
-import { clearGlobalModlockedFieldsCache } from '../../../shared/modlockUtils.js';
+import { clearGlobalModlockedFieldsCache } from '../../../shared/utils/globalModlockUtils.js';
 import updateMessages from '../../../shared/text/updateMessages.js';
 
 function isStaff(userRow) {

@@ -5,7 +5,7 @@ import { Series } from '../../../../models/index.js';
 import createOrJoinQueueEntry from '../../../../shared/recUtils/createOrJoinQueueEntry.js';
 import normalizeAO3Url from '../../../../shared/recUtils/normalizeAO3Url.js';
 import normalizeRating from '../../../../shared/recUtils/normalizeRating.js';
-import { isFieldGloballyModlockedFor } from '../../../../shared/modlockUtils.js';
+import { isFieldGloballyModlockedFor } from '../../../../shared/utils/globalModlockUtils.js';
 import { getLockedFieldsForSeries } from '../../../../shared/getLockedFieldsForSeries.js';
 
 // Helper to deduplicate and lowercase tags

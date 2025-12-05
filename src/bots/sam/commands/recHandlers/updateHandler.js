@@ -11,7 +11,7 @@ import { fetchRecWithSeries } from '../../../../models/fetchRecWithSeries.js';
 import { markPrimaryAndNotPrimaryWorks } from './seriesUtils.js';
 import normalizeRating from '../../../../shared/recUtils/normalizeRating.js';
 import { setModLock } from '../../../../shared/utils/modLockUtils.js';
-import { isFieldGloballyModlockedFor } from '../../../../shared/modlockUtils.js';
+import { isFieldGloballyModlockedFor } from '../../../../shared/utils/globalModlockUtils.js';
 import { getLockedFieldsForRec } from '../../../../shared/getLockedFieldsForRec.js';
 import handleUpdateSeries from './seriesUpdateHandler.js';
 

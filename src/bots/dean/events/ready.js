@@ -1,4 +1,4 @@
-import { initEmojiStore } from '../../shared/emojiStore.js';
+import { initEmojiStore } from '../../../shared/emojiStore.js';
 import { DeanSprints } from '../../../models/index.js';
 import { scheduleSprintNotifications, startSprintWatchdog } from '../sprintScheduler.js';
 
