@@ -33,6 +33,7 @@ export async function execute(interaction) {
   try {
     const subGroup = interaction.options.getSubcommandGroup();
     const sub = interaction.options.getSubcommand();
+    console.info('[Cas/bash] invoked', { guildId: interaction.guildId, userId: interaction.user?.id, sub });
     if (subGroup !== 'roles') {
       return interaction.editReply({ content: 'Try `/bash roles server-changes` or `/bash roles fun-stuff`.' });
     }
@@ -43,7 +44,14 @@ export async function execute(interaction) {
     }
 
     const guild = interaction.guild;
-    const me = guild.members.me;
+    let me = guild.members.me;
+    if (!me) {
+      try {
+        me = await guild.members.fetchMe();
+      } catch (e) {
+        console.error('[Cas/bash] fetchMe failed', e);
+      }
+    }
     let role = guild.roles.cache.get(roleId);
     if (!role) {
       try {
@@ -65,7 +73,16 @@ export async function execute(interaction) {
       return interaction.editReply({ content: 'That role is higher than mine. Ask a mod to adjust my role position.' });
     }
 
-    const member = interaction.member;
+    let member = interaction.member;
+    // Ensure we have a full GuildMember (not APIInteractionGuildMember)
+    if (!member || typeof member.roles?.add !== 'function') {
+      try {
+        member = await guild.members.fetch(interaction.user.id);
+      } catch (e) {
+        console.error('[Cas/bash] fetch member failed', e);
+        return interaction.editReply({ content: 'I couldn\'t load your member record to edit roles. Try again in a moment or ping a mod.' });
+      }
+    }
     const roleLabel = role?.name ?? 'that role';
     if (member.roles.cache.has(role.id)) {
       await member.roles.remove(role, 'Self-serve Birthday Bash role toggle (remove)');
