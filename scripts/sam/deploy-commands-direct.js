@@ -11,8 +11,9 @@ const repoRoot = pathResolve(__dirname, '../..');
 const envPath = join(repoRoot, '.env');
 dotenv.config({ path: envPath });
 
-const BOT_TOKEN = (process.env.SAM_BOT_TOKEN || '').trim();
-const CLIENT_ID_RAW = (process.env.SAM_CLIENT_ID || '').trim();
+// Prefer SAM_* envs, fallback to legacy
+const BOT_TOKEN = (process.env.SAM_BOT_TOKEN || process.env.BOT_TOKEN || '').trim();
+const CLIENT_ID_RAW = (process.env.SAM_CLIENT_ID || process.env.CLIENT_ID || '').trim();
 const CLIENT_ID = encodeURIComponent(CLIENT_ID_RAW);
 
 if (!BOT_TOKEN || !CLIENT_ID) {
