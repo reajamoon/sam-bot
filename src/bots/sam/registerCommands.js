@@ -3,7 +3,6 @@ import fs from 'fs';
 import path from 'path';
 
 export default async function registerSamCommands(client) {
-  const guildId = process.env.SAM_GUILD_ID || process.env.GUILD_ID;
   const appId = process.env.SAM_CLIENT_ID || process.env.CLIENT_ID;
   const token = process.env.SAM_BOT_TOKEN || process.env.BOT_TOKEN;
   if (!appId || !token) {
@@ -24,13 +23,8 @@ export default async function registerSamCommands(client) {
 
   const rest = new REST({ version: '10' }).setToken(token, 'Bot');
   try {
-    if (guildId) {
-      await rest.put(Routes.applicationGuildCommands(appId, guildId), { body: commands });
-      console.log('[sam] Registered guild commands');
-    } else {
-      await rest.put(Routes.applicationCommands(appId), { body: commands });
-      console.log('[sam] Registered global commands');
-    }
+    await rest.put(Routes.applicationCommands(appId), { body: commands });
+    console.log('[sam] Registered global commands');
   } catch (err) {
     console.error('[sam] Failed to register commands:', err);
   }

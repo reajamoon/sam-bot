@@ -3,11 +3,10 @@ import ping from './commands/ping.js';
 import * as sprint from './commands/sprint.js';
 
 export default async function registerDeanCommands(client) {
-  const guildId = process.env.DEAN_GUILD_ID;
-  const appId = process.env.DEAN_CLIENT_ID;
+  const appId = (process.env.DEAN_CLIENT_ID || '').trim();
   const token = (process.env.DEAN_BOT_TOKEN || '').trim();
-  if (!guildId || !appId || !token) {
-    console.warn('[dean] Missing env: DEAN_GUILD_ID, DEAN_CLIENT_ID, or DEAN_BOT_TOKEN');
+  if (!appId || !token) {
+    console.warn('[dean] Missing env: DEAN_CLIENT_ID or DEAN_BOT_TOKEN');
   }
 
   client.commands.set(ping.data.name, ping);
@@ -16,13 +15,8 @@ export default async function registerDeanCommands(client) {
   const commands = [ping.data.toJSON(), sprint.data.toJSON()];
   const rest = new REST({ version: '10' }).setToken(token);
   try {
-    if (guildId) {
-      const result = await rest.put(Routes.applicationGuildCommands(appId, guildId), { body: commands });
-      console.log(`[dean] Registered ${Array.isArray(result) ? result.length : commands.length} guild command(s)`);
-    } else {
-      const result = await rest.put(Routes.applicationCommands(appId), { body: commands });
-      console.log(`[dean] Registered ${Array.isArray(result) ? result.length : commands.length} global command(s)`);
-    }
+    const result = await rest.put(Routes.applicationCommands(appId), { body: commands });
+    console.log(`[dean] Registered ${Array.isArray(result) ? result.length : commands.length} global command(s)`);
   } catch (err) {
     console.error('[dean] Failed to register commands:', err);
   }

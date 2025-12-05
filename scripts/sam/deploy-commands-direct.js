@@ -11,14 +11,12 @@ const repoRoot = pathResolve(__dirname, '../..');
 const envPath = join(repoRoot, '.env');
 dotenv.config({ path: envPath });
 
-const BOT_TOKEN = (process.env.BOT_TOKEN || '').trim();
-const CLIENT_ID_RAW = (process.env.CLIENT_ID || '').trim();
-const GUILD_ID_RAW = (process.env.GUILD_ID || '').trim();
+const BOT_TOKEN = (process.env.SAM_BOT_TOKEN || '').trim();
+const CLIENT_ID_RAW = (process.env.SAM_CLIENT_ID || '').trim();
 const CLIENT_ID = encodeURIComponent(CLIENT_ID_RAW);
-const GUILD_ID = encodeURIComponent(GUILD_ID_RAW);
 
-if (!BOT_TOKEN || !CLIENT_ID || !GUILD_ID) {
-  console.error('[sam:direct] Missing env(s). Require BOT_TOKEN, CLIENT_ID, GUILD_ID.');
+if (!BOT_TOKEN || !CLIENT_ID) {
+  console.error('[sam:direct] Missing env(s). Require BOT_TOKEN and CLIENT_ID.');
   process.exit(1);
 }
 
@@ -37,7 +35,7 @@ const payload = JSON.stringify(commands);
 const options = {
   method: 'PUT',
   hostname: 'discord.com',
-  path: `/api/v10/applications/${CLIENT_ID}/guilds/${GUILD_ID}/commands`,
+  path: `/api/v10/applications/${CLIENT_ID}/commands`,
   headers: {
     'Authorization': `Bot ${BOT_TOKEN}`,
     'Content-Type': 'application/json',
@@ -46,7 +44,7 @@ const options = {
   }
 };
 
-console.log(`[sam:direct] Deploying ${commands.length} commands to guild ${GUILD_ID} via direct HTTPS...`);
+console.log(`[sam:direct] Deploying ${commands.length} global commands via direct HTTPS...`);
 const req = https.request(options, res => {
   let body = '';
   res.on('data', chunk => { body += chunk; });

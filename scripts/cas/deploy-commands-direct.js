@@ -5,9 +5,7 @@ import { join } from 'path';
 
 const token = (process.env.CAS_BOT_TOKEN || '').trim();
 const clientIdRaw = (process.env.CAS_CLIENT_ID || '').trim();
-const guildIdRaw = (process.env.CAS_GUILD_ID || '').trim();
 const clientId = encodeURIComponent(clientIdRaw);
-const guildId = guildIdRaw ? encodeURIComponent(guildIdRaw) : '';
 
 if (!token || !clientId) {
   console.error('[cas] Missing token or clientId. Set CAS_BOT_TOKEN and CAS_CLIENT_ID.');
@@ -39,9 +37,9 @@ async function buildCommands() {
 
 const commands = await buildCommands();
 const body = JSON.stringify(commands);
-const path = guildId
-  ? `/api/v10/applications/${clientId}/guilds/${guildId}/commands`
-  : `/api/v10/applications/${clientId}/commands`;
+const path = `/api/v10/applications/${clientId}/commands`;
+
+// Global-only registration for single-server setup
 
 const req = https.request(
   {
@@ -59,7 +57,7 @@ const req = https.request(
     res.on('data', chunk => (data += chunk));
     res.on('end', () => {
       if (res.statusCode >= 200 && res.statusCode < 300) {
-        console.log(`[cas] Registered ${commands.length} commands${guildId ? ' (guild)' : ''}.`);
+        console.log(`[cas] Registered ${commands.length} global commands.`);
         process.exit(0);
       } else {
         console.error(`[cas] Failed to register commands: ${res.statusCode}`);

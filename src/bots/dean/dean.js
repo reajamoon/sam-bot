@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { Client, GatewayIntentBits, Partials, Collection } from 'discord.js';
 import registerDeanCommands from './registerCommands.js';
 import onReady from './events/ready.js';
+import onInteractionCreate from './events/interactionCreate.js';
 import { initEmojiStore } from '../../shared/emojiStore.js';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { join, dirname } from 'path';
@@ -36,23 +37,7 @@ try {
 
 // Delegate ready handling to modular event file
 onReady(client);
-
-client.on('interactionCreate', async interaction => {
-  if (!interaction.isChatInputCommand()) return;
-  const command = client.commands.get(interaction.commandName);
-  if (!command) return;
-  try {
-    await command.execute(interaction);
-  } catch (err) {
-    console.error('[dean] Command error:', err);
-    if (interaction.deferred || interaction.replied) {
-      await interaction.editReply({ content: 'There was an error executing that command.' });
-    } else {
-      const { MessageFlags } = await import('discord.js');
-      await interaction.reply({ content: 'There was an error executing that command.', flags: MessageFlags.Ephemeral });
-    }
-  }
-});
+onInteractionCreate(client);
 
 process.on('uncaughtException', (err) => {
   console.error('[dean] uncaughtException:', err && err.stack ? err.stack : err);
