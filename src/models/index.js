@@ -15,6 +15,9 @@ import ModLockModel from './ModLock.js';
 import ModmailRelayModel from './ModmailRelay.js';
 import DeanSprintsModel from './DeanSprints.js';
 import GuildSprintSettingsModel from './GuildSprintSettings.js';
+import ProjectModel from './Project.js';
+import ProjectMemberModel from './ProjectMember.js';
+import WordcountModel from './Wordcount.js';
 
 // Determine connection settings
 const rawDatabaseUrl = process.env.DATABASE_URL || '';
@@ -55,6 +58,9 @@ const ModLock = ModLockModel(sequelize);
 const ModmailRelay = ModmailRelayModel(sequelize);
 const DeanSprints = DeanSprintsModel(sequelize);
 const GuildSprintSettings = GuildSprintSettingsModel(sequelize);
+const Project = ProjectModel(sequelize);
+const ProjectMember = ProjectMemberModel(sequelize);
+const Wordcount = WordcountModel(sequelize);
 
 // ModmailRelay associations
 ModmailRelay.belongsTo(User, { foreignKey: 'user_id', targetKey: 'discordId', as: 'user', constraints: false });
@@ -84,6 +90,17 @@ Series.hasMany(ModLock, { foreignKey: 'seriesId', sourceKey: 'ao3SeriesId', as: 
 // Dean sprint associations
 DeanSprints.belongsTo(User, { foreignKey: 'userId', targetKey: 'discordId', as: 'user', constraints: false });
 User.hasMany(DeanSprints, { foreignKey: 'userId', sourceKey: 'discordId', as: 'sprints' });
+DeanSprints.belongsTo(Project, { foreignKey: 'projectId', as: 'project' });
+Project.hasMany(DeanSprints, { foreignKey: 'projectId', as: 'sprints' });
+
+// Projects and wordcounts associations
+Project.belongsTo(User, { foreignKey: 'ownerId', targetKey: 'discordId', as: 'owner', constraints: false });
+Project.hasMany(ProjectMember, { foreignKey: 'projectId', as: 'members' });
+ProjectMember.belongsTo(Project, { foreignKey: 'projectId', as: 'project' });
+ProjectMember.belongsTo(User, { foreignKey: 'userId', targetKey: 'discordId', as: 'user', constraints: false });
+Wordcount.belongsTo(User, { foreignKey: 'userId', targetKey: 'discordId', as: 'user', constraints: false });
+Wordcount.belongsTo(Project, { foreignKey: 'projectId', as: 'project' });
+Wordcount.belongsTo(DeanSprints, { foreignKey: 'sprintId', as: 'sprint' });
 
 export {
     sequelize,
@@ -100,7 +117,10 @@ export {
     ModLock,
     ModmailRelay,
     DeanSprints,
-    GuildSprintSettings
+    GuildSprintSettings,
+    Project,
+    ProjectMember,
+    Wordcount
 };
 
 // Convenience re-exports for model helpers
