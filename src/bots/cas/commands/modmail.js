@@ -1,9 +1,9 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { Config } from '../../../../src/models/index.js';
+import { Config } from '../../../models/index.js';
 // If available, use ModMailRelay to track thread ↔ user mapping for DM relays
 let ModMailRelay = null;
 try {
-  const models = await import('../../../../src/models/index.js');
+  const models = await import('../../../models/index.js');
   ModMailRelay = models.ModMailRelay;
 } catch {}
 

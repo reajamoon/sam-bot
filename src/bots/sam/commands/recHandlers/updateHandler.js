@@ -7,7 +7,7 @@ import { Recommendation } from '../../../../models/index.js';
 import normalizeAO3Url from '../../../../shared/recUtils/normalizeAO3Url.js';
 import createOrJoinQueueEntry from '../../../../shared/recUtils/createOrJoinQueueEntry.js';
 import { createRecEmbed } from '../../../../shared/recUtils/createRecEmbed.js';
-import { fetchRecWithSeries } from '../../../../models/fetchRecWithSeries.js';
+import { fetchRecWithSeries } from '../../../../models/index.js';
 import { markPrimaryAndNotPrimaryWorks } from './seriesUtils.js';
 import normalizeRating from '../../../../shared/recUtils/normalizeRating.js';
 import { setModLock } from '../../../../shared/utils/modLockUtils.js';

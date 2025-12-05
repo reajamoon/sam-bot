@@ -7,7 +7,7 @@ import { User } from '../../../../models/index.js';
 import createOrJoinQueueEntry from '../../../../shared/recUtils/createOrJoinQueueEntry.js';
 import { createRecEmbed } from '../../../../shared/recUtils/createRecEmbed.js';
 import { createSeriesEmbed } from '../../../../shared/recUtils/createSeriesEmbed.js';
-import { fetchRecWithSeries } from '../../../../models/fetchRecWithSeries.js';
+import { fetchRecWithSeries } from '../../../../models/index.js';
 import normalizeRating from '../../../../shared/recUtils/normalizeRating.js';
 import { getLockedFieldsForRec } from '../../../../shared/getLockedFieldsForRec.js';
 import { isFieldGloballyModlockedFor } from '../../../../shared/utils/globalModlockUtils.js';

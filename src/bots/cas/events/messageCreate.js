@@ -1,4 +1,4 @@
-import { Config, ModmailRelay } from '../../../../src/models/index.js';
+import { Config, ModmailRelay } from '../../../models/index.js';
 import { EmbedBuilder, ChannelType, PermissionFlagsBits } from 'discord.js';
 
 export default async function onMessageCreate(message) {

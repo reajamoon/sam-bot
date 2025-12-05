@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { ModmailRelay } from '../../../../src/models/index.js';
+import { ModmailRelay } from '../../../models/index.js';
 
 const data = new SlashCommandBuilder()
   .setName('modmail_close')

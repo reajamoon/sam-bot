@@ -102,3 +102,7 @@ export {
     DeanSprints,
     GuildSprintSettings
 };
+
+// Convenience re-exports for model helpers
+export { fetchRecWithSeries } from './fetchRecWithSeries.js';
+export { fetchAllRecsWithSeries } from './fetchAllRecsWithSeries.js';

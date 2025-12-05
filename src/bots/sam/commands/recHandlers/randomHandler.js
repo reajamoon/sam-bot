@@ -1,8 +1,7 @@
 
 import Discord from 'discord.js';
 const { MessageFlags } = Discord;
-import { fetchRecWithSeries } from '../../../../models/fetchRecWithSeries.js';
-import { fetchAllRecsWithSeries } from '../../../../models/fetchAllRecsWithSeries.js';
+import { fetchRecWithSeries, fetchAllRecsWithSeries } from '../../../../models/index.js';
 import { createRecEmbed } from '../../../../shared/recUtils/createRecEmbed.js';
 import { createSeriesEmbed } from '../../../../shared/recUtils/createSeriesEmbed.js';
 import { matchesTagWithSynonyms } from '../../../../utils/tagUtils.js';
