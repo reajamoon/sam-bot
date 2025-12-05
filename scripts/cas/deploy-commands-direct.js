@@ -1,17 +1,5 @@
 import 'dotenv/config';
 import https from 'https';
-
-const token = process.env.CAS_BOT_TOKEN;
-const clientId = process.env.CAS_CLIENT_ID;
-const guildId = process.env.CAS_GUILD_ID;
-
-if (!token || !clientId) {
-  console.error('[cas] Missing token or clientId. Set CAS_BOT_TOKEN and CAS_CLIENT_ID.');
-  process.exit(1);
-}
-
-import 'dotenv/config';
-import https from 'https';
 import { readdirSync } from 'fs';
 import { join } from 'path';
 

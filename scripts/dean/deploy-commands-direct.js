@@ -1,23 +1,5 @@
 import 'dotenv/config';
 import https from 'https';
-
-const token = process.env.DEAN_BOT_TOKEN;
-const clientId = process.env.DEAN_CLIENT_ID;
-const guildId = process.env.DEAN_GUILD_ID;
-
-if (!token || !clientId) {
-  console.error('[dean] Missing token or clientId. Set DEAN_BOT_TOKEN and DEAN_CLIENT_ID.');
-  process.exit(1);
-}
-
-// Load Dean command JSON from built command modules if available
-// Fallback: empty array to clear or no-op
-let commands = [];
-try {
-  const { default: deanCommands } = await import('../../src/bots/dean/registerCommands.js');
-  if (Array.isArray(deanCommands)) commands = deanCommands;
-import 'dotenv/config';
-import https from 'https';
 import { readdirSync } from 'fs';
 import { join } from 'path';
 

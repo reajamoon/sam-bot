@@ -11,9 +11,11 @@ const repoRoot = pathResolve(__dirname, '../..');
 const envPath = join(repoRoot, '.env');
 dotenv.config({ path: envPath });
 
-const BOT_TOKEN = process.env.BOT_TOKEN;
-const CLIENT_ID = process.env.CLIENT_ID;
-const GUILD_ID = process.env.GUILD_ID;
+const BOT_TOKEN = (process.env.BOT_TOKEN || '').trim();
+const CLIENT_ID_RAW = (process.env.CLIENT_ID || '').trim();
+const GUILD_ID_RAW = (process.env.GUILD_ID || '').trim();
+const CLIENT_ID = encodeURIComponent(CLIENT_ID_RAW);
+const GUILD_ID = encodeURIComponent(GUILD_ID_RAW);
 
 if (!BOT_TOKEN || !CLIENT_ID || !GUILD_ID) {
   console.error('[sam:direct] Missing env(s). Require BOT_TOKEN, CLIENT_ID, GUILD_ID.');
@@ -25,7 +27,7 @@ const commandsDir = join(repoRoot, 'src', 'bots', 'sam', 'commands');
 const files = fs.readdirSync(commandsDir).filter(f => f.endsWith('.js'));
 const commands = [];
 for (const file of files) {
-  const mod = await import(join(commandsDir, file));
+  const mod = await import(join(commandsDir, file).replace(/\\/g, '/'));
   const cmd = mod.default || mod;
   if (!cmd?.data?.toJSON) continue;
   commands.push(cmd.data.toJSON());
