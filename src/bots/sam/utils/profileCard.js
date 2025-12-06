@@ -172,11 +172,11 @@ async function generateProfileCard(discordUser, dbUser, client = null, interacti
             const teamSprints = await DeanSprints.count({ where: { userId: discordUser.id, type: 'team', role: 'host' } });
             // Total words sprinted: sum of all positive deltas for this user
             const totalWords = await Wordcount.sum('delta', { where: { userId: discordUser.id, delta: { [sequelize.Op.gt]: 0 } } });
-            let sprintsField = `Sprints ran: **${totalSprints}**\nTeam sprints ran: **${teamSprints}**\nWords sprinted: **${totalWords || 0}**`;
+            let sprintsField = `Sprints ran: **${totalSprints}**\nTeam sprints: **${teamSprints}**\nWords sprinted: **${totalWords || 0}**`;
             fields.push({ name: 'Sprints:', value: sprintsField, inline: false });
         }
     } catch (e) {
-        // ignore errors, don't block profile
+        console.error('[ProfileCard] Error fetching sprints for profile:', e);
     }
     // Row 5: Bio (full width)
     if (dbUser.bio) {
