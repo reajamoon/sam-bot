@@ -87,9 +87,9 @@ export async function execute(interaction) {
       const projectInput = interaction.options.getString('project');
       let project = await Project.findByPk(projectInput);
       if (!project) {
-        // Try by name (owned or member)
-        project = await Project.findOne({ where: { ownerId: discordId, name: projectInput } });
-        if (!project) {
+          // Try by name (owned or member)
+          project = await Project.findOne({ where: { ownerId: discordId, name: projectInput } });
+          if (!project) {
           const memberships = await ProjectMember.findAll({ where: { userId: discordId }, include: [{ model: Project, as: 'Project' }] });
           project = memberships.map(m => m.Project).find(p => p?.name === projectInput) || null;
         }
@@ -115,18 +115,36 @@ export async function execute(interaction) {
       const allRows = await Wordcount.findAll({ where: { projectId: project.id } }).catch(() => []);
       const allTotal = allRows.reduce((acc, r) => acc + ((typeof r.delta === 'number') ? Math.max(0, r.delta) : Math.max(0, (r.countEnd ?? 0) - (r.countStart ?? 0))), 0);
       const weekTotal = recentRows.reduce((acc, r) => acc + ((typeof r.delta === 'number') ? Math.max(0, r.delta) : Math.max(0, (r.countEnd ?? 0) - (r.countStart ?? 0))), 0);
-      const lines = [
-        `Project: ${project.name}`,
-        `Owner: ${ownerTag}`,
-        `Members: ${members.length} (mods: ${mods})`,
-        `Active sprint: ${activeSprint ? `yes in ${channelMention}` : 'no'}`,
-        `Last sprint total: ${lastSprintTotal} words`,
-        `Project total (all-time): ${allTotal} words`,
-        `7-day total: ${weekTotal} words`,
-        `Created: ${new Date(project.createdAt).toLocaleString()}`,
-        `ID: ${project.id}`,
-      ];
-      return interaction.editReply({ content: lines.join('\n') });
+      // Build embed
+      const Discord = await import('discord.js');
+      const { EmbedBuilder } = Discord;
+      // Try to get owner's role color
+      let embedColor = 0x5865F2;
+      try {
+        if (interaction.guild) {
+          const ownerMember = await interaction.guild.members.fetch(project.ownerId);
+          if (ownerMember && ownerMember.roles && ownerMember.roles.color) {
+            embedColor = ownerMember.roles.color.hexColor || embedColor;
+          } else if (ownerMember && ownerMember.displayHexColor && ownerMember.displayHexColor !== '#000000') {
+            embedColor = ownerMember.displayHexColor;
+          }
+        }
+      } catch {}
+        const embed = new EmbedBuilder()
+          .setTitle(`Project: ${project.name}`)
+          .setDescription('Project details and stats.')
+          .setColor(embedColor)
+          .addFields(
+            { name: 'Owner', value: ownerTag, inline: true },
+            { name: 'Members', value: `${members.length} (mods: ${mods})`, inline: true },
+            { name: 'Active Sprint', value: activeSprint ? `Yes, in ${channelMention}` : 'No', inline: true },
+            { name: 'Last Sprint Total', value: `${lastSprintTotal} words`, inline: true },
+            { name: 'All-Time Total', value: `${allTotal} words`, inline: true },
+            { name: '7-Day Total', value: `${weekTotal} words`, inline: true }
+          )
+          .setTimestamp(project.createdAt)
+          .setFooter({ text: `Project ID: ${project.id} • Created: <t:${Math.floor(new Date(project.createdAt).getTime() / 1000)}:F>` });
+        return interaction.editReply({ embeds: [embed] });
     }
 
     if (subGroup === 'wc') {
