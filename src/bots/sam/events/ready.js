@@ -6,7 +6,7 @@ import startBirthdayManager from './startBirthdayManager.js';
 import BirthdayNotificationManager from '../utils/birthdayNotifications.js';
 
 export default {
-    name: 'ready',
+    name: 'clientReady',
     once: true,
     async execute(client) {
         console.log(`Hey, it's Sam. I'm online and ready to help out.`);

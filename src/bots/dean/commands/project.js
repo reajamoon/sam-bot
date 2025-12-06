@@ -12,7 +12,7 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(sub => sub
     .setName('info')
     .setDescription('Show details and recent totals for a project')
-    .addStringOption(opt => opt.setName('project').setDescription('Project ID or Name').setRequired(true)))
+    .addStringOption(opt => opt.setName('project').setDescription('Project ID or Name').setRequired(false)))
   .addSubcommand(sub => sub
     .setName('list')
     .setDescription('List your projects'))
@@ -85,74 +85,40 @@ export async function execute(interaction) {
 
     if (subName === 'info') {
       const projectInput = interaction.options.getString('project');
-      let project = await Project.findByPk(projectInput);
-      if (!project) {
-          // Try by name (owned or member)
-          project = await Project.findOne({ where: { ownerId: discordId, name: projectInput } });
-          if (!project) {
-          const memberships = await ProjectMember.findAll({ where: { userId: discordId }, include: [{ model: Project, as: 'Project' }] });
-          project = memberships.map(m => m.Project).find(p => p?.name === projectInput) || null;
+      // If no argument, return all projects owned or joined by user
+      if (!projectInput) {
+        // Get all owned projects
+        const ownedProjects = await Project.findAll({ where: { ownerId: discordId } });
+        // Get all joined projects (excluding owned)
+        const memberships = await ProjectMember.findAll({ where: { userId: discordId }, include: [{ model: Project, as: 'Project' }] });
+        const joinedProjects = memberships.map(m => m.Project).filter(p => p && p.ownerId !== discordId);
+        const allProjects = [...ownedProjects, ...joinedProjects];
+        if (allProjects.length === 0) {
+          return interaction.editReply({ content: "You don't have any projects yet. Try `/project create`." });
         }
-      }
-      if (!project) {
-        return interaction.editReply({ content: "I can't find that project. Try `/project list`." });
-      }
-      const members = await ProjectMember.findAll({ where: { projectId: project.id } });
-      const ownerTag = interaction.client.users.cache.get(project.ownerId)?.tag ?? project.ownerId;
-      const activeSprint = await DeanSprints.findOne({ where: { projectId: project.id, status: 'processing' } }).catch(() => null);
-      const channelMention = activeSprint?.channelId ? `<#${activeSprint.channelId}>` : '—';
-      const mods = members.filter(m => m.role === 'mod').length;
-      // Recent totals: last sprint totals + last 7 days aggregate
-      let lastSprintTotal = 0;
-      const lastSprint = await DeanSprints.findOne({ where: { projectId: project.id }, order: [['updatedAt', 'DESC']] }).catch(() => null);
-      if (lastSprint) {
-        const rows = await Wordcount.findAll({ where: { sprintId: lastSprint.id }, order: [['recordedAt', 'ASC']] });
-        lastSprintTotal = rows.reduce((acc, r) => acc + ((typeof r.delta === 'number') ? Math.max(0, r.delta) : Math.max(0, (r.countEnd ?? 0) - (r.countStart ?? 0))), 0);
-      }
-      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      const recentRows = await Wordcount.findAll({ where: { projectId: project.id, recordedAt: { [Op.gte]: since } } }).catch(() => []);
-      // All-time total across all members for this project
-      const allRows = await Wordcount.findAll({ where: { projectId: project.id } }).catch(() => []);
-      const allTotal = allRows.reduce((acc, r) => acc + ((typeof r.delta === 'number') ? Math.max(0, r.delta) : Math.max(0, (r.countEnd ?? 0) - (r.countStart ?? 0))), 0);
-      const weekTotal = recentRows.reduce((acc, r) => acc + ((typeof r.delta === 'number') ? Math.max(0, r.delta) : Math.max(0, (r.countEnd ?? 0) - (r.countStart ?? 0))), 0);
-      // Build embed
-      const Discord = await import('discord.js');
-      const { EmbedBuilder } = Discord;
-      // Try to get owner's role color
-      let embedColor = 0x5865F2;
-      try {
-        if (interaction.guild) {
-          const ownerMember = await interaction.guild.members.fetch(project.ownerId);
-          if (ownerMember && ownerMember.roles && ownerMember.roles.color) {
-            embedColor = ownerMember.roles.color.hexColor || embedColor;
-          } else if (ownerMember && ownerMember.displayHexColor && ownerMember.displayHexColor !== '#000000') {
-            embedColor = ownerMember.displayHexColor;
-          }
-        }
-      } catch {}
+        // Build a summary embed listing all projects
+        const Discord = await import('discord.js');
+        const { EmbedBuilder } = Discord;
         const embed = new EmbedBuilder()
-          .setTitle(`Project: ${project.name}`)
-          .setDescription('Project details and stats.')
-          .setColor(embedColor)
+          .setTitle('Your Projects')
+          .setDescription('All projects you own or have joined.')
+          .setColor(0x5865F2)
           .addFields(
-            { name: 'Owner', value: ownerTag, inline: true },
-            { name: 'Members', value: `${members.length} (mods: ${mods})`, inline: true },
-            { name: 'Active Sprint', value: activeSprint ? `Yes, in ${channelMention}` : 'No', inline: true },
-            { name: 'Last Sprint Total', value: `${lastSprintTotal} words`, inline: true },
-            { name: 'All-Time Total', value: `${allTotal} words`, inline: true },
-            { name: '7-Day Total', value: `${weekTotal} words`, inline: true }
-          )
-          .setTimestamp(project.createdAt)
-          .setFooter({ text: `Project ID: ${project.id} • Created: <t:${Math.floor(new Date(project.createdAt).getTime() / 1000)}:F>` });
+            ...allProjects.map(p => ({
+              name: p.name,
+              value: `ID: ${p.id}\nOwner: ${p.ownerId === discordId ? 'You' : p.ownerId}\nCreated: <t:${Math.floor(new Date(p.createdAt).getTime() / 1000)}:F>`
+            }))
+          );
         return interaction.editReply({ embeds: [embed] });
-    }
 
     if (subGroup === 'wc') {
       // Resolve project: required, can be ID or Name
       let projectInput = interaction.options.getString('project');
       let project = null;
-      // Try by ID first
-      project = await Project.findByPk(projectInput);
+      const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+      if (uuidRegex.test(projectInput)) {
+        project = await Project.findByPk(projectInput);
+      }
       if (!project) {
         // Try by name (owned or member)
         project = await Project.findOne({ where: { ownerId: discordId, name: projectInput } });
