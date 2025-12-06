@@ -9,7 +9,6 @@ import createOrJoinQueueEntry from '../../../../shared/recUtils/createOrJoinQueu
 import { createRecEmbed } from '../../../../shared/recUtils/createRecEmbed.js';
 import { createSeriesEmbed } from '../../../../shared/recUtils/createSeriesEmbed.js';
 import { fetchRecWithSeries } from '../../../../models/index.js';
-import { fetchSeriesWithUserMetadata } from '../../../../models/fetchSeriesWithUserMetadata.js';
 import normalizeRating from '../../../../shared/recUtils/normalizeRating.js';
 import { getLockedFieldsForRec } from '../../../../shared/getLockedFieldsForRec.js';
 import { isFieldGloballyModlockedFor } from '../../../../shared/utils/globalModlockUtils.js';
