@@ -148,6 +148,9 @@ async function getLoggedInAO3Page(ficUrl) {
         'Upgrade-Insecure-Requests': '1',
         'X-Sam-Bot-Info': 'Hi AO3 devs! This is Sam, a hand-coded Discord bot for a single small server. I only fetch header metadata for user recs and do not retrieve fic content. Contact: https://github.com/reajamoon/sam-bot'
     });
+    // Harden navigation/evaluation timing
+    try { page.setDefaultNavigationTimeout(NAV_TIMEOUT); } catch {}
+    try { page.setDefaultTimeout(20000); } catch {}
     // Load cookies if available
     if (fs.existsSync(COOKIES_PATH)) {
         try {
@@ -331,10 +334,16 @@ async function getLoggedInAO3Page(ficUrl) {
             logBrowserEvent('[AO3] Using main login form.');
             await page.type(MAIN_SELECTOR, username);
             await page.type('#user_password', password);
-            await Promise.all([
-                page.click('#loginform input[name="commit"]'),
-                page.waitForNavigation({ waitUntil: 'domcontentloaded' })
-            ]);
+            try {
+                await Promise.all([
+                    page.click('#loginform input[name="commit"]'),
+                    page.waitForNavigation({ waitUntil: 'networkidle2', timeout: NAV_TIMEOUT })
+                ]);
+            } catch (navErr) {
+                logBrowserEvent('[AO3] Navigation after main login submit failed, retrying once: ' + (navErr && navErr.message ? navErr.message : ''));
+                // Retry once with a fresh wait
+                await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT }).catch(() => {});
+            }
         } else {
             // Retry small login form selector with retries
             let smallLoginExists = false;
@@ -357,18 +366,28 @@ async function getLoggedInAO3Page(ficUrl) {
                 logBrowserEvent('[AO3] Using small login form.');
                 await page.type(SMALL_SELECTOR, username);
                 await page.type('#user_session_password_small', password);
-                await Promise.all([
-                    page.click('#small_login input[name="commit"]'),
-                    page.waitForNavigation({ waitUntil: 'domcontentloaded' })
-                ]);
+                try {
+                    await Promise.all([
+                        page.click('#small_login input[name="commit"]'),
+                        page.waitForNavigation({ waitUntil: 'networkidle2', timeout: NAV_TIMEOUT })
+                    ]);
+                } catch (navErr) {
+                    logBrowserEvent('[AO3] Navigation after small login submit failed, retrying once: ' + (navErr && navErr.message ? navErr.message : ''));
+                    await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT }).catch(() => {});
+                }
             } else {
                 logBrowserEvent('[AO3] No login form found, using fallback button.');
                 const button = await page.$('input[type="submit"], button');
                 if (button) {
-                    await Promise.all([
-                        button.click(),
-                        page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT })
-                    ]);
+                    try {
+                        await Promise.all([
+                            button.click(),
+                            page.waitForNavigation({ waitUntil: 'networkidle2', timeout: NAV_TIMEOUT })
+                        ]);
+                    } catch (navErr) {
+                        logBrowserEvent('[AO3] Navigation after fallback submit failed, retrying once: ' + (navErr && navErr.message ? navErr.message : ''));
+                        await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT }).catch(() => {});
+                    }
                 }
             }
         }
