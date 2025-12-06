@@ -368,7 +368,16 @@ async function handleQueueSeriesUpdate(interaction, series, updates) {
     }
 
     const responseMessage = `🔄 Series "${series.name}" has been queued for update. You'll be notified when processing is complete.`;
-    await interaction.editReply({
-        content: responseMessage
-    });
+    await interaction.editReply({ content: responseMessage });
+    // Record this message so the poller can edit it later instead of posting in fic-recs
+    try {
+        const msg = await interaction.fetchReply();
+        const { ParseQueueSubscriber } = await import('../../../../models/index.js');
+        await ParseQueueSubscriber.update(
+            { channel_id: msg.channelId, message_id: msg.id },
+            { where: { queue_id: queueEntry.id, user_id: interaction.user.id } }
+        );
+    } catch (e) {
+        console.warn('[series update] Failed to record subscriber message for poller edit:', e);
+    }
 }
