@@ -410,10 +410,13 @@ For raw refreshes without a note, hop over to the team-free-bots channel.`;
                 }
             }
 
-            try {
-                await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
-            } catch (err) {
-                console.error('[RecHandler] Error adding ParseQueueSubscriber:', err, { queue_id: queueEntry.id, user_id: interaction.user.id });
+            let existingSub = await ParseQueueSubscriber.findOne({ where: { queue_id: queueEntry.id, user_id: interaction.user.id } });
+            if (!existingSub) {
+                try {
+                    existingSub = await ParseQueueSubscriber.create({ queue_id: queueEntry.id, user_id: interaction.user.id });
+                } catch (err) {
+                    console.error('[RecHandler] Error adding ParseQueueSubscriber:', err, { queue_id: queueEntry.id, user_id: interaction.user.id });
+                }
             }
 
             // In fic_rec_channel, post a clean embed now and record it for poller edit
@@ -423,21 +426,27 @@ For raw refreshes without a note, hop over to the team-free-bots channel.`;
                 if (inRecChannel) {
                     const recWithSeries = await fetchRecWithSeries(recommendation.id, true);
                     const embedNow = createRecEmbed(recWithSeries, { preferredUserId: interaction.user.id, overrideNotes: newNotes });
-                    const recCfg = await Config.findOne({ where: { key: 'fic_rec_channel' } });
-                    const queueCfg = await Config.findOne({ where: { key: 'fic_queue_channel' } });
-                    let targetChannel = null;
-                    const channelIdPref = recCfg && recCfg.value ? recCfg.value : (queueCfg && queueCfg.value ? queueCfg.value : null);
-                    if (channelIdPref) {
-                        targetChannel = interaction.client.channels.cache.get(channelIdPref) || await interaction.client.channels.fetch(channelIdPref).catch(() => null);
+                    // Avoid duplicate embeds if we already have a tracked message for this queue/user
+                    if (!existingSub || !existingSub.channel_id || !existingSub.message_id) {
+                        const recCfg = await Config.findOne({ where: { key: 'fic_rec_channel' } });
+                        const queueCfg = await Config.findOne({ where: { key: 'fic_queue_channel' } });
+                        let targetChannel = null;
+                        const channelIdPref = recCfg && recCfg.value ? recCfg.value : (queueCfg && queueCfg.value ? queueCfg.value : null);
+                        if (channelIdPref) {
+                            targetChannel = interaction.client.channels.cache.get(channelIdPref) || await interaction.client.channels.fetch(channelIdPref).catch(() => null);
+                        }
+                        if (!targetChannel) targetChannel = interaction.channel;
+                        const postedMsg = await targetChannel.send({ embeds: [embedNow] });
+                        await ParseQueueSubscriber.update(
+                            { channel_id: postedMsg.channelId, message_id: postedMsg.id },
+                            { where: { queue_id: queueEntry.id, user_id: interaction.user.id } }
+                        );
+                        try { await interaction.deleteReply(); } catch {}
+                        await interaction.followUp({ content: 'Filed it in the library.', flags: MessageFlags.Ephemeral });
+                    } else {
+                        // We already have a tracked message; keep the reply minimal and let the poller edit
+                        await interaction.editReply({ content: "Refreshing that fic’s metadata. I’ll update the existing embed when it’s ready." });
                     }
-                    if (!targetChannel) targetChannel = interaction.channel;
-                    const postedMsg = await targetChannel.send({ embeds: [embedNow] });
-                    await ParseQueueSubscriber.update(
-                        { channel_id: postedMsg.channelId, message_id: postedMsg.id },
-                        { where: { queue_id: queueEntry.id, user_id: interaction.user.id } }
-                    );
-                    try { await interaction.deleteReply(); } catch {}
-                    await interaction.followUp({ content: 'Filed it in the library.', flags: MessageFlags.Ephemeral });
                 } else {
                     await interaction.editReply({ content: "Refreshing that fic’s metadata. I’ll post the updated embed when it’s ready." });
                     const msg = await interaction.fetchReply();

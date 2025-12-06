@@ -219,7 +219,11 @@ Tell us what you love: squee, gush, nerd out. Share the good stuff readers look 
               postedMsg = await targetChannel.send({ embeds: [embedNow] });
             }
           } catch (postErr) {
-            console.warn('[rec add] Failed to post immediate series embed before refresh:', postErr);
+            if (postErr && (postErr.code === 50013 || postErr.status === 403)) {
+              console.info('[rec add] No permission to post in target channel; delivering embed via reply.');
+            } else {
+              console.warn('[rec add] Failed to post immediate series embed before refresh:', postErr);
+            }
           }
           if (postedMsg) {
             try {
@@ -262,7 +266,11 @@ Tell us what you love: squee, gush, nerd out. Share the good stuff readers look 
               postedMsg = await targetChannel.send({ embeds: [embed] });
             }
           } catch (postErr) {
-            console.warn('[rec add] Failed to post public series embed:', postErr);
+            if (postErr && (postErr.code === 50013 || postErr.status === 403)) {
+              console.info('[rec add] No permission to post in target channel; delivering embed via reply.');
+            } else {
+              console.warn('[rec add] Failed to post public series embed:', postErr);
+            }
           }
           if (postedMsg) {
             try { await interaction.deleteReply(); } catch {}
@@ -354,7 +362,11 @@ Tell us what you love: squee, gush, nerd out. Share the good stuff readers look 
             postedMsg = await targetChannel.send({ embeds: [embedNow] });
           }
         } catch (postErr) {
-          console.warn('[rec add] Failed to post immediate rec embed before refresh:', postErr);
+          if (postErr && (postErr.code === 50013 || postErr.status === 403)) {
+            console.info('[rec add] No permission to post in target channel; delivering embed via reply.');
+          } else {
+            console.warn('[rec add] Failed to post immediate rec embed before refresh:', postErr);
+          }
         }
         if (postedMsg) {
           try {
@@ -397,7 +409,11 @@ Tell us what you love: squee, gush, nerd out. Share the good stuff readers look 
             postedMsg = await targetChannel.send({ embeds: [embed] });
           }
         } catch (postErr) {
-          console.warn('[rec add] Failed to post public rec embed:', postErr);
+          if (postErr && (postErr.code === 50013 || postErr.status === 403)) {
+            console.info('[rec add] No permission to post in target channel; delivering embed via reply.');
+          } else {
+            console.warn('[rec add] Failed to post public rec embed:', postErr);
+          }
         }
         if (postedMsg) {
           try { await interaction.deleteReply(); } catch {}
