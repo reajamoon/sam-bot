@@ -332,8 +332,20 @@ async function getLoggedInAO3Page(ficUrl) {
         }
         if (mainLoginExists) {
             logBrowserEvent('[AO3] Using main login form.');
-            await page.type(MAIN_SELECTOR, username);
-            await page.type('#user_password', password);
+            // Re-resolve selectors right before typing to avoid stale handles
+            await page.waitForSelector(MAIN_SELECTOR, { timeout: SELECTOR_WAIT });
+            await page.waitForSelector('#user_password', { timeout: SELECTOR_WAIT });
+            try {
+                await page.focus(MAIN_SELECTOR);
+                await page.keyboard.type(username, { delay: 50 });
+                await page.focus('#user_password');
+                await page.keyboard.type(password, { delay: 50 });
+            } catch (typeErr) {
+                logBrowserEvent('[AO3] Typing into login form failed; retrying with $eval setValue. ' + (typeErr && typeErr.message ? typeErr.message : ''));
+                // Fallback: set values via DOM directly to avoid input focus issues
+                await page.$eval(MAIN_SELECTOR, (el, value) => { el.value = value; }, username);
+                await page.$eval('#user_password', (el, value) => { el.value = value; }, password);
+            }
             try {
                 await Promise.all([
                     page.click('#loginform input[name="commit"]'),
@@ -364,8 +376,18 @@ async function getLoggedInAO3Page(ficUrl) {
             }
             if (smallLoginExists) {
                 logBrowserEvent('[AO3] Using small login form.');
-                await page.type(SMALL_SELECTOR, username);
-                await page.type('#user_session_password_small', password);
+                await page.waitForSelector(SMALL_SELECTOR, { timeout: SELECTOR_WAIT });
+                await page.waitForSelector('#user_session_password_small', { timeout: SELECTOR_WAIT });
+                try {
+                    await page.focus(SMALL_SELECTOR);
+                    await page.keyboard.type(username, { delay: 50 });
+                    await page.focus('#user_session_password_small');
+                    await page.keyboard.type(password, { delay: 50 });
+                } catch (typeErr) {
+                    logBrowserEvent('[AO3] Typing into small login failed; retrying with $eval setValue. ' + (typeErr && typeErr.message ? typeErr.message : ''));
+                    await page.$eval(SMALL_SELECTOR, (el, value) => { el.value = value; }, username);
+                    await page.$eval('#user_session_password_small', (el, value) => { el.value = value; }, password);
+                }
                 try {
                     await Promise.all([
                         page.click('#small_login input[name="commit"]'),
