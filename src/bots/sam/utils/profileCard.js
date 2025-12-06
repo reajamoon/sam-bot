@@ -1,5 +1,6 @@
 import Discord from 'discord.js';
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = Discord;
+import { Op } from 'sequelize';
 import { User } from '../../../models/index.js';
 import { formatBirthdayForProfile } from './birthdayFormatter.js';
 import { getZodiacSign, getChineseZodiacSign } from '../../../shared/utils/zodiacCalculator.js';
@@ -171,7 +172,7 @@ async function generateProfileCard(discordUser, dbUser, client = null, interacti
         if (totalSprints > 0) {
             const teamSprints = await DeanSprints.count({ where: { userId: discordUser.id, type: 'team', role: 'host' } });
             // Total words sprinted: sum of all positive deltas for this user
-            const totalWords = await Wordcount.sum('delta', { where: { userId: discordUser.id, delta: { [sequelize.Op.gt]: 0 } } });
+            const totalWords = await Wordcount.sum('delta', { where: { userId: discordUser.id, delta: { [Op.gt]: 0 } } });
             let sprintsField = `Sprints ran: **${totalSprints}**\nTeam sprints: **${teamSprints}**\nWords sprinted: **${totalWords || 0}**`;
             fields.push({ name: 'Sprints:', value: sprintsField, inline: false });
         }

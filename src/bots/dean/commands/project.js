@@ -90,7 +90,7 @@ export async function execute(interaction) {
         // Get all owned projects
         const ownedProjects = await Project.findAll({ where: { ownerId: discordId } });
         // Get all joined projects (excluding owned)
-        const memberships = await ProjectMember.findAll({ where: { userId: discordId }, include: [{ model: Project, as: 'Project' }] });
+        const memberships = await ProjectMember.findAll({ where: { userId: discordId }, include: [{ model: Project, as: 'project' }] });
         const joinedProjects = memberships.map(m => m.Project).filter(p => p && p.ownerId !== discordId);
         const allProjects = [...ownedProjects, ...joinedProjects];
         if (allProjects.length === 0) {
@@ -121,7 +121,7 @@ export async function execute(interaction) {
         // Try by name (owned or member)
         project = await Project.findOne({ where: { ownerId: discordId, name: projectInput } });
         if (!project) {
-          const memberships = await ProjectMember.findAll({ where: { userId: discordId }, include: [{ model: Project, as: 'Project' }] });
+          const memberships = await ProjectMember.findAll({ where: { userId: discordId }, include: [{ model: Project, as: 'project' }] });
           project = memberships.map(m => m.Project).find(p => p?.name === projectInput) || null;
         }
       }
@@ -190,7 +190,7 @@ export async function execute(interaction) {
         // Try by name (owned or member)
         project = await Project.findOne({ where: { ownerId: discordId, name: projectInput } });
         if (!project) {
-          const memberships = await ProjectMember.findAll({ where: { userId: discordId }, include: [{ model: Project, as: 'Project' }] });
+          const memberships = await ProjectMember.findAll({ where: { userId: discordId }, include: [{ model: Project, as: 'project' }] });
           project = memberships.map(m => m.Project).find(p => p?.name === projectInput) || null;
         }
       }
@@ -324,7 +324,7 @@ export async function execute(interaction) {
         // Try by name (owned or member)
         project = await Project.findOne({ where: { ownerId: discordId, name: projectInput } });
         if (!project) {
-          const memberships = await ProjectMember.findAll({ where: { userId: discordId }, include: [{ model: Project, as: 'Project' }] });
+          const memberships = await ProjectMember.findAll({ where: { userId: discordId }, include: [{ model: Project, as: 'project' }] });
           project = memberships.map(m => m.Project).find(p => p?.name === projectInput) || null;
         }
       }
